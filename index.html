@@ -42,6 +42,34 @@ button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;dis
 .agent-stat{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
 .agent-stat:last-child{border-bottom:0}
 .empty{padding:30px;text-align:center;color:var(--muted)}
+.agent-shell{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(300px,.75fr);gap:18px}
+.agent-chat{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.agent-chat-head{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:center}
+.agent-chat-head h3{margin:0}.agent-badge{font-size:12px;padding:6px 9px;border-radius:999px;background:#fef2f2;color:#b91c1c;font-weight:800}
+.agent-messages{height:430px;overflow:auto;padding:18px;background:#fafafa;display:flex;flex-direction:column;gap:12px}
+.agent-msg{max-width:86%;padding:12px 14px;border-radius:14px;line-height:1.45;font-size:14px;white-space:pre-wrap}
+.agent-msg.user{align-self:flex-end;background:#171717;color:#fff;border-bottom-right-radius:4px}
+.agent-msg.agent{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:4px}
+.agent-compose{padding:16px;border-top:1px solid var(--line);background:#fff}
+.agent-compose textarea{width:100%;min-height:88px;border:1px solid #d0d5dd;border-radius:12px;padding:12px;resize:vertical}
+.agent-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px;flex-wrap:wrap}
+.agent-side{display:flex;flex-direction:column;gap:14px}
+.agent-stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px}
+.agent-stat strong{font-size:26px;display:block;margin-top:5px}
+.agent-plan{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px}
+.agent-plan h4{margin:0 0 12px}.agent-plan-item{padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}.agent-plan-item:last-child{border-bottom:0}
+.agent-plan-item b{display:block;margin-bottom:4px}
+.agent-import-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.agent-import-kpi{border:1px solid var(--line);border-radius:10px;padding:10px;background:#fafafa}
+.agent-import-kpi b{font-size:20px;display:block}
+.agent-preview-list{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fafafa}
+.agent-preview-row{padding:9px 10px;border-bottom:1px solid var(--line);font-size:12px}
+.agent-preview-row:last-child{border-bottom:0}
+.agent-file-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.agent-file-actions a{text-decoration:none}
+.agent-warning{padding:10px;border-radius:10px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:12px;margin-top:10px}
+.agent-confirm{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+@media(max-width:900px){.agent-shell{grid-template-columns:1fr}.agent-messages{height:360px}}
 .modal{position:fixed;inset:0;background:#0008;display:grid;place-items:center;padding:20px;z-index:30}.modal-box{width:min(720px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:18px;padding:22px}
 @media(max-width:1000px){.cards{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr 1fr}.week{grid-template-columns:1fr 1fr}.agent-shell{grid-template-columns:1fr}.app{grid-template-columns:210px 1fr}}
 @media(max-width:720px){.login{justify-content:center;padding:18px;background-position:center}.login-card{padding:24px}.role-grid,.cards,.grid,.week,.form-grid{grid-template-columns:1fr}.span2{grid-column:auto}.app{display:block}.side{height:auto;position:relative}.profile{position:static;margin-top:20px}.main{padding:18px}.nav{display:flex;overflow:auto}.nav button{white-space:nowrap}.top{flex-direction:column}}
@@ -77,6 +105,7 @@ button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;dis
 
 <div id="modal" class="modal hidden"><div class="modal-box"><div id="modalContent"></div></div></div>
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -101,7 +130,7 @@ let currentUserProfile = null;
 let currentPersonName = "";
 let teamUsers = [];
 let cloudUnsubscribe = null;
-let agentPendingPlan = null;
+let agentPendingAction = null;
 let openingUserUid = null;
 let appReadyUid = null;
 let loginAutorizadoNestaPagina = false;
@@ -636,6 +665,31 @@ function normalizeAgentText(text){
     .trim();
 }
 
+function normalizeExcelHeader(text){
+  return normalizeAgentText(text)
+    .replace(/[^a-z0-9]+/g,'_')
+    .replace(/^_+|_+$/g,'');
+}
+
+function canonicalLevel(value){
+  const v=normalizeAgentText(value);
+  if(v==='basica'||v==='basico') return 'Básica';
+  if(v==='intermediaria'||v==='intermediario') return 'Intermediária';
+  if(v==='media'||v==='medio') return 'Média';
+  if(v==='avancada'||v==='avancado') return 'Avançada';
+  return '';
+}
+
+function canonicalStatus(value){
+  const v=normalizeAgentText(value);
+  if(!v) return 'Planejamento';
+  if(v==='planejamento') return 'Planejamento';
+  if(v==='em producao'||v==='producao') return 'Em produção';
+  if(v==='em revisao'||v==='revisao') return 'Em revisão';
+  if(v==='concluida'||v==='concluido'||v==='concluido(a)') return 'Concluída';
+  return 'Planejamento';
+}
+
 function getActiveInstructors(){
   const firestoreInstructors=teamUsers
     .filter(u=>u.perfil==='instructor' && u.ativo!==false)
@@ -663,11 +717,7 @@ function getAgentEligibleSkills(){
       .map(p=>Number(p.skillId))
   );
 
-  const statusPriority={
-    'Planejamento':0,
-    'Em produção':1,
-    'Em revisão':2
-  };
+  const statusPriority={'Planejamento':0,'Em produção':1,'Em revisão':2};
 
   return data.skills
     .filter(s=>s.status!=='Concluída' && !alreadyPlanned.has(Number(s.id)))
@@ -690,8 +740,8 @@ function buildAgentDistribution(skillCount,instructorCount){
 
   const useCount=Math.max(1,Math.min(Number(instructorCount)||instructors.length,instructors.length));
   const selectedInstructors=instructors.slice(0,useCount);
-
   const eligible=getAgentEligibleSkills();
+
   if(!eligible.length){
     return {error:'Não há habilidades pendentes e ainda não planejadas disponíveis para distribuir nesta semana.'};
   }
@@ -713,11 +763,11 @@ function buildAgentDistribution(skillCount,instructorCount){
       person:person.name,
       previousLoad:dynamicLoads[person.name]
     });
-
     dynamicLoads[person.name]+=1;
   });
 
   return {
+    type:'plan',
     requested,
     available:eligible.length,
     selectedInstructors:selectedInstructors.map(i=>i.name),
@@ -729,7 +779,7 @@ function buildAgentDistribution(skillCount,instructorCount){
 
 function agentAddMessage(type,text){
   agentMessages.push({type,text});
-  if(agentMessages.length>30) agentMessages=agentMessages.slice(-30);
+  if(agentMessages.length>40) agentMessages=agentMessages.slice(-40);
 }
 
 function agentDistributionSummary(plan){
@@ -750,7 +800,7 @@ function agentDistributionSummary(plan){
     text+='\nA distribuição foi equilibrada considerando a carga que cada instrutor já possui nesta semana.';
   }
 
-  text+='\n\nRevise o plano ao lado e clique em "Aplicar planejamento" para eu executar.';
+  text+='\n\nNenhuma alteração foi feita ainda. Confirme o plano ao lado para executar.';
   return text;
 }
 
@@ -764,6 +814,226 @@ function agentTeamSummary(){
   return 'Carga atual da semana:\n\n'+stats.map(s=>'• '+s.name+': '+s.load+' habilidade(s)').join('\n');
 }
 
+function parseAgentUserCommand(command){
+  const email=(command.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)||[])[0]||'';
+  const passMatch=command.match(/senha\s*[:=\-]?\s*["']?([^\s,;]+)["']?/i);
+  const password=passMatch?passMatch[1]:'';
+  const roleMatch=command.match(/(?:perfil|como)\s*[:=\-]?\s*(adm|admin|administrador|instrutor)/i);
+  const profile=roleMatch
+    ? (/adm|admin|administrador/i.test(roleMatch[1])?'admin':'instructor')
+    : '';
+
+  let name='';
+  const nameMatch=command.match(/(?:crie|criar|novo|nova)?\s*(?:um\s*)?(?:login|usuario|usuário)\s+(?:para\s+)?(.+?)(?=\s+(?:email|e-mail|senha|perfil|como)\b|$)/i);
+  if(nameMatch) name=nameMatch[1].replace(/^para\s+/i,'').trim();
+
+  return {name,email,password,profile};
+}
+
+function parseAgentSkillCommand(command){
+  const titleMatch=command.match(/(?:habilidade|titulo|título)\s*[:=\-]?\s*(.+?)(?=\s+(?:nivel|nível|objetivo|desenvolvimento|duracao|duração|responsavel|responsável|status)\b|$)/i);
+  const levelMatch=command.match(/(?:nivel|nível)\s*[:=\-]?\s*(basica|básica|basico|básico|intermediaria|intermediária|intermediario|intermediário|media|média|medio|médio|avancada|avançada|avancado|avançado)/i);
+  const objectiveMatch=command.match(/objetivo\s*[:=\-]?\s*(.+?)(?=\s+(?:desenvolvimento|duracao|duração|responsavel|responsável|status)\b|$)/i);
+  const developmentMatch=command.match(/desenvolvimento\s*[:=\-]?\s*(.+?)(?=\s+(?:duracao|duração|responsavel|responsável|status)\b|$)/i);
+  const durationMatch=command.match(/(?:duracao|duração)\s*[:=\-]?\s*([0-9]+\s*(?:min|minutos?|h|horas?))/i);
+  const ownerMatch=command.match(/(?:responsavel|responsável)\s*[:=\-]?\s*(.+?)(?=\s+(?:status)\b|$)/i);
+  const statusMatch=command.match(/status\s*[:=\-]?\s*(planejamento|em\s+producao|em\s+produção|producao|produção|em\s+revisao|em\s+revisão|revisao|revisão|concluida|concluída)/i);
+
+  return {
+    title:titleMatch?titleMatch[1].trim():'',
+    level:levelMatch?canonicalLevel(levelMatch[1]):'',
+    objective:objectiveMatch?objectiveMatch[1].trim():'',
+    development:developmentMatch?developmentMatch[1].trim():'',
+    duration:durationMatch?durationMatch[1].trim():'8 min',
+    owner:ownerMatch?ownerMatch[1].trim():'',
+    status:statusMatch?canonicalStatus(statusMatch[1]):'Planejamento'
+  };
+}
+
+function prepareAgentCreateUser(command){
+  const u=parseAgentUserCommand(command);
+  const missing=[];
+  if(!u.name) missing.push('nome');
+  if(!u.email) missing.push('e-mail');
+  if(!u.password) missing.push('senha');
+  if(!u.profile) missing.push('perfil (ADM ou Instrutor)');
+  if(u.password && u.password.length<6) missing.push('senha com pelo menos 6 caracteres');
+
+  if(missing.length){
+    agentPendingAction=null;
+    agentAddMessage('assistant','Para preparar o login, preciso de: '+missing.join(', ')+'.\n\nExemplo: "Crie login para Ana Silva, email ana@empresa.com, senha 123456, perfil Instrutor."');
+    return;
+  }
+
+  agentPendingAction={type:'createUser',...u};
+  agentAddMessage('assistant','Preparei o novo login. Confira nome, e-mail e perfil no painel de confirmação. A senha fica mascarada. Só criarei o usuário depois da sua confirmação.');
+}
+
+function prepareAgentSkillMode(command){
+  agentPendingAction={
+    type:'skillMode',
+    draftCommand:command||''
+  };
+  agentAddMessage(
+    'assistant',
+    'Você quer criar uma única habilidade ou várias habilidades?\n\nSe forem várias, posso fornecer um modelo em Excel para preencher e depois importar todas de uma vez.'
+  );
+}
+
+function chooseAgentSkillMode(mode){
+  if(role!=='admin') return;
+
+  const draft=agentPendingAction&&agentPendingAction.type==='skillMode'
+    ? agentPendingAction.draftCommand||''
+    : '';
+
+  if(mode==='single'){
+    agentPendingAction=null;
+    agentAddMessage('assistant','Certo. Vamos criar uma habilidade. Vou usar as informações que você já informou e pedir somente o que estiver faltando.');
+    prepareAgentCreateSkill(draft);
+    renderAgent();
+    return;
+  }
+
+  if(mode==='bulk'){
+    agentPendingAction={type:'bulkSkillMode'};
+    agentAddMessage(
+      'assistant',
+      'Certo. Para várias habilidades, baixe o modelo em Excel, preencha as linhas e envie o arquivo aqui. Eu vou validar tudo e mostrar um resumo antes de importar.'
+    );
+    renderAgent();
+  }
+}
+
+function prepareAgentCreateSkill(command){
+  const s=parseAgentSkillCommand(command);
+  const missing=[];
+  if(!s.title) missing.push('título');
+  if(!s.level) missing.push('nível');
+
+  if(missing.length){
+    agentPendingAction=null;
+    agentAddMessage('assistant','Para preparar a habilidade, preciso de: '+missing.join(', ')+'.\n\nExemplo: "Crie habilidade Diagnóstico de baixa pressão, nível Avançada, duração 10 min, objetivo aplicar diagnóstico estruturado."');
+    return;
+  }
+
+  agentPendingAction={type:'createSkill',...s};
+  agentAddMessage('assistant','Preparei a habilidade. Confira os dados no painel de confirmação. Nenhuma habilidade foi criada ainda.');
+}
+
+function getExcelField(row,aliases){
+  const normalized={};
+  Object.entries(row||{}).forEach(([key,value])=>{
+    normalized[normalizeExcelHeader(key)]=value;
+  });
+  for(const alias of aliases){
+    const key=normalizeExcelHeader(alias);
+    if(normalized[key]!==undefined && String(normalized[key]).trim()!=='') return String(normalized[key]).trim();
+  }
+  return '';
+}
+
+async function handleAgentExcelImport(event){
+  if(role!=='admin') return;
+  const input=event.target;
+  const file=input.files&&input.files[0];
+  if(!file) return;
+
+  try{
+    if(typeof XLSX==='undefined') throw new Error('Biblioteca de Excel não carregada.');
+
+    agentAddMessage('user','Importar planilha: '+file.name);
+
+    const buffer=await file.arrayBuffer();
+    const workbook=XLSX.read(buffer,{type:'array'});
+    const sheetName=workbook.SheetNames[0];
+    if(!sheetName) throw new Error('A planilha não possui nenhuma aba.');
+
+    const rows=XLSX.utils.sheet_to_json(workbook.Sheets[sheetName],{defval:'',raw:false});
+    if(!rows.length) throw new Error('A primeira aba está vazia.');
+
+    const existing=new Set(data.skills.map(s=>normalizeAgentText(s.title)));
+    const seen=new Set();
+    const valid=[];
+    const duplicates=[];
+    const invalid=[];
+    const unknownOwners=[];
+
+    rows.forEach((row,index)=>{
+      const title=getExcelField(row,['titulo','título','habilidade','nome']);
+      const rawLevel=getExcelField(row,['nivel','nível']);
+      const level=canonicalLevel(rawLevel);
+      const objective=getExcelField(row,['objetivo']);
+      const development=getExcelField(row,['desenvolvimento','roteiro']);
+      const duration=getExcelField(row,['duracao','duração','tempo'])||'8 min';
+      const rawOwner=getExcelField(row,['responsavel','responsável','instrutor']);
+      const status=canonicalStatus(getExcelField(row,['status','situacao','situação']));
+      const key=normalizeAgentText(title);
+
+      if(!title || !level){
+        invalid.push({linha:index+2,title:title||'(sem título)',motivo:!title?'Título ausente':'Nível inválido ou ausente'});
+        return;
+      }
+
+      if(existing.has(key)||seen.has(key)){
+        duplicates.push({linha:index+2,title});
+        return;
+      }
+
+      seen.add(key);
+
+      let owner='';
+      if(rawOwner){
+        const matched=data.people.find(p=>normalizeAgentText(p)===normalizeAgentText(rawOwner));
+        if(matched) owner=matched;
+        else unknownOwners.push({linha:index+2,title,responsavel:rawOwner});
+      }
+
+      valid.push({
+        title,
+        level,
+        objective,
+        development,
+        duration,
+        owner,
+        status,
+        progress:status==='Concluída'?100:0
+      });
+    });
+
+    const estimatedBytes=new Blob([JSON.stringify([...data.skills,...valid])]).size;
+    if(estimatedBytes>850000){
+      agentPendingAction=null;
+      agentAddMessage('assistant','Li a planilha, mas o volume de texto ultrapassa o limite seguro da estrutura atual do banco. Antes de importar, precisamos migrar as habilidades para uma coleção própria no Firestore. A planilha possui '+rows.length+' linha(s).');
+      renderAgent();
+      return;
+    }
+
+    agentPendingAction={
+      type:'importSkills',
+      fileName:file.name,
+      sheetName,
+      totalRows:rows.length,
+      rows:valid,
+      duplicates,
+      invalid,
+      unknownOwners
+    };
+
+    agentAddMessage(
+      'assistant',
+      'Planilha analisada. Encontrei '+valid.length+' habilidade(s) prontas para importar, '+duplicates.length+' duplicada(s) e '+invalid.length+' linha(s) inválida(s).\n\nNada foi importado ainda. Confira o resumo ao lado e confirme para executar.'
+    );
+  }catch(err){
+    console.error('Erro ao importar Excel:',err);
+    agentPendingAction=null;
+    agentAddMessage('assistant','Não consegui ler essa planilha. Verifique se é um arquivo .xlsx, .xls ou .csv válido e se possui as colunas "titulo" e "nivel".');
+  }finally{
+    input.value='';
+    renderAgent();
+  }
+}
+
 function processAgentCommand(event){
   event.preventDefault();
   if(role!=='admin') return;
@@ -772,39 +1042,65 @@ function processAgentCommand(event){
   const command=(input.value||'').trim();
   if(!command) return;
 
-  agentAddMessage('user',command);
+  const normalized=normalizeAgentText(command);
+  const sanitized=/senha/i.test(command)
+    ? command.replace(/(senha\s*[:=\-]?\s*)[^\s,;]+/i,'$1******')
+    : command;
+
+  agentAddMessage('user',sanitized);
   input.value='';
 
-  const text=normalizeAgentText(command);
-  const skillMatch=text.match(/(\d+)\s*(?:habilidade|habilidades)/);
-  const instructorMatch=text.match(/(\d+)\s*(?:instrutor|instrutores)/);
+  if(agentPendingAction&&agentPendingAction.type==='skillMode'){
+    if(/^(uma|1|unica|única|individual|so uma|só uma)\b/.test(normalized)){
+      chooseAgentSkillMode('single');
+      return;
+    }
+    if(/^(varias|várias|multiplas|múltiplas|muitas|excel|planilha|lote)\b/.test(normalized)){
+      chooseAgentSkillMode('bulk');
+      return;
+    }
+  }
+
+  const wantsCreateUser=/\b(crie|criar|novo|nova)\b/.test(normalized) && /(login|usuario)/.test(normalized);
+  const wantsCreateSkill=/\b(crie|criar|nova|novo)\b/.test(normalized) && /habilidade/.test(normalized);
+
+  if(wantsCreateUser){
+    prepareAgentCreateUser(command);
+    renderAgent();
+    return;
+  }
+
+  if(wantsCreateSkill){
+    prepareAgentSkillMode(command);
+    renderAgent();
+    return;
+  }
+
+  const skillMatch=normalized.match(/(\d+)\s*(?:habilidade|habilidades)/);
+  const instructorMatch=normalized.match(/(\d+)\s*(?:instrutor|instrutores)/);
   const skillCount=skillMatch?Number(skillMatch[1]):null;
   const instructorCount=instructorMatch?Number(instructorMatch[1]):null;
 
-  const wantsDistribution=
-    /organiza|organize|distribu|divid|liber|planej|meta/.test(text);
-
-  const wantsLoad=
-    /carga|carregado|ocupado|livre|disponivel|quem esta|quantas tarefas/.test(text)
-    && !wantsDistribution;
+  const wantsDistribution=/organiza|organize|distribu|divid|liber|planej|meta/.test(normalized);
+  const wantsLoad=/carga|carregado|ocupado|livre|disponivel|quem esta|quantas tarefas/.test(normalized) && !wantsDistribution;
 
   if(wantsDistribution){
     const plan=buildAgentDistribution(skillCount,instructorCount);
     if(plan.error){
-      agentPendingPlan=null;
+      agentPendingAction=null;
       agentAddMessage('assistant',plan.error);
     }else{
-      agentPendingPlan=plan;
+      agentPendingAction=plan;
       agentAddMessage('assistant',agentDistributionSummary(plan));
     }
   }else if(wantsLoad){
-    agentPendingPlan=null;
+    agentPendingAction=null;
     agentAddMessage('assistant',agentTeamSummary());
   }else{
-    agentPendingPlan=null;
+    agentPendingAction=null;
     agentAddMessage(
       'assistant',
-      'Eu consigo agir principalmente sobre planejamento e distribuição de trabalho. Tente algo como:\n\n• "Distribua 10 habilidades entre 2 instrutores."\n• "Quero liberar 15 habilidades essa semana."\n• "Como está a carga dos instrutores?"'
+      'Posso executar tarefas do portal ADM, sempre pedindo confirmação antes de criar ou alterar dados. Exemplos:\n\n• "Distribua 10 habilidades entre 2 instrutores."\n• "Crie login para Ana Silva, email ana@empresa.com, senha 123456, perfil Instrutor."\n• "Quero criar habilidade." — vou perguntar se é uma ou várias.\n• Use o modelo Excel para cadastrar centenas de habilidades de uma vez.'
     );
   }
 
@@ -818,93 +1114,218 @@ function agentUseExample(text){
   input.focus();
 }
 
-async function applyAgentPlan(){
-  if(role!=='admin' || !agentPendingPlan || !agentPendingPlan.assignments.length) return;
+async function executeAgentPlan(action){
+  const now=Date.now();
+  action.assignments.forEach((assignment,index)=>{
+    const exists=data.plans.some(p=>p.week==='Semana atual' && Number(p.skillId)===Number(assignment.skillId));
+    if(!exists){
+      data.plans.push({
+        id:now+index,
+        person:assignment.person,
+        skillId:assignment.skillId,
+        week:'Semana atual',
+        origem:'Agente ADM'
+      });
+    }
+    const skill=data.skills.find(s=>Number(s.id)===Number(assignment.skillId));
+    if(skill){
+      skill.owner=assignment.person;
+      if(skill.status==='Planejamento') skill.status='Em produção';
+    }
+  });
+  await save();
+  return 'Planejamento aplicado. Distribuí '+action.assignments.length+' habilidade(s) e atualizei os responsáveis.';
+}
 
-  const button=document.getElementById('agentApplyButton');
-  if(button){
-    button.disabled=true;
-    button.textContent='Aplicando...';
-  }
-
+async function executeAgentCreateUser(action){
+  await secondaryAuth.setPersistence(firebase.auth.Auth.Persistence.NONE);
   try{
-    const now=Date.now();
+    const credential=await secondaryAuth.createUserWithEmailAndPassword(action.email,action.password);
+    const uid=credential.user.uid;
+    const profile={
+      nome:action.name,
+      email:action.email,
+      perfil:action.profile,
+      cargo:action.profile==='admin'?'ADM':'Instrutor',
+      ativo:true,
+      criadoPor:currentUserProfile&&currentUserProfile.uid?currentUserProfile.uid:null,
+      criadoEm:firebase.firestore.FieldValue.serverTimestamp()
+    };
 
-    agentPendingPlan.assignments.forEach((assignment,index)=>{
-      const exists=data.plans.some(
-        p=>p.week==='Semana atual' && Number(p.skillId)===Number(assignment.skillId)
-      );
+    await db.collection('usuarios').doc(uid).set(profile);
 
-      if(!exists){
-        data.plans.push({
-          id:now+index,
-          person:assignment.person,
-          skillId:assignment.skillId,
-          week:'Semana atual',
-          origem:'Agente ADM'
-        });
-      }
+    if(!data.people.includes(action.name)){
+      data.people.push(action.name);
+      await save();
+    }
 
-      const skill=data.skills.find(s=>Number(s.id)===Number(assignment.skillId));
-      if(skill){
-        skill.owner=assignment.person;
-        if(skill.status==='Planejamento') skill.status='Em produção';
-      }
-    });
-
-    const appliedCount=agentPendingPlan.assignments.length;
-    await save();
-
-    agentAddMessage(
-      'assistant',
-      'Planejamento aplicado. Distribuí '+appliedCount+' habilidade(s), atualizei os responsáveis e registrei as entregas em "Planejamento semanal".'
-    );
-
-    agentPendingPlan=null;
-    renderAgent();
-  }catch(err){
-    console.error('Erro ao aplicar plano do Agente ADM:',err);
-    agentAddMessage('assistant','Não consegui aplicar o planejamento. Verifique a sincronização com o Firebase e tente novamente.');
-    renderAgent();
+    await loadTeamUsers();
+    return 'Login criado com sucesso para '+action.name+' como '+(action.profile==='admin'?'ADM':'Instrutor')+'.';
+  }finally{
+    try{await secondaryAuth.signOut();}catch(_){}
   }
 }
 
-function cancelAgentPlan(){
-  agentPendingPlan=null;
-  agentAddMessage('assistant','Plano descartado. Nenhuma alteração foi feita nas metas da semana.');
+async function executeAgentCreateSkill(action){
+  const skill={
+    id:Date.now(),
+    title:action.title,
+    level:action.level,
+    owner:action.owner||'',
+    status:action.status||'Planejamento',
+    progress:action.status==='Concluída'?100:0,
+    duration:action.duration||'8 min',
+    objective:action.objective||'',
+    development:action.development||''
+  };
+  data.skills.push(skill);
+  await save();
+  return 'Habilidade criada com sucesso: '+action.title+'.';
+}
+
+async function executeAgentImportSkills(action){
+  const now=Date.now();
+  action.rows.forEach((row,index)=>{
+    data.skills.push({
+      id:now+index,
+      title:row.title,
+      level:row.level,
+      owner:row.owner||'',
+      status:row.status||'Planejamento',
+      progress:Number(row.progress||0),
+      duration:row.duration||'8 min',
+      objective:row.objective||'',
+      development:row.development||''
+    });
+  });
+  await save();
+  return 'Importação concluída. '+action.rows.length+' habilidade(s) foram adicionadas ao sistema.';
+}
+
+async function confirmAgentAction(){
+  if(role!=='admin' || !agentPendingAction) return;
+
+  const button=document.getElementById('agentConfirmButton');
+  if(button){button.disabled=true;button.textContent='Executando...';}
+
+  const action=agentPendingAction;
+  try{
+    let result='';
+    if(action.type==='plan') result=await executeAgentPlan(action);
+    if(action.type==='createUser') result=await executeAgentCreateUser(action);
+    if(action.type==='createSkill') result=await executeAgentCreateSkill(action);
+    if(action.type==='importSkills') result=await executeAgentImportSkills(action);
+
+    agentPendingAction=null;
+    agentAddMessage('assistant',result||'Ação concluída.');
+  }catch(err){
+    console.error('Erro ao executar ação do Agente ADM:',err);
+    agentAddMessage('assistant','Não consegui concluir a ação. '+(err&&err.message?err.message:'Verifique Firebase e tente novamente.'));
+  }
   renderAgent();
 }
 
-function renderAgentPlan(){
-  if(!agentPendingPlan) return '<div class="muted">Nenhuma ação aguardando confirmação.</div>';
+function cancelAgentAction(){
+  agentPendingAction=null;
+  agentAddMessage('assistant','Ação cancelada. Nenhuma alteração foi feita.');
+  renderAgent();
+}
 
-  const grouped={};
-  agentPendingPlan.assignments.forEach(a=>{
-    if(!grouped[a.person]) grouped[a.person]=[];
-    grouped[a.person].push(a);
-  });
+function renderAgentPendingAction(){
+  const a=agentPendingAction;
+  if(!a) return '<div class="muted">Nenhuma ação aguardando confirmação.</div>';
 
-  return '<div class="agent-plan">'+
-    '<h4>Plano proposto</h4>'+
-    Object.entries(grouped).map(([person,items])=>
-      '<div style="margin-bottom:12px"><b>'+esc(person)+'</b>'+
-      items.map(item=>'<div class="agent-plan-row"><span>'+esc(item.skillTitle)+'</span><span class="tag">'+esc(item.level||'')+'</span></div>').join('')+
-      '</div>'
-    ).join('')+
-    '<div class="agent-plan-actions">'+
-      '<button id="agentApplyButton" class="btn btn-primary" onclick="applyAgentPlan()">Aplicar planejamento</button>'+
-      '<button class="btn btn-soft" onclick="cancelAgentPlan()">Descartar</button>'+
-    '</div>'+
-  '</div>';
+  if(a.type==='skillMode'){
+    return '<div class="agent-plan">'+
+      '<h4>Criar habilidade</h4>'+
+      '<div class="muted">Como você quer cadastrar?</div>'+
+      '<div class="agent-confirm">'+
+        '<button class="btn btn-primary" type="button" onclick="chooseAgentSkillMode(\'single\')">Uma habilidade</button>'+
+        '<button class="btn btn-soft" type="button" onclick="chooseAgentSkillMode(\'bulk\')">Várias habilidades</button>'+
+        '<button class="btn btn-soft" type="button" onclick="cancelAgentAction()">Cancelar</button>'+
+      '</div>'+
+    '</div>';
+  }
+
+  if(a.type==='bulkSkillMode'){
+    return '<div class="agent-plan">'+
+      '<h4>Cadastrar várias habilidades</h4>'+
+      '<div class="muted">Baixe o modelo, preencha uma habilidade por linha e envie o arquivo. O agente vai validar antes de importar.</div>'+
+      '<div class="agent-file-actions">'+
+        '<a class="btn btn-soft" href="/assets/modelos/modelo-importacao-habilidades.xlsx" download>Baixar modelo Excel</a>'+
+        '<button class="btn btn-primary" type="button" onclick="document.getElementById(\'agentExcelInput\').click()">Enviar Excel preenchido</button>'+
+      '</div>'+
+      '<div class="agent-warning">Nenhuma habilidade será criada sem você revisar o resumo e confirmar a importação.</div>'+
+      '<div class="agent-confirm"><button class="btn btn-soft" type="button" onclick="cancelAgentAction()">Cancelar</button></div>'+
+    '</div>';
+  }
+
+  let body='';
+  let confirmLabel='Confirmar e executar';
+
+  if(a.type==='plan'){
+    const grouped={};
+    a.assignments.forEach(item=>{
+      if(!grouped[item.person]) grouped[item.person]=[];
+      grouped[item.person].push(item);
+    });
+    body='<h4>Planejamento proposto</h4>'+
+      Object.entries(grouped).map(([person,items])=>
+        '<div style="margin-bottom:12px"><b>'+esc(person)+'</b>'+
+        items.map(item=>'<div class="agent-plan-item">• '+esc(item.skillTitle)+' <span class="tag">'+esc(item.level||'')+'</span></div>').join('')+
+        '</div>'
+      ).join('');
+    confirmLabel='Aplicar planejamento';
+  }
+
+  if(a.type==='createUser'){
+    body='<h4>Novo login</h4>'+
+      '<div class="agent-plan-item"><b>Nome</b>'+esc(a.name)+'</div>'+
+      '<div class="agent-plan-item"><b>E-mail</b>'+esc(a.email)+'</div>'+
+      '<div class="agent-plan-item"><b>Perfil</b>'+(a.profile==='admin'?'ADM':'Instrutor')+'</div>'+
+      '<div class="agent-plan-item"><b>Senha</b>••••••••</div>';
+    confirmLabel='Criar login';
+  }
+
+  if(a.type==='createSkill'){
+    body='<h4>Nova habilidade</h4>'+
+      '<div class="agent-plan-item"><b>Título</b>'+esc(a.title)+'</div>'+
+      '<div class="agent-plan-item"><b>Nível</b>'+esc(a.level)+'</div>'+
+      '<div class="agent-plan-item"><b>Duração</b>'+esc(a.duration||'8 min')+'</div>'+
+      '<div class="agent-plan-item"><b>Status</b>'+esc(a.status||'Planejamento')+'</div>'+
+      (a.objective?'<div class="agent-plan-item"><b>Objetivo</b>'+esc(a.objective)+'</div>':'')+
+      (a.development?'<div class="agent-plan-item"><b>Desenvolvimento</b>'+esc(a.development)+'</div>':'');
+    confirmLabel='Criar habilidade';
+  }
+
+  if(a.type==='importSkills'){
+    body='<h4>Importação de Excel</h4>'+
+      '<div class="muted">'+esc(a.fileName)+' • aba '+esc(a.sheetName)+'</div>'+
+      '<div class="agent-import-summary">'+
+        '<div class="agent-import-kpi"><span class="muted">Prontas</span><b>'+a.rows.length+'</b></div>'+
+        '<div class="agent-import-kpi"><span class="muted">Duplicadas</span><b>'+a.duplicates.length+'</b></div>'+
+        '<div class="agent-import-kpi"><span class="muted">Inválidas</span><b>'+a.invalid.length+'</b></div>'+
+      '</div>'+
+      '<div class="agent-preview-list">'+
+        a.rows.slice(0,12).map((s,i)=>'<div class="agent-preview-row"><b>'+(i+1)+'. '+esc(s.title)+'</b><br>'+esc(s.level)+' • '+esc(s.duration||'8 min')+'</div>').join('')+
+        (a.rows.length>12?'<div class="agent-preview-row">… e mais '+(a.rows.length-12)+' habilidade(s)</div>':'')+
+      '</div>'+
+      (a.unknownOwners.length?'<div class="agent-warning">'+a.unknownOwners.length+' linha(s) possuem responsável que não corresponde a um usuário cadastrado. Essas habilidades serão importadas sem responsável.</div>':'')+
+      (a.invalid.length?'<div class="agent-warning">Linhas inválidas não serão importadas. Confira título e nível.</div>':'');
+    confirmLabel='Importar '+a.rows.length+' habilidades';
+  }
+
+  return '<div class="agent-plan">'+body+
+    '<div class="agent-confirm">'+
+      '<button id="agentConfirmButton" class="btn btn-primary" onclick="confirmAgentAction()">'+esc(confirmLabel)+'</button>'+
+      '<button class="btn btn-soft" onclick="cancelAgentAction()">Cancelar</button>'+
+    '</div></div>';
 }
 
 function renderAgent(){
   if(role!=='admin'){go('dashboard');return;}
 
-  header(
-    'Agente ADM',
-    'Organize metas e distribua o trabalho da equipe usando comandos em linguagem natural.'
-  );
+  header('Agente ADM','Organize metas, crie cadastros e importe habilidades usando comandos em linguagem natural.');
 
   const instructors=getActiveInstructors()
     .map(name=>({name,load:getWeeklyLoad(name)}))
@@ -915,37 +1336,30 @@ function renderAgent(){
   document.getElementById('content').innerHTML=
     '<div class="agent-shell">'+
       '<div class="agent-chat">'+
-        '<div class="agent-head">'+
-          '<div class="agent-title"><div class="agent-icon">AI</div><div><b>Agente de Planejamento</b><div class="muted">Executa ações no planejamento do EAD Irmen</div></div></div>'+
-          '<span class="tag">Somente ADM</span>'+
-        '</div>'+
+        '<div class="agent-chat-head"><div><h3>Agente de Gestão EAD</h3><div class="muted">Pode executar ações no portal ADM, sempre após confirmação.</div></div><span class="agent-badge">Somente ADM</span></div>'+
         '<div id="agentMessages" class="agent-messages">'+
-          agentMessages.map(m=>'<div class="agent-msg '+(m.type==='user'?'user':'assistant')+'">'+esc(m.text)+'</div>').join('')+
+          agentMessages.map(m=>'<div class="agent-msg '+(m.type==='user'?'user':'agent')+'">'+esc(m.text)+'</div>').join('')+
         '</div>'+
         '<form class="agent-compose" onsubmit="processAgentCommand(event)">'+
-          '<textarea id="agentInput" placeholder="Ex.: Quero liberar 15 habilidades essa semana, temos 2 instrutores livres. Organize o trabalho entre os dois."></textarea>'+
-          '<div class="agent-compose-actions">'+
-            '<div class="muted">O agente sempre mostra o plano antes de alterar as metas.</div>'+
-            '<button class="btn btn-primary" type="submit">Analisar e organizar</button>'+
+          '<textarea id="agentInput" placeholder="Ex.: Crie habilidade Diagnóstico hidráulico, nível Avançada, duração 10 min."></textarea>'+
+          '<div class="agent-actions">'+
+            '<button class="btn btn-soft" type="button" onclick="agentUseExample(\'Crie login para Ana Silva, email ana@empresa.com, senha 123456, perfil Instrutor.\')">Exemplo login</button>'+
+            '<button class="btn btn-soft" type="button" onclick="agentUseExample(\'Distribua 10 habilidades entre 2 instrutores.\')">Exemplo planejamento</button>'+
+            '<button class="btn btn-primary" type="submit">Enviar ao agente</button>'+
           '</div>'+
         '</form>'+
       '</div>'+
       '<div class="agent-side">'+
-        '<div class="section">'+
-          '<div class="section-head"><h3>Contexto atual</h3></div>'+
-          '<div class="agent-stat"><span>Habilidades disponíveis</span><b>'+pending+'</b></div>'+
-          '<div class="agent-stat"><span>Instrutores ativos</span><b>'+instructors.length+'</b></div>'+
-          instructors.map(i=>'<div class="agent-stat"><span>'+esc(i.name)+'</span><b>'+i.load+' na semana</b></div>').join('')+
-        '</div>'+
-        '<div class="section">'+
-          '<div class="section-head"><h3>Comandos rápidos</h3></div>'+
-          '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
-            '<button class="agent-chip" onclick="agentUseExample(\'Distribua 10 habilidades entre 2 instrutores.\')">Distribuir 10 habilidades</button>'+
-            '<button class="agent-chip" onclick="agentUseExample(\'Como está a carga dos instrutores?\')">Ver carga da equipe</button>'+
-            '<button class="agent-chip" onclick="agentUseExample(\'Quero liberar todas as habilidades disponíveis essa semana. Organize entre os instrutores livres.\')">Planejar pendências</button>'+
+        '<div class="agent-stat"><div class="muted">Habilidades disponíveis</div><strong>'+pending+'</strong><div class="muted">Ainda sem meta semanal.</div></div>'+
+        '<div class="agent-stat"><div class="muted">Instrutores ativos</div><strong>'+instructors.length+'</strong><div class="muted">'+(instructors.length?instructors.map(i=>esc(i.name)+' ('+i.load+')').join(' • '):'Nenhum instrutor cadastrado')+'</div></div>'+
+        '<div class="agent-plan"><h4>Importação em massa</h4><div class="muted">Envie Excel/CSV com centenas de habilidades. O agente valida e mostra a prévia antes de importar.</div>'+
+          '<input id="agentExcelInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleAgentExcelImport(event)">'+
+          '<div class="agent-file-actions">'+
+            '<button class="btn btn-soft" type="button" onclick="document.getElementById(\'agentExcelInput\').click()">Importar Excel</button>'+
+            '<a class="btn btn-soft" href="/assets/modelos/modelo-importacao-habilidades.xlsx" download>Baixar modelo</a>'+
           '</div>'+
-          renderAgentPlan()+
         '</div>'+
+        renderAgentPendingAction()+
       '</div>'+
     '</div>';
 
