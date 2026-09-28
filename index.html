@@ -694,6 +694,42 @@ function prepareAgentCreateUser(command){
   agentAddMessage('assistant','Preparei o novo login. Confira nome, e-mail e perfil no painel de confirmação. A senha fica mascarada. Só criarei o usuário depois da sua confirmação.');
 }
 
+function prepareAgentSkillMode(command){
+  agentPendingAction={
+    type:'skillMode',
+    draftCommand:command||''
+  };
+  agentAddMessage(
+    'assistant',
+    'Você quer criar uma única habilidade ou várias habilidades?\n\nSe forem várias, posso fornecer um modelo em Excel para preencher e depois importar todas de uma vez.'
+  );
+}
+
+function chooseAgentSkillMode(mode){
+  if(role!=='admin') return;
+
+  const draft=agentPendingAction&&agentPendingAction.type==='skillMode'
+    ? agentPendingAction.draftCommand||''
+    : '';
+
+  if(mode==='single'){
+    agentPendingAction=null;
+    agentAddMessage('assistant','Certo. Vamos criar uma habilidade. Vou usar as informações que você já informou e pedir somente o que estiver faltando.');
+    prepareAgentCreateSkill(draft);
+    renderAgent();
+    return;
+  }
+
+  if(mode==='bulk'){
+    agentPendingAction={type:'bulkSkillMode'};
+    agentAddMessage(
+      'assistant',
+      'Certo. Para várias habilidades, baixe o modelo em Excel, preencha as linhas e envie o arquivo aqui. Eu vou validar tudo e mostrar um resumo antes de importar.'
+    );
+    renderAgent();
+  }
+}
+
 function prepareAgentCreateSkill(command){
   const s=parseAgentSkillCommand(command);
   const missing=[];
@@ -839,6 +875,17 @@ function processAgentCommand(event){
   agentAddMessage('user',sanitized);
   input.value='';
 
+  if(agentPendingAction&&agentPendingAction.type==='skillMode'){
+    if(/^(uma|1|unica|única|individual|so uma|só uma)\b/.test(normalized)){
+      chooseAgentSkillMode('single');
+      return;
+    }
+    if(/^(varias|várias|multiplas|múltiplas|muitas|excel|planilha|lote)\b/.test(normalized)){
+      chooseAgentSkillMode('bulk');
+      return;
+    }
+  }
+
   const wantsCreateUser=/\b(crie|criar|novo|nova)\b/.test(normalized) && /(login|usuario)/.test(normalized);
   const wantsCreateSkill=/\b(crie|criar|nova|novo)\b/.test(normalized) && /habilidade/.test(normalized);
 
@@ -849,7 +896,7 @@ function processAgentCommand(event){
   }
 
   if(wantsCreateSkill){
-    prepareAgentCreateSkill(command);
+    prepareAgentSkillMode(command);
     renderAgent();
     return;
   }
@@ -878,7 +925,7 @@ function processAgentCommand(event){
     agentPendingAction=null;
     agentAddMessage(
       'assistant',
-      'Posso executar tarefas do portal ADM, sempre pedindo confirmação antes de criar ou alterar dados. Exemplos:\n\n• "Distribua 10 habilidades entre 2 instrutores."\n• "Crie login para Ana Silva, email ana@empresa.com, senha 123456, perfil Instrutor."\n• "Crie habilidade Diagnóstico hidráulico, nível Avançada, duração 10 min."\n• Use "Importar Excel" para cadastrar centenas de habilidades de uma vez.'
+      'Posso executar tarefas do portal ADM, sempre pedindo confirmação antes de criar ou alterar dados. Exemplos:\n\n• "Distribua 10 habilidades entre 2 instrutores."\n• "Crie login para Ana Silva, email ana@empresa.com, senha 123456, perfil Instrutor."\n• "Quero criar habilidade." — vou perguntar se é uma ou várias.\n• Use o modelo Excel para cadastrar centenas de habilidades de uma vez.'
     );
   }
 
@@ -1012,6 +1059,31 @@ function cancelAgentAction(){
 function renderAgentPendingAction(){
   const a=agentPendingAction;
   if(!a) return '<div class="muted">Nenhuma ação aguardando confirmação.</div>';
+
+  if(a.type==='skillMode'){
+    return '<div class="agent-plan">'+
+      '<h4>Criar habilidade</h4>'+
+      '<div class="muted">Como você quer cadastrar?</div>'+
+      '<div class="agent-confirm">'+
+        '<button class="btn btn-primary" type="button" onclick="chooseAgentSkillMode(\'single\')">Uma habilidade</button>'+
+        '<button class="btn btn-soft" type="button" onclick="chooseAgentSkillMode(\'bulk\')">Várias habilidades</button>'+
+        '<button class="btn btn-soft" type="button" onclick="cancelAgentAction()">Cancelar</button>'+
+      '</div>'+
+    '</div>';
+  }
+
+  if(a.type==='bulkSkillMode'){
+    return '<div class="agent-plan">'+
+      '<h4>Cadastrar várias habilidades</h4>'+
+      '<div class="muted">Baixe o modelo, preencha uma habilidade por linha e envie o arquivo. O agente vai validar antes de importar.</div>'+
+      '<div class="agent-file-actions">'+
+        '<a class="btn btn-soft" href="/assets/modelos/modelo-importacao-habilidades.xlsx" download>Baixar modelo Excel</a>'+
+        '<button class="btn btn-primary" type="button" onclick="document.getElementById(\'agentExcelInput\').click()">Enviar Excel preenchido</button>'+
+      '</div>'+
+      '<div class="agent-warning">Nenhuma habilidade será criada sem você revisar o resumo e confirmar a importação.</div>'+
+      '<div class="agent-confirm"><button class="btn btn-soft" type="button" onclick="cancelAgentAction()">Cancelar</button></div>'+
+    '</div>';
+  }
 
   let body='';
   let confirmLabel='Confirmar e executar';
