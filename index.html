@@ -51,11 +51,11 @@ button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;dis
 <section id="login" class="login">
   <div class="login-card">
     <div class="brand"><div class="logo">EAD</div><div><h1>EAD Irmen</h1><p>Gestão do desenvolvimento de microaulas e habilidades</p></div></div>
-    <form class="login-form" onsubmit="loginWithEmail(event)">
+    <form class="login-form" autocomplete="off" onsubmit="loginWithEmail(event)">
       <label for="loginEmail">E-mail</label>
-      <input id="loginEmail" type="email" autocomplete="username" placeholder="nome@irmen..." required>
+      <input id="loginEmail" type="email" autocomplete="off" placeholder="nome@irmen..." required>
       <label for="loginPassword">Senha</label>
-      <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Sua senha" required>
+      <input id="loginPassword" type="password" autocomplete="new-password" placeholder="Sua senha" required>
       <button id="loginButton" type="submit">Entrar</button>
       <div id="loginError" class="login-error"></div>
       <div class="login-help">O sistema possui apenas dois perfis: ADM e Instrutor. O ADM possui acesso geral e pode criar novos logins.</div>
@@ -104,6 +104,7 @@ let cloudUnsubscribe = null;
 let agentPendingPlan = null;
 let openingUserUid = null;
 let appReadyUid = null;
+let loginAutorizadoNestaPagina = false;
 let agentMessages = [
   {
     type:'assistant',
@@ -232,13 +233,15 @@ async function loginWithEmail(event){
   btn.textContent='Entrando...';
 
   try{
-    await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    loginAutorizadoNestaPagina=true;
+    await auth.setPersistence(firebase.auth.Auth.Persistence.NONE);
     const credential=await auth.signInWithEmailAndPassword(email,password);
 
     // Não dependemos apenas do onAuthStateChanged.
     // Isso evita ficar preso em "Entrando..." quando já existe uma sessão salva.
     await openAuthenticatedApp(credential.user);
   }catch(err){
+    loginAutorizadoNestaPagina=false;
     console.error('Falha no login:',err);
     const message=err && err.message ? err.message : '';
     error.textContent=message.startsWith('EAD:') ? message.replace(/^EAD:\s*/,'') : friendlyAuthError(err);
@@ -360,6 +363,7 @@ async function openAuthenticatedApp(user){
 }
 
 async function logout(){
+  loginAutorizadoNestaPagina=false;
   try{ await auth.signOut(); }catch(err){ console.error(err); }
 }
 
@@ -383,12 +387,18 @@ function buildNav(){
 
 auth.onAuthStateChanged(async user=>{
   if(user){
+    // Segurança: nunca reaproveita login salvo de outra visita.
+    // Só entra se o usuário acabou de autenticar manualmente nesta página.
+    if(!loginAutorizadoNestaPagina){
+      try{ await auth.signOut(); }catch(_){}
+      return;
+    }
+
     try{
       await openAuthenticatedApp(user);
     }catch(err){
       console.error('Falha ao abrir sessão autenticada:',err);
-      // Limpa uma sessão inconsistente para que uma nova tentativa de login
-      // realmente dispare o fluxo de autenticação.
+      loginAutorizadoNestaPagina=false;
       try{ await auth.signOut(); }catch(_){}
     }
   }else{
@@ -400,6 +410,13 @@ auth.onAuthStateChanged(async user=>{
     if(cloudUnsubscribe){cloudUnsubscribe();cloudUnsubscribe=null;}
     document.getElementById('app').classList.add('hidden');
     document.getElementById('login').classList.remove('hidden');
+
+    // Limpa os campos sempre que voltar à tela de login.
+    const email=document.getElementById('loginEmail');
+    const password=document.getElementById('loginPassword');
+    if(email) email.value='';
+    if(password) password.value='';
+
     const btn=document.getElementById('loginButton');
     if(btn){btn.disabled=false;btn.textContent='Entrar';}
   }
