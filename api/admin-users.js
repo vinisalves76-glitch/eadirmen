@@ -92,25 +92,6 @@ async function syncRenamedPerson(db, oldName, newName) {
   });
 }
 
-async function removePersonFromSharedData(db, name) {
-  if (!name) return;
-
-  const ref = db.collection('sistema').doc('sharedData');
-  await db.runTransaction(async tx => {
-    const snap = await tx.get(ref);
-    if (!snap.exists) return;
-
-    const data = snap.data() || {};
-    const people = Array.isArray(data.people)
-      ? data.people.filter(person => person !== name)
-      : [];
-
-    tx.set(ref, {
-      people,
-      atualizadoEm: admin.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-  });
-}
 
 module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -203,28 +184,6 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({
         ok: true,
         message: 'Login ativado com sucesso.'
-      });
-    }
-
-    if (action === 'delete') {
-      if (isSelf) {
-        return res.status(400).json({ error: 'Voce nao pode excluir seu proprio usuario administrador.' });
-      }
-
-      const name = clean(targetProfile.nome);
-
-      try {
-        await auth.deleteUser(uid);
-      } catch (err) {
-        if (err.code !== 'auth/user-not-found') throw err;
-      }
-
-      await targetRef.delete();
-      await removePersonFromSharedData(db, name);
-
-      return res.status(200).json({
-        ok: true,
-        message: 'Usuario excluido do Firebase Authentication e do Firestore.'
       });
     }
 
