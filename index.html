@@ -353,10 +353,10 @@ async function createUserLogin(event){
     const credential=await secondaryAuth.createUserWithEmailAndPassword(email,password);
     const uid=credential.user.uid;
     const profile={
-      name,
+      nome:name,
       email,
-      role:newRole,
-      position:newRole==='admin'?'ADM':'Instrutor',
+      perfil:newRole,
+      cargo:newRole==='admin'?'ADM':'Instrutor',
       ativo:true,
       criadoPor:currentUserProfile&&currentUserProfile.uid?currentUserProfile.uid:null,
       criadoEm:firebase.firestore.FieldValue.serverTimestamp()
@@ -405,7 +405,7 @@ function renderUsers(success=''){
 function renderTeam(){
   header('Equipe','Acompanhe os integrantes, cargos e a distribuição das metas.');
   const knownNames=new Set(teamUsers.map(u=>u.nome).filter(Boolean));
-  const localOnly=data.people.filter(name=>!knownNames.has(name)).map(name=>({name,position:'Instrutor',role:'instructor',ativo:true}));
+  const localOnly=data.people.filter(name=>!knownNames.has(name)).map(name=>({nome:name,cargo:'Instrutor',perfil:'instructor',ativo:true}));
   const members=[...teamUsers,...localOnly];
   document.getElementById('content').innerHTML='<div class="section"><div class="section-head"><h3>Equipe EAD</h3></div><div class="grid">'+members.map(p=>{let name=p.nome||p.email||'Usuário';let total=data.skills.filter(s=>s.owner===name).length;let weekly=data.plans.filter(x=>x.person===name).length;return '<div class="card"><div class="person"><div class="avatar">'+esc(name[0]||'?')+'</div><div><b>'+esc(name)+'</b><div class="muted">'+esc(p.cargo||'Instrutor')+'</div></div></div><div style="margin-top:14px" class="muted">'+total+' habilidade(s) atribuída(s) • '+weekly+' entrega(s) na semana</div></div>'}).join('')+'</div></div>'
 }
