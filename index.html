@@ -507,30 +507,6 @@ async function toggleUserActive(uid){
   }
 }
 
-async function deleteUserLogin(uid){
-  if(role!=='admin') return;
-
-  const u=teamUsers.find(item=>item.uid===uid);
-  if(!u) return;
-
-  if(currentUserProfile && currentUserProfile.uid===uid){
-    alert('Você não pode excluir o próprio usuário administrador.');
-    return;
-  }
-
-  const label=u.nome||u.email||'este usuário';
-  if(!confirm('Excluir definitivamente o login de '+label+'?\n\nIsso removerá o usuário do Firebase Authentication e o perfil do Firestore. Esta ação não pode ser desfeita.')) return;
-
-  try{
-    await adminUserAction({action:'delete',uid});
-    await loadTeamUsers();
-    renderUsers('Login de '+label+' excluído do Firebase com sucesso.');
-  }catch(err){
-    console.error(err);
-    alert(err.message || 'Não foi possível excluir o login.');
-  }
-}
-
 async function createUserLogin(event){
   event.preventDefault();
   if(role!=='admin') return;
@@ -913,7 +889,7 @@ function renderAgent(){
 
 function renderUsers(success=''){
   if(role!=='admin'){go('dashboard');return;}
-  header('Usuários','Crie e gerencie os acessos da equipe. Edite nome, e-mail, senha, perfil, status e exclusão do login.');
+  header('Usuários','Crie e gerencie os acessos da equipe. Edite nome, e-mail, senha, perfil e status do login.');
 
   const rows=teamUsers.length
     ? teamUsers.map(u=>{
@@ -927,9 +903,7 @@ function renderUsers(success=''){
             '<button class="btn btn-soft" onclick="openEditUser(\''+u.uid+'\')">Editar</button>'+
             (isSelf
               ? '<span class="muted" style="align-self:center">Usuário atual</span>'
-              : '<button class="btn btn-soft" onclick="toggleUserActive(\''+u.uid+'\')">'+(active?'Desativar':'Ativar')+'</button>'+
-                '<button class="btn btn-danger" onclick="deleteUserLogin(\''+u.uid+'\')">Excluir</button>'
-            )+
+              : '<button class="btn btn-soft" onclick="toggleUserActive(\''+u.uid+'\')">'+(active?'Desativar':'Ativar')+'</button>'+)+
           '</div></td>'+
         '</tr>';
       }).join('')
@@ -946,7 +920,7 @@ function renderUsers(success=''){
         '<div class="span2"><button id="createUserButton" class="btn btn-primary" type="submit">Criar login</button><div id="userCreateMessage" class="muted" style="margin-top:10px;'+(success?'color:#15803d;font-weight:700':'')+'">'+esc(success)+'</div></div>'+
       '</form>'+
     '</div>'+
-    '<div class="section"><div class="section-head"><div><h3>Usuários cadastrados</h3><div class="muted">As alterações de e-mail, senha, ativação e exclusão também são aplicadas ao Firebase Authentication.</div></div></div><div class="table-wrap"><table><thead><tr><th>Usuário</th><th>Perfil</th><th>Status</th><th>Ações</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+    '<div class="section"><div class="section-head"><div><h3>Usuários cadastrados</h3><div class="muted">As alterações de e-mail, senha e ativação também são aplicadas ao Firebase Authentication.</div></div></div><div class="table-wrap"><table><thead><tr><th>Usuário</th><th>Perfil</th><th>Status</th><th>Ações</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
 }
 
 function renderTeam(){
