@@ -184,6 +184,8 @@ function friendlyAuthError(err){
   if(code.includes('invalid-credential')||code.includes('wrong-password')||code.includes('user-not-found')) return 'E-mail ou senha inválidos.';
   if(code.includes('too-many-requests')) return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
   if(code.includes('network-request-failed')) return 'Falha de conexão. Verifique a internet.';
+  if(code.includes('operation-not-allowed')) return 'O login por e-mail e senha ainda não está ativado no Firebase.';
+  if(code.includes('user-disabled')) return 'Este usuário está desativado no Firebase.';
   return 'Não foi possível entrar. Confira o e-mail e a senha.';
 }
 
@@ -208,24 +210,44 @@ async function loginWithEmail(event){
 
 async function ensureUserProfile(user){
   const ref=db.collection('usuarios').doc(user.uid);
-  let snap=await ref.get();
-  if(snap.exists) return {uid:user.uid,...snap.data()};
+  const email=(user.email||'').trim().toLowerCase();
+  const isZion=email==='zion.almeida@irmen.com.br';
 
-  const email=(user.email||'').toLowerCase();
-  const isZion=email.startsWith('zion.almeida@irmen.');
-  if(isZion){
-    const profile={
-      nome:'Zion Almeida',
-      email:user.email||'',
-      perfil:'admin',
-      cargo:'ADM',
-      ativo:true,
-      criadoEm:firebase.firestore.FieldValue.serverTimestamp()
-    };
-    await ref.set(profile);
-    return {uid:user.uid,...profile};
+  const perfilZion={
+    nome:'Zion Almeida',
+    email:user.email||'',
+    perfil:'admin',
+    cargo:'ADM',
+    ativo:true
+  };
+
+  try{
+    const snap=await ref.get();
+
+    if(snap.exists){
+      return {uid:user.uid,...snap.data()};
+    }
+
+    if(isZion){
+      try{
+        await ref.set({
+          ...perfilZion,
+          criadoEm:firebase.firestore.FieldValue.serverTimestamp()
+        },{merge:true});
+      }catch(writeErr){
+        console.warn('Perfil ADM autenticado; Firestore ainda sem permissão de escrita.',writeErr);
+      }
+      return {uid:user.uid,...perfilZion};
+    }
+
+    return null;
+  }catch(err){
+    console.warn('Não foi possível ler o perfil no Firestore.',err);
+    if(isZion){
+      return {uid:user.uid,...perfilZion};
+    }
+    throw err;
   }
-  return null;
 }
 
 async function loadTeamUsers(){
@@ -271,7 +293,18 @@ function buildNav(){
   const items=role==='admin'
     ? [['dashboard','Visão geral'],['skills','Habilidades'],['week','Planejamento semanal'],['team','Equipe'],['users','Usuários']]
     : [['dashboard','Minha semana'],['skills','Minhas habilidades'],['week','Planejamento']];
-  document.getElementById('nav').innerHTML=items.map(x=>'<button data-p="'+x[0]+'" onclick="go(\\''+x[0]+'\\')">'+x[1]+'</button>').join('');
+
+  const nav=document.getElementById('nav');
+  nav.innerHTML='';
+
+  items.forEach(([page,label])=>{
+    const button=document.createElement('button');
+    button.type='button';
+    button.dataset.p=page;
+    button.textContent=label;
+    button.addEventListener('click',()=>go(page));
+    nav.appendChild(button);
+  });
 }
 
 auth.onAuthStateChanged(async user=>{
