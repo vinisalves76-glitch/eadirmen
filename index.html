@@ -107,7 +107,7 @@ async function save(){
   cacheLocal();
   if(!cloudReady) return;
   try{
-    await db.collection('system').doc('sharedData').set({
+    await db.collection('sistema').doc('sharedData').set({
       skills:data.skills,
       plans:data.plans,
       people:data.people,
@@ -124,7 +124,7 @@ async function save(){
 
 async function initCloud(){
   try{
-    const ref=db.collection('system').doc('sharedData');
+    const ref=db.collection('sistema').doc('sharedData');
     const snap=await ref.get();
     if(snap.exists){
       const remote=snap.data();
@@ -207,7 +207,7 @@ async function loginWithEmail(event){
 }
 
 async function ensureUserProfile(user){
-  const ref=db.collection('users').doc(user.uid);
+  const ref=db.collection('usuarios').doc(user.uid);
   let snap=await ref.get();
   if(snap.exists) return {uid:user.uid,...snap.data()};
 
@@ -230,7 +230,7 @@ async function ensureUserProfile(user){
 
 async function loadTeamUsers(){
   try{
-    const snap=await db.collection('users').get();
+    const snap=await db.collection('usuarios').get();
     teamUsers=snap.docs.map(d=>({uid:d.id,...d.data()})).filter(u=>u.active!==false);
     const names=teamUsers.map(u=>u.name).filter(Boolean);
     names.forEach(name=>{ if(!data.people.includes(name)) data.people.push(name); });
@@ -362,7 +362,7 @@ async function createUserLogin(event){
       createdAt:firebase.firestore.FieldValue.serverTimestamp()
     };
 
-    await db.collection('users').doc(uid).set(profile);
+    await db.collection('usuarios').doc(uid).set(profile);
 
     if(!data.people.includes(name)){
       data.people.push(name);
