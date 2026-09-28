@@ -36,7 +36,7 @@ button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;dis
       <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Sua senha" required>
       <button id="loginButton" type="submit">Entrar</button>
       <div id="loginError" class="login-error"></div>
-      <div class="login-help">O acesso e as permissões são definidos pelo cadastro do usuário no Firebase. ADM Administrativo possui acesso geral; os demais perfis terão acesso conforme sua função.</div>
+      <div class="login-help">O sistema possui apenas dois perfis: ADM e Instrutor. O ADM possui acesso geral e pode criar novos logins.</div>
     </form>
   </div>
 </section>
@@ -70,6 +70,8 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
+const secondaryApp = firebase.initializeApp(firebaseConfig,'ead-irmen-user-creator');
+const secondaryAuth = secondaryApp.auth();
 let cloudReady = false;
 let cloudMessage = "Conectando ao Firebase...";
 let currentPage = "dashboard";
@@ -216,7 +218,7 @@ async function ensureUserProfile(user){
       name:'Zion Almeida',
       email:user.email||'',
       role:'admin',
-      position:'ADM Administrativo',
+      position:'ADM',
       active:true,
       createdAt:firebase.firestore.FieldValue.serverTimestamp()
     };
@@ -230,6 +232,8 @@ async function loadTeamUsers(){
   try{
     const snap=await db.collection('users').get();
     teamUsers=snap.docs.map(d=>({uid:d.id,...d.data()})).filter(u=>u.active!==false);
+    const names=teamUsers.map(u=>u.name).filter(Boolean);
+    names.forEach(name=>{ if(!data.people.includes(name)) data.people.push(name); });
   }catch(err){
     console.warn('Não foi possível carregar usuários da equipe',err);
     teamUsers=[];
@@ -249,7 +253,7 @@ async function openAuthenticatedApp(user){
   currentPersonName=profile.name||user.email||'Usuário';
 
   document.getElementById('profileName').textContent=currentPersonName;
-  document.getElementById('profileRole').textContent='Perfil: '+(profile.position || (role==='admin'?'ADM Administrativo':'Instrutor'));
+  document.getElementById('profileRole').textContent='Perfil: '+(profile.position || (role==='admin'?'ADM':'Instrutor'));
   document.getElementById('login').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
 
@@ -265,7 +269,7 @@ async function logout(){
 
 function buildNav(){
   const items=role==='admin'
-    ? [['dashboard','Visão geral'],['skills','Habilidades'],['week','Planejamento semanal'],['team','Equipe']]
+    ? [['dashboard','Visão geral'],['skills','Habilidades'],['week','Planejamento semanal'],['team','Equipe'],['users','Usuários']]
     : [['dashboard','Minha semana'],['skills','Minhas habilidades'],['week','Planejamento']];
   document.getElementById('nav').innerHTML=items.map(x=>'<button data-p="'+x[0]+'" onclick="go(\\''+x[0]+'\\')">'+x[1]+'</button>').join('');
 }
@@ -294,7 +298,7 @@ auth.onAuthStateChanged(async user=>{
     if(btn){btn.disabled=false;btn.textContent='Entrar';}
   }
 })
-function go(p){currentPage=p;document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.p===p)); if(p==='dashboard')renderDashboard();if(p==='skills')renderSkills();if(p==='week')renderWeek();if(p==='team')renderTeam()}
+function go(p){currentPage=p;document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.p===p)); if(p==='dashboard')renderDashboard();if(p==='skills')renderSkills();if(p==='week')renderWeek();if(p==='team')renderTeam();if(p==='users')renderUsers()}
 function header(t,s){document.getElementById('pageTitle').textContent=t;document.getElementById('pageSub').textContent=s;document.getElementById('today').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'})}
 function renderDashboard(){header(role==='admin'?'Visão geral do projeto':'Minha semana',role==='admin'?'Acompanhe a produção das microaulas EAD.':'Acompanhe suas habilidades e entregas da semana.');let skills=role==='admin'?data.skills:data.skills.filter(s=>s.owner===currentPersonName);let done=skills.filter(s=>s.status==='Concluída').length;let rev=skills.filter(s=>s.status==='Em revisão').length;let prod=skills.filter(s=>s.status==='Em produção').length;document.getElementById('content').innerHTML='<div class="cards"><div class="card"><div class="muted">Habilidades</div><div class="metric">'+skills.length+'</div></div><div class="card"><div class="muted">Em produção</div><div class="metric">'+prod+'</div></div><div class="card"><div class="muted">Em revisão</div><div class="metric">'+rev+'</div></div><div class="card"><div class="muted">Concluídas</div><div class="metric">'+done+'</div></div></div><div class="section"><div class="section-head"><h3>'+(role==='admin'?'Andamento das habilidades':'Minhas entregas')+'</h3></div><div class="grid">'+skills.map(skillCard).join('')+'</div></div>'}
 function skillCard(s){let c=s.status==='Concluída'?'s-done':s.status==='Em revisão'?'s-rev':s.status==='Em produção'?'s-prod':'s-plan';return '<div class="skill"><div class="skill-top"><b>'+esc(s.title)+'</b><span class="tag">'+esc(s.level)+'</span></div><p class="muted">'+esc(s.owner)+' • '+esc(s.duration)+'</p><span class="status '+c+'">'+esc(s.status)+'</span><div class="progress"><i style="width:'+Number(s.progress||0)+'%"></i></div><div class="muted">'+Number(s.progress||0)+'% concluído</div><div class="actions"><button class="btn btn-soft" onclick="openSkill('+s.id+')">Abrir</button>'+(role==='admin'?'<button class="btn btn-danger" onclick="removeSkill('+s.id+')">Excluir</button>':'')+'</div></div>'}
@@ -308,6 +312,96 @@ function renderWeek(){header('Planejamento semanal',role==='admin'?'Defina quais
 function addPlan(){let person=document.getElementById('planPerson').value,skillId=Number(document.getElementById('planSkill').value);if(!data.plans.some(p=>p.person===person&&p.skillId===skillId))data.plans.push({id:Date.now(),person,skillId,week:'Semana atual'});save();renderWeek()}
 function planTable(person){let plans=data.plans.filter(p=>!person||p.person===person);return '<div class="section"><div class="section-head"><h3>Entregas da semana</h3></div><div class="table-wrap"><table><thead><tr><th>Instrutor</th><th>Habilidade</th><th>Nível</th><th>Status</th><th></th></tr></thead><tbody>'+plans.map(p=>{let s=data.skills.find(x=>x.id===p.skillId);if(!s)return '';return '<tr><td>'+esc(p.person)+'</td><td>'+esc(s.title)+'</td><td>'+esc(s.level)+'</td><td>'+esc(s.status)+'</td><td>'+(role==='admin'?'<button class="btn btn-danger" onclick="removePlan('+p.id+')">Remover</button>':'<button class="btn btn-soft" onclick="openSkill('+s.id+')">Abrir</button>')+'</td></tr>'}).join('')+'</tbody></table></div></div>'}
 function removePlan(id){data.plans=data.plans.filter(p=>p.id!==id);save();renderWeek()}
+
+function userRoleLabel(u){
+  return u && u.role==='admin' ? 'ADM' : 'Instrutor';
+}
+
+function userCreationError(err){
+  const code=err&&err.code?err.code:'';
+  if(code.includes('email-already-in-use')) return 'Já existe um login com esse e-mail.';
+  if(code.includes('invalid-email')) return 'Informe um e-mail válido.';
+  if(code.includes('weak-password')) return 'A senha precisa ter pelo menos 6 caracteres.';
+  if(code.includes('operation-not-allowed')) return 'Ative E-mail/senha no Firebase Authentication.';
+  if(code.includes('permission-denied')) return 'Sem permissão para gravar o perfil no Firestore.';
+  return 'Não foi possível criar o login.';
+}
+
+async function createUserLogin(event){
+  event.preventDefault();
+  if(role!=='admin') return;
+
+  const name=document.getElementById('newUserName').value.trim();
+  const email=document.getElementById('newUserEmail').value.trim().toLowerCase();
+  const password=document.getElementById('newUserPassword').value;
+  const newRole=document.getElementById('newUserRole').value;
+  const msg=document.getElementById('userCreateMessage');
+  const btn=document.getElementById('createUserButton');
+
+  msg.textContent='';
+  msg.style.color='#b91c1c';
+
+  if(!name){msg.textContent='Informe o nome.';return;}
+  if(password.length<6){msg.textContent='A senha precisa ter pelo menos 6 caracteres.';return;}
+  if(!['admin','instructor'].includes(newRole)){msg.textContent='Selecione ADM ou Instrutor.';return;}
+
+  btn.disabled=true;
+  btn.textContent='Criando...';
+
+  try{
+    await secondaryAuth.setPersistence(firebase.auth.Auth.Persistence.NONE);
+    const credential=await secondaryAuth.createUserWithEmailAndPassword(email,password);
+    const uid=credential.user.uid;
+    const profile={
+      name,
+      email,
+      role:newRole,
+      position:newRole==='admin'?'ADM':'Instrutor',
+      active:true,
+      createdBy:currentUserProfile&&currentUserProfile.uid?currentUserProfile.uid:null,
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    await db.collection('users').doc(uid).set(profile);
+
+    if(!data.people.includes(name)){
+      data.people.push(name);
+      await save();
+    }
+
+    await secondaryAuth.signOut();
+    await loadTeamUsers();
+    renderUsers('Login criado com sucesso para '+name+'.');
+  }catch(err){
+    console.error(err);
+    try{await secondaryAuth.signOut();}catch(_){}
+    msg.textContent=userCreationError(err);
+    btn.disabled=false;
+    btn.textContent='Criar login';
+  }
+}
+
+function renderUsers(success=''){
+  if(role!=='admin'){go('dashboard');return;}
+  header('Usuários','Crie e acompanhe os acessos da equipe. Existem apenas os perfis ADM e Instrutor.');
+
+  const rows=teamUsers.length
+    ? teamUsers.map(u=>'<tr><td><div class="person"><div class="avatar">'+esc((u.name||u.email||'?')[0])+'</div><div><b>'+esc(u.name||'Sem nome')+'</b><div class="muted">'+esc(u.email||'')+'</div></div></div></td><td>'+esc(userRoleLabel(u))+'</td><td><span class="status '+(u.active===false?'s-rev':'s-done')+'">'+(u.active===false?'Inativo':'Ativo')+'</span></td></tr>').join('')
+    : '<tr><td colspan="3" class="empty">Nenhum usuário cadastrado.</td></tr>';
+
+  document.getElementById('content').innerHTML=
+    '<div class="section">'+
+      '<div class="section-head"><div><h3>Criar novo login</h3><div class="muted">O usuário poderá entrar no EAD Irmen usando este e-mail e senha.</div></div></div>'+
+      '<form class="form-grid" onsubmit="createUserLogin(event)">'+
+        '<div class="field"><label>Nome completo</label><input id="newUserName" placeholder="Nome do colaborador" required></div>'+
+        '<div class="field"><label>Perfil</label><select id="newUserRole"><option value="instructor">Instrutor</option><option value="admin">ADM</option></select></div>'+
+        '<div class="field"><label>E-mail</label><input id="newUserEmail" type="email" placeholder="nome@irmen..." required></div>'+
+        '<div class="field"><label>Senha inicial</label><input id="newUserPassword" type="password" minlength="6" placeholder="Mínimo 6 caracteres" required></div>'+
+        '<div class="span2"><button id="createUserButton" class="btn btn-primary" type="submit">Criar login</button><div id="userCreateMessage" class="muted" style="margin-top:10px;'+(success?'color:#15803d;font-weight:700':'')+'">'+esc(success)+'</div></div>'+
+      '</form>'+
+    '</div>'+
+    '<div class="section"><div class="section-head"><h3>Usuários cadastrados</h3></div><div class="table-wrap"><table><thead><tr><th>Usuário</th><th>Perfil</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+}
 function renderTeam(){
   header('Equipe','Acompanhe os integrantes, cargos e a distribuição das metas.');
   const knownNames=new Set(teamUsers.map(u=>u.name).filter(Boolean));
