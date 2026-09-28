@@ -282,7 +282,7 @@ async function ensureUserProfile(user){
 async function loadTeamUsers(){
   try{
     const snap=await db.collection('usuarios').get();
-    teamUsers=snap.docs.map(d=>({uid:d.id,...d.data()})).filter(u=>u.ativo!==false);
+    teamUsers=snap.docs.map(d=>({uid:d.id,...d.data()}));
     const names=teamUsers.map(u=>u.nome).filter(Boolean);
     names.forEach(name=>{ if(!data.people.includes(name)) data.people.push(name); });
   }catch(err){
@@ -387,6 +387,148 @@ function userCreationError(err){
   if(code.includes('operation-not-allowed')) return 'Ative E-mail/senha no Firebase Authentication.';
   if(code.includes('permission-denied')) return 'Sem permissão para gravar o perfil no Firestore.';
   return 'Não foi possível criar o login.';
+}
+
+
+async function adminUserAction(payload){
+  const user=auth.currentUser;
+  if(!user) throw new Error('Sua sessão expirou. Entre novamente.');
+  const token=await user.getIdToken(true);
+  const response=await fetch('/api/admin-users',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'Authorization':'Bearer '+token
+    },
+    body:JSON.stringify(payload)
+  });
+
+  let body={};
+  try{ body=await response.json(); }catch(_){}
+
+  if(!response.ok){
+    throw new Error(body.error || 'Não foi possível concluir a operação.');
+  }
+
+  return body;
+}
+
+function openEditUser(uid){
+  if(role!=='admin') return;
+  const u=teamUsers.find(item=>item.uid===uid);
+  if(!u) return;
+
+  const isSelf=currentUserProfile && currentUserProfile.uid===uid;
+
+  document.getElementById('modalContent').innerHTML=
+    '<div class="section-head"><div><h3>Editar usuário</h3><div class="muted">Altere os dados de acesso e o perfil do colaborador.</div></div><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div>'+
+    '<div class="form-grid">'+
+      '<div class="field"><label>Nome completo</label><input id="editUserName" value="'+esc(u.nome||'')+'"></div>'+
+      '<div class="field"><label>Perfil</label><select id="editUserRole" '+(isSelf?'disabled':'')+'><option value="instructor">Instrutor</option><option value="admin">ADM</option></select></div>'+
+      '<div class="field span2"><label>E-mail de login</label><input id="editUserEmail" type="email" value="'+esc(u.email||'')+'"></div>'+
+      '<div class="field span2"><label>Nova senha</label><input id="editUserPassword" type="password" minlength="6" placeholder="Deixe em branco para manter a senha atual"><div class="muted" style="margin-top:6px">Se preenchida, a senha do Firebase Authentication será alterada imediatamente.</div></div>'+
+      '<div class="span2"><button id="saveUserButton" class="btn btn-primary" onclick="saveUserEdit(\''+uid+'\')">Salvar alterações</button><div id="editUserMessage" class="muted" style="margin-top:10px"></div></div>'+
+    '</div>';
+
+  document.getElementById('editUserRole').value=u.perfil==='admin'?'admin':'instructor';
+  showModal();
+}
+
+async function saveUserEdit(uid){
+  if(role!=='admin') return;
+
+  const name=document.getElementById('editUserName').value.trim();
+  const email=document.getElementById('editUserEmail').value.trim().toLowerCase();
+  const password=document.getElementById('editUserPassword').value;
+  const roleField=document.getElementById('editUserRole');
+  const newRole=roleField.disabled ? 'admin' : roleField.value;
+  const msg=document.getElementById('editUserMessage');
+  const btn=document.getElementById('saveUserButton');
+
+  msg.textContent='';
+  msg.style.color='#b91c1c';
+
+  if(!name){msg.textContent='Informe o nome.';return;}
+  if(!email || !email.includes('@')){msg.textContent='Informe um e-mail válido.';return;}
+  if(password && password.length<6){msg.textContent='A nova senha precisa ter pelo menos 6 caracteres.';return;}
+
+  btn.disabled=true;
+  btn.textContent='Salvando...';
+
+  try{
+    await adminUserAction({
+      action:'update',
+      uid,
+      nome:name,
+      email,
+      perfil:newRole,
+      senha:password || null
+    });
+
+    await loadTeamUsers();
+    closeModal();
+    renderUsers('Usuário atualizado com sucesso.');
+  }catch(err){
+    console.error(err);
+    msg.textContent=err.message || 'Não foi possível atualizar o usuário.';
+    btn.disabled=false;
+    btn.textContent='Salvar alterações';
+  }
+}
+
+async function toggleUserActive(uid){
+  if(role!=='admin') return;
+
+  const u=teamUsers.find(item=>item.uid===uid);
+  if(!u) return;
+
+  if(currentUserProfile && currentUserProfile.uid===uid){
+    alert('Você não pode desativar o próprio usuário administrador.');
+    return;
+  }
+
+  const willActivate=u.ativo===false;
+  const question=willActivate
+    ? 'Ativar novamente o login de '+(u.nome||u.email)+'?'
+    : 'Desativar o login de '+(u.nome||u.email)+'?';
+
+  if(!confirm(question)) return;
+
+  try{
+    await adminUserAction({
+      action:willActivate?'activate':'deactivate',
+      uid
+    });
+    await loadTeamUsers();
+    renderUsers(willActivate?'Login ativado com sucesso.':'Login desativado com sucesso.');
+  }catch(err){
+    console.error(err);
+    alert(err.message || 'Não foi possível alterar o status do login.');
+  }
+}
+
+async function deleteUserLogin(uid){
+  if(role!=='admin') return;
+
+  const u=teamUsers.find(item=>item.uid===uid);
+  if(!u) return;
+
+  if(currentUserProfile && currentUserProfile.uid===uid){
+    alert('Você não pode excluir o próprio usuário administrador.');
+    return;
+  }
+
+  const label=u.nome||u.email||'este usuário';
+  if(!confirm('Excluir definitivamente o login de '+label+'?\n\nIsso removerá o usuário do Firebase Authentication e o perfil do Firestore. Esta ação não pode ser desfeita.')) return;
+
+  try{
+    await adminUserAction({action:'delete',uid});
+    await loadTeamUsers();
+    renderUsers('Login de '+label+' excluído do Firebase com sucesso.');
+  }catch(err){
+    console.error(err);
+    alert(err.message || 'Não foi possível excluir o login.');
+  }
 }
 
 async function createUserLogin(event){
@@ -771,11 +913,27 @@ function renderAgent(){
 
 function renderUsers(success=''){
   if(role!=='admin'){go('dashboard');return;}
-  header('Usuários','Crie e acompanhe os acessos da equipe. Existem apenas os perfis ADM e Instrutor.');
+  header('Usuários','Crie e gerencie os acessos da equipe. Edite nome, e-mail, senha, perfil, status e exclusão do login.');
 
   const rows=teamUsers.length
-    ? teamUsers.map(u=>'<tr><td><div class="person"><div class="avatar">'+esc((u.nome||u.email||'?')[0])+'</div><div><b>'+esc(u.nome||'Sem nome')+'</b><div class="muted">'+esc(u.email||'')+'</div></div></div></td><td>'+esc(userRoleLabel(u))+'</td><td><span class="status '+(u.ativo===false?'s-rev':'s-done')+'">'+(u.ativo===false?'Inativo':'Ativo')+'</span></td></tr>').join('')
-    : '<tr><td colspan="3" class="empty">Nenhum usuário cadastrado.</td></tr>';
+    ? teamUsers.map(u=>{
+        const isSelf=currentUserProfile && currentUserProfile.uid===u.uid;
+        const active=u.ativo!==false;
+        return '<tr>'+
+          '<td><div class="person"><div class="avatar">'+esc((u.nome||u.email||'?')[0])+'</div><div><b>'+esc(u.nome||'Sem nome')+'</b><div class="muted">'+esc(u.email||'')+'</div></div></div></td>'+
+          '<td>'+esc(userRoleLabel(u))+'</td>'+
+          '<td><span class="status '+(active?'s-done':'s-rev')+'">'+(active?'Ativo':'Desativado')+'</span></td>'+
+          '<td><div class="actions">'+
+            '<button class="btn btn-soft" onclick="openEditUser(\''+u.uid+'\')">Editar</button>'+
+            (isSelf
+              ? '<span class="muted" style="align-self:center">Usuário atual</span>'
+              : '<button class="btn btn-soft" onclick="toggleUserActive(\''+u.uid+'\')">'+(active?'Desativar':'Ativar')+'</button>'+
+                '<button class="btn btn-danger" onclick="deleteUserLogin(\''+u.uid+'\')">Excluir</button>'
+            )+
+          '</div></td>'+
+        '</tr>';
+      }).join('')
+    : '<tr><td colspan="4" class="empty">Nenhum usuário cadastrado.</td></tr>';
 
   document.getElementById('content').innerHTML=
     '<div class="section">'+
@@ -788,8 +946,9 @@ function renderUsers(success=''){
         '<div class="span2"><button id="createUserButton" class="btn btn-primary" type="submit">Criar login</button><div id="userCreateMessage" class="muted" style="margin-top:10px;'+(success?'color:#15803d;font-weight:700':'')+'">'+esc(success)+'</div></div>'+
       '</form>'+
     '</div>'+
-    '<div class="section"><div class="section-head"><h3>Usuários cadastrados</h3></div><div class="table-wrap"><table><thead><tr><th>Usuário</th><th>Perfil</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+    '<div class="section"><div class="section-head"><div><h3>Usuários cadastrados</h3><div class="muted">As alterações de e-mail, senha, ativação e exclusão também são aplicadas ao Firebase Authentication.</div></div></div><div class="table-wrap"><table><thead><tr><th>Usuário</th><th>Perfil</th><th>Status</th><th>Ações</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
 }
+
 function renderTeam(){
   header('Equipe','Acompanhe os integrantes, cargos e a distribuição das metas.');
   const knownNames=new Set(teamUsers.map(u=>u.nome).filter(Boolean));
