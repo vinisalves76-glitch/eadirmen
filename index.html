@@ -51,11 +51,11 @@ button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;dis
 <section id="login" class="login">
   <div class="login-card">
     <div class="brand"><div class="logo">EAD</div><div><h1>EAD Irmen</h1><p>Gestão do desenvolvimento de microaulas e habilidades</p></div></div>
-    <form class="login-form" autocomplete="off" onsubmit="loginWithEmail(event)">
+    <form class="login-form" autocomplete="on" onsubmit="loginWithEmail(event)">
       <label for="loginEmail">E-mail</label>
-      <input id="loginEmail" type="email" autocomplete="off" placeholder="nome@irmen..." required>
+      <input id="loginEmail" type="email" autocomplete="username" placeholder="nome@irmen..." required>
       <label for="loginPassword">Senha</label>
-      <input id="loginPassword" type="password" autocomplete="new-password" placeholder="Sua senha" required>
+      <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Sua senha" required>
       <button id="loginButton" type="submit">Entrar</button>
       <div id="loginError" class="login-error"></div>
       <div class="login-help">O sistema possui apenas dois perfis: ADM e Instrutor. O ADM possui acesso geral e pode criar novos logins.</div>
@@ -225,6 +225,10 @@ async function loginWithEmail(event){
   event.preventDefault();
   const email=document.getElementById('loginEmail').value.trim();
   const password=document.getElementById('loginPassword').value;
+
+  // Lembra apenas o e-mail no navegador.
+  // A senha fica a cargo do gerenciador seguro de senhas do próprio navegador.
+  if(email) localStorage.setItem('ead-irmen-last-email',email);
   const btn=document.getElementById('loginButton');
   const error=document.getElementById('loginError');
 
@@ -411,11 +415,12 @@ auth.onAuthStateChanged(async user=>{
     document.getElementById('app').classList.add('hidden');
     document.getElementById('login').classList.remove('hidden');
 
-    // Limpa os campos sempre que voltar à tela de login.
+    // Mantém o e-mail lembrado e permite que o navegador preencha a senha,
+    // mas nunca entra sozinho: o usuário precisa clicar em "Entrar".
     const email=document.getElementById('loginEmail');
-    const password=document.getElementById('loginPassword');
-    if(email) email.value='';
-    if(password) password.value='';
+    if(email && !email.value){
+      email.value=localStorage.getItem('ead-irmen-last-email')||'';
+    }
 
     const btn=document.getElementById('loginButton');
     if(btn){btn.disabled=false;btn.textContent='Entrar';}
@@ -993,6 +998,15 @@ function renderTeam(){
 }
 function showModal(){document.getElementById('modal').classList.remove('hidden')}function closeModal(){document.getElementById('modal').classList.add('hidden')}
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+
+// Preenche o último e-mail usado. A senha pode ser preenchida pelo gerenciador
+// de senhas do navegador, mas o sistema só autentica após clicar em "Entrar".
+const rememberedEmail=localStorage.getItem('ead-irmen-last-email');
+if(rememberedEmail){
+  const loginEmail=document.getElementById('loginEmail');
+  if(loginEmail) loginEmail.value=rememberedEmail;
+}
+
 updateCloudBadge();
 </script>
 </body>
