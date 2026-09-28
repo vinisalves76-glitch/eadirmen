@@ -9,7 +9,7 @@
 *{box-sizing:border-box}body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}button,input,select,textarea{font:inherit}
 button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(135deg,#111 0,#2c2c2c 55%,#8c1115 100%)}
 .login-card{width:min(920px,100%);background:#fff;border-radius:24px;padding:34px;box-shadow:0 24px 70px #0006}.brand{display:flex;align-items:center;gap:14px}.logo{width:52px;height:52px;border-radius:14px;background:var(--primary);color:white;display:grid;place-items:center;font-weight:900}.brand h1{margin:0;font-size:28px}.brand p{margin:4px 0 0;color:var(--muted)}
-.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:28px}.role{border:1px solid var(--line);border-radius:18px;padding:24px;background:#fafafa;text-align:left}.role:hover{border-color:#aaa;transform:translateY(-1px)}.role strong{display:block;font-size:20px;margin-bottom:8px}.role span{color:var(--muted);line-height:1.5}.role .go{margin-top:18px;color:var(--primary);font-weight:800}
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:28px}.role{border:1px solid var(--line);border-radius:18px;padding:24px;background:#fafafa;text-align:left}.role:hover{border-color:#aaa;transform:translateY(-1px)}.role strong{display:block;font-size:20px;margin-bottom:8px}.role span{color:var(--muted);line-height:1.5}.role .go{margin-top:18px;color:var(--primary);font-weight:800}.login-form{margin-top:28px;max-width:460px}.login-form label{display:block;font-size:13px;font-weight:700;margin:0 0 7px}.login-form input{width:100%;border:1px solid #d0d5dd;border-radius:11px;padding:12px 13px;margin-bottom:14px}.login-form button{width:100%;padding:12px;border:0;border-radius:11px;background:var(--primary);color:white;font-weight:800}.login-error{margin-top:12px;color:#b91c1c;font-size:13px;min-height:18px}.login-help{margin-top:16px;color:var(--muted);font-size:13px;line-height:1.5}
 .app{min-height:100vh;display:grid;grid-template-columns:250px 1fr}.side{background:#171717;color:#fff;padding:24px 16px;position:sticky;top:0;height:100vh}.side .brand{margin:0 8px 28px}.side .logo{width:40px;height:40px;border-radius:10px}.side h1{font-size:19px}.side p{font-size:12px;color:#bbb}
 .nav button{width:100%;border:0;background:transparent;color:#bbb;text-align:left;padding:12px 14px;border-radius:10px;margin:4px 0}.nav button:hover,.nav button.active{background:#292929;color:white}.profile{position:absolute;bottom:18px;left:16px;right:16px;border-top:1px solid #333;padding-top:16px}.profile b{display:block}.profile small{color:#aaa}.profile button{margin-top:10px;width:100%;padding:9px;border-radius:9px;border:1px solid #444;background:#222;color:white}
 .main{padding:28px;min-width:0}.top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:24px}.top h2{margin:0 0 6px;font-size:28px}.top p{margin:0;color:var(--muted)}.pill{padding:8px 12px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:13px}
@@ -29,11 +29,15 @@ button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;dis
 <section id="login" class="login">
   <div class="login-card">
     <div class="brand"><div class="logo">EAD</div><div><h1>EAD Irmen</h1><p>Gestão do desenvolvimento de microaulas e habilidades</p></div></div>
-    <div class="role-grid">
-      <button class="role" onclick="enter('manager')"><strong>Gerente</strong><span>Controle geral das habilidades, equipe, metas semanais, prazos e acompanhamento das entregas.</span><div class="go">Entrar como Gerente →</div></button>
-      <button class="role" onclick="enter('instructor')"><strong>Instrutor</strong><span>Acesse as habilidades atribuídas, planeje a microaula, atualize o andamento e entregue sua meta semanal.</span><div class="go">Entrar como Instrutor →</div></button>
-    </div>
-    <div class="notice" style="margin-top:20px">Protótipo de demonstração. O login real e o banco de dados serão adicionados na próxima etapa.</div>
+    <form class="login-form" onsubmit="loginWithEmail(event)">
+      <label for="loginEmail">E-mail</label>
+      <input id="loginEmail" type="email" autocomplete="username" placeholder="nome@irmen..." required>
+      <label for="loginPassword">Senha</label>
+      <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Sua senha" required>
+      <button id="loginButton" type="submit">Entrar</button>
+      <div id="loginError" class="login-error"></div>
+      <div class="login-help">O acesso e as permissões são definidos pelo cadastro do usuário no Firebase. ADM Administrativo possui acesso geral; os demais perfis terão acesso conforme sua função.</div>
+    </form>
   </div>
 </section>
 
@@ -41,7 +45,7 @@ button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;dis
   <aside class="side">
     <div class="brand"><div class="logo">E</div><div><h1>EAD Irmen</h1><p>Gestão de microaulas</p></div></div>
     <nav id="nav" class="nav"></nav>
-    <div class="profile"><b id="profileName"></b><small id="profileRole"></small><button onclick="logout()">Trocar perfil</button></div>
+    <div class="profile"><b id="profileName"></b><small id="profileRole"></small><button onclick="logout()">Sair</button></div>
   </aside>
   <main class="main">
     <div class="top"><div><h2 id="pageTitle"></h2><p id="pageSub"></p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><div class="pill" id="cloudStatus">Conectando ao Firebase...</div><div class="pill" id="today"></div></div></div>
@@ -53,6 +57,7 @@ button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;dis
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyCWqu8_spqjZBj1CiSrGK_NipN_bdVpUd8",
@@ -64,9 +69,14 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const auth = firebase.auth();
 let cloudReady = false;
 let cloudMessage = "Conectando ao Firebase...";
 let currentPage = "dashboard";
+let currentUserProfile = null;
+let currentPersonName = "";
+let teamUsers = [];
+let cloudUnsubscribe = null;
 
 const defaults={
  skills:[
@@ -137,7 +147,8 @@ async function initCloud(){
     cloudMessage='Firebase sincronizado';
     updateCloudBadge();
 
-    ref.onSnapshot(doc=>{
+    if(cloudUnsubscribe) cloudUnsubscribe();
+    cloudUnsubscribe=ref.onSnapshot(doc=>{
       if(!doc.exists) return;
       const remote=doc.data();
       data={
@@ -165,28 +176,148 @@ function updateCloudBadge(){
   if(el) el.textContent=cloudMessage;
 }
 function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-function enter(r){role=r;document.getElementById('login').classList.add('hidden');document.getElementById('app').classList.remove('hidden');document.getElementById('profileName').textContent=r==='manager'?'Gerência EAD':'Vinícius';document.getElementById('profileRole').textContent=r==='manager'?'Perfil: Gerente':'Perfil: Instrutor';buildNav();go('dashboard')}
-function logout(){role='';document.getElementById('app').classList.add('hidden');document.getElementById('login').classList.remove('hidden')}
-function buildNav(){const items=role==='manager'?[['dashboard','Visão geral'],['skills','Habilidades'],['week','Planejamento semanal'],['team','Equipe']]:[['dashboard','Minha semana'],['skills','Minhas habilidades'],['week','Planejamento']];document.getElementById('nav').innerHTML=items.map(x=>'<button data-p="'+x[0]+'" onclick="go(\''+x[0]+'\')">'+x[1]+'</button>').join('')}
+
+function friendlyAuthError(err){
+  const code=err && err.code ? err.code : '';
+  if(code.includes('invalid-credential')||code.includes('wrong-password')||code.includes('user-not-found')) return 'E-mail ou senha inválidos.';
+  if(code.includes('too-many-requests')) return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+  if(code.includes('network-request-failed')) return 'Falha de conexão. Verifique a internet.';
+  return 'Não foi possível entrar. Confira o e-mail e a senha.';
+}
+
+async function loginWithEmail(event){
+  event.preventDefault();
+  const email=document.getElementById('loginEmail').value.trim();
+  const password=document.getElementById('loginPassword').value;
+  const btn=document.getElementById('loginButton');
+  const error=document.getElementById('loginError');
+  error.textContent='';
+  btn.disabled=true;
+  btn.textContent='Entrando...';
+  try{
+    await auth.signInWithEmailAndPassword(email,password);
+  }catch(err){
+    console.error(err);
+    error.textContent=friendlyAuthError(err);
+    btn.disabled=false;
+    btn.textContent='Entrar';
+  }
+}
+
+async function ensureUserProfile(user){
+  const ref=db.collection('users').doc(user.uid);
+  let snap=await ref.get();
+  if(snap.exists) return {uid:user.uid,...snap.data()};
+
+  const email=(user.email||'').toLowerCase();
+  const isZion=email.startsWith('zion.almeida@irmen.');
+  if(isZion){
+    const profile={
+      name:'Zion Almeida',
+      email:user.email||'',
+      role:'admin',
+      position:'ADM Administrativo',
+      active:true,
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    };
+    await ref.set(profile);
+    return {uid:user.uid,...profile};
+  }
+  return null;
+}
+
+async function loadTeamUsers(){
+  try{
+    const snap=await db.collection('users').get();
+    teamUsers=snap.docs.map(d=>({uid:d.id,...d.data()})).filter(u=>u.active!==false);
+  }catch(err){
+    console.warn('Não foi possível carregar usuários da equipe',err);
+    teamUsers=[];
+  }
+}
+
+async function openAuthenticatedApp(user){
+  const profile=await ensureUserProfile(user);
+  const loginError=document.getElementById('loginError');
+  if(!profile || profile.active===false){
+    loginError.textContent='Usuário autenticado, mas ainda sem perfil liberado no EAD Irmen.';
+    await auth.signOut();
+    return;
+  }
+  currentUserProfile=profile;
+  role=profile.role;
+  currentPersonName=profile.name||user.email||'Usuário';
+
+  document.getElementById('profileName').textContent=currentPersonName;
+  document.getElementById('profileRole').textContent='Perfil: '+(profile.position || (role==='admin'?'ADM Administrativo':'Instrutor'));
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+
+  await loadTeamUsers();
+  await initCloud();
+  buildNav();
+  go('dashboard');
+}
+
+async function logout(){
+  try{ await auth.signOut(); }catch(err){ console.error(err); }
+}
+
+function buildNav(){
+  const items=role==='admin'
+    ? [['dashboard','Visão geral'],['skills','Habilidades'],['week','Planejamento semanal'],['team','Equipe']]
+    : [['dashboard','Minha semana'],['skills','Minhas habilidades'],['week','Planejamento']];
+  document.getElementById('nav').innerHTML=items.map(x=>'<button data-p="'+x[0]+'" onclick="go(\\''+x[0]+'\\')">'+x[1]+'</button>').join('');
+}
+
+auth.onAuthStateChanged(async user=>{
+  if(user){
+    try{
+      await openAuthenticatedApp(user);
+    }catch(err){
+      console.error(err);
+      document.getElementById('login').classList.remove('hidden');
+      document.getElementById('app').classList.add('hidden');
+      document.getElementById('loginError').textContent='Falha ao carregar o perfil do usuário.';
+      const btn=document.getElementById('loginButton');
+      btn.disabled=false;
+      btn.textContent='Entrar';
+    }
+  }else{
+    role='';
+    currentUserProfile=null;
+    currentPersonName='';
+    if(cloudUnsubscribe){cloudUnsubscribe();cloudUnsubscribe=null;}
+    document.getElementById('app').classList.add('hidden');
+    document.getElementById('login').classList.remove('hidden');
+    const btn=document.getElementById('loginButton');
+    if(btn){btn.disabled=false;btn.textContent='Entrar';}
+  }
+})
 function go(p){currentPage=p;document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.p===p)); if(p==='dashboard')renderDashboard();if(p==='skills')renderSkills();if(p==='week')renderWeek();if(p==='team')renderTeam()}
 function header(t,s){document.getElementById('pageTitle').textContent=t;document.getElementById('pageSub').textContent=s;document.getElementById('today').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'})}
-function renderDashboard(){header(role==='manager'?'Visão geral do projeto':'Minha semana',role==='manager'?'Acompanhe a produção das microaulas EAD.':'Acompanhe suas habilidades e entregas da semana.');let skills=role==='manager'?data.skills:data.skills.filter(s=>s.owner==='Vinícius');let done=skills.filter(s=>s.status==='Concluída').length;let rev=skills.filter(s=>s.status==='Em revisão').length;let prod=skills.filter(s=>s.status==='Em produção').length;document.getElementById('content').innerHTML='<div class="cards"><div class="card"><div class="muted">Habilidades</div><div class="metric">'+skills.length+'</div></div><div class="card"><div class="muted">Em produção</div><div class="metric">'+prod+'</div></div><div class="card"><div class="muted">Em revisão</div><div class="metric">'+rev+'</div></div><div class="card"><div class="muted">Concluídas</div><div class="metric">'+done+'</div></div></div><div class="section"><div class="section-head"><h3>'+(role==='manager'?'Andamento das habilidades':'Minhas entregas')+'</h3></div><div class="grid">'+skills.map(skillCard).join('')+'</div></div>'}
-function skillCard(s){let c=s.status==='Concluída'?'s-done':s.status==='Em revisão'?'s-rev':s.status==='Em produção'?'s-prod':'s-plan';return '<div class="skill"><div class="skill-top"><b>'+esc(s.title)+'</b><span class="tag">'+esc(s.level)+'</span></div><p class="muted">'+esc(s.owner)+' • '+esc(s.duration)+'</p><span class="status '+c+'">'+esc(s.status)+'</span><div class="progress"><i style="width:'+Number(s.progress||0)+'%"></i></div><div class="muted">'+Number(s.progress||0)+'% concluído</div><div class="actions"><button class="btn btn-soft" onclick="openSkill('+s.id+')">Abrir</button>'+(role==='manager'?'<button class="btn btn-danger" onclick="removeSkill('+s.id+')">Excluir</button>':'')+'</div></div>'}
-function renderSkills(){header(role==='manager'?'Habilidades':'Minhas habilidades',role==='manager'?'Crie, edite, ordene e acompanhe todas as habilidades.':'Desenvolva o planejamento das habilidades atribuídas a você.');let skills=role==='manager'?data.skills:data.skills.filter(s=>s.owner==='Vinícius');document.getElementById('content').innerHTML='<div class="section"><div class="section-head"><h3>Lista de habilidades</h3>'+(role==='manager'?'<button class="btn btn-primary" onclick="newSkill()">+ Nova habilidade</button>':'')+'</div><div class="grid">'+skills.map(skillCard).join('')+'</div></div>'}
+function renderDashboard(){header(role==='admin'?'Visão geral do projeto':'Minha semana',role==='admin'?'Acompanhe a produção das microaulas EAD.':'Acompanhe suas habilidades e entregas da semana.');let skills=role==='admin'?data.skills:data.skills.filter(s=>s.owner===currentPersonName);let done=skills.filter(s=>s.status==='Concluída').length;let rev=skills.filter(s=>s.status==='Em revisão').length;let prod=skills.filter(s=>s.status==='Em produção').length;document.getElementById('content').innerHTML='<div class="cards"><div class="card"><div class="muted">Habilidades</div><div class="metric">'+skills.length+'</div></div><div class="card"><div class="muted">Em produção</div><div class="metric">'+prod+'</div></div><div class="card"><div class="muted">Em revisão</div><div class="metric">'+rev+'</div></div><div class="card"><div class="muted">Concluídas</div><div class="metric">'+done+'</div></div></div><div class="section"><div class="section-head"><h3>'+(role==='admin'?'Andamento das habilidades':'Minhas entregas')+'</h3></div><div class="grid">'+skills.map(skillCard).join('')+'</div></div>'}
+function skillCard(s){let c=s.status==='Concluída'?'s-done':s.status==='Em revisão'?'s-rev':s.status==='Em produção'?'s-prod':'s-plan';return '<div class="skill"><div class="skill-top"><b>'+esc(s.title)+'</b><span class="tag">'+esc(s.level)+'</span></div><p class="muted">'+esc(s.owner)+' • '+esc(s.duration)+'</p><span class="status '+c+'">'+esc(s.status)+'</span><div class="progress"><i style="width:'+Number(s.progress||0)+'%"></i></div><div class="muted">'+Number(s.progress||0)+'% concluído</div><div class="actions"><button class="btn btn-soft" onclick="openSkill('+s.id+')">Abrir</button>'+(role==='admin'?'<button class="btn btn-danger" onclick="removeSkill('+s.id+')">Excluir</button>':'')+'</div></div>'}
+function renderSkills(){header(role==='admin'?'Habilidades':'Minhas habilidades',role==='admin'?'Crie, edite, ordene e acompanhe todas as habilidades.':'Desenvolva o planejamento das habilidades atribuídas a você.');let skills=role==='admin'?data.skills:data.skills.filter(s=>s.owner===currentPersonName);document.getElementById('content').innerHTML='<div class="section"><div class="section-head"><h3>Lista de habilidades</h3>'+(role==='admin'?'<button class="btn btn-primary" onclick="newSkill()">+ Nova habilidade</button>':'')+'</div><div class="grid">'+skills.map(skillCard).join('')+'</div></div>'}
 function openSkill(id){const s=data.skills.find(x=>x.id===id);if(!s)return;document.getElementById('modalContent').innerHTML='<div class="section-head"><div><h3>'+esc(s.title)+'</h3><div class="muted">'+esc(s.level)+' • '+esc(s.owner)+'</div></div><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div><div class="form-grid"><div class="field span2"><label>Objetivo da microaula</label><textarea id="mObjective">'+esc(s.objective)+'</textarea></div><div class="field span2"><label>Desenvolvimento / como será feita</label><textarea id="mDevelopment">'+esc(s.development)+'</textarea></div><div class="field"><label>Duração</label><input id="mDuration" value="'+esc(s.duration)+'"></div><div class="field"><label>Status</label><select id="mStatus"><option>Planejamento</option><option>Em produção</option><option>Em revisão</option><option>Concluída</option></select></div><div class="field"><label>Progresso (%)</label><input id="mProgress" type="number" min="0" max="100" value="'+Number(s.progress||0)+'"></div><div class="field"><label>Responsável</label><select id="mOwner">'+data.people.map(p=>'<option>'+esc(p)+'</option>').join('')+'</select></div><div class="span2"><button class="btn btn-primary" onclick="saveSkill('+s.id+')">Salvar planejamento</button></div></div>';document.getElementById('mStatus').value=s.status;document.getElementById('mOwner').value=s.owner;showModal()}
 function saveSkill(id){let s=data.skills.find(x=>x.id===id);s.objective=document.getElementById('mObjective').value;s.development=document.getElementById('mDevelopment').value;s.duration=document.getElementById('mDuration').value;s.status=document.getElementById('mStatus').value;s.progress=Math.max(0,Math.min(100,Number(document.getElementById('mProgress').value)||0));s.owner=document.getElementById('mOwner').value;save();closeModal();renderSkills()}
 function newSkill(){document.getElementById('modalContent').innerHTML='<div class="section-head"><h3>Nova habilidade</h3><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div><div class="form-grid"><div class="field span2"><label>Título</label><input id="nTitle"></div><div class="field"><label>Nível</label><select id="nLevel"><option>Básica</option><option>Intermediária</option><option>Média</option><option>Avançada</option></select></div><div class="field"><label>Responsável</label><select id="nOwner">'+data.people.map(p=>'<option>'+esc(p)+'</option>').join('')+'</select></div><div class="field"><label>Duração prevista</label><input id="nDuration" value="8 min"></div><div class="field span2"><label>Objetivo</label><textarea id="nObjective"></textarea></div><div class="field span2"><label>Desenvolvimento</label><textarea id="nDevelopment"></textarea></div><div class="span2"><button class="btn btn-primary" onclick="createSkill()">Criar habilidade</button></div></div>';showModal()}
 function createSkill(){let t=document.getElementById('nTitle').value.trim();if(!t)return alert('Informe o título.');data.skills.push({id:Date.now(),title:t,level:document.getElementById('nLevel').value,owner:document.getElementById('nOwner').value,status:'Planejamento',progress:0,duration:document.getElementById('nDuration').value,objective:document.getElementById('nObjective').value,development:document.getElementById('nDevelopment').value});save();closeModal();renderSkills()}
 function removeSkill(id){if(confirm('Excluir esta habilidade?')){data.skills=data.skills.filter(s=>s.id!==id);data.plans=data.plans.filter(p=>p.skillId!==id);save();renderSkills()}}
-function renderWeek(){header('Planejamento semanal',role==='manager'?'Defina quais habilidades cada instrutor deve entregar na semana.':'Visualize e organize as habilidades da sua semana.');if(role==='manager'){document.getElementById('content').innerHTML='<div class="section"><div class="section-head"><h3>Definir meta semanal</h3></div><div class="form-grid"><div class="field"><label>Instrutor</label><select id="planPerson">'+data.people.map(p=>'<option>'+esc(p)+'</option>').join('')+'</select></div><div class="field"><label>Habilidade</label><select id="planSkill">'+data.skills.map(s=>'<option value="'+s.id+'">'+esc(s.title)+'</option>').join('')+'</select></div><div><button class="btn btn-primary" onclick="addPlan()">Adicionar à semana</button></div></div></div>'+planTable()}else{document.getElementById('content').innerHTML=planTable('Vinícius')}}
+function renderWeek(){header('Planejamento semanal',role==='admin'?'Defina quais habilidades cada instrutor deve entregar na semana.':'Visualize e organize as habilidades da sua semana.');if(role==='admin'){document.getElementById('content').innerHTML='<div class="section"><div class="section-head"><h3>Definir meta semanal</h3></div><div class="form-grid"><div class="field"><label>Instrutor</label><select id="planPerson">'+data.people.map(p=>'<option>'+esc(p)+'</option>').join('')+'</select></div><div class="field"><label>Habilidade</label><select id="planSkill">'+data.skills.map(s=>'<option value="'+s.id+'">'+esc(s.title)+'</option>').join('')+'</select></div><div><button class="btn btn-primary" onclick="addPlan()">Adicionar à semana</button></div></div></div>'+planTable()}else{document.getElementById('content').innerHTML=planTable(currentPersonName)}}
 function addPlan(){let person=document.getElementById('planPerson').value,skillId=Number(document.getElementById('planSkill').value);if(!data.plans.some(p=>p.person===person&&p.skillId===skillId))data.plans.push({id:Date.now(),person,skillId,week:'Semana atual'});save();renderWeek()}
-function planTable(person){let plans=data.plans.filter(p=>!person||p.person===person);return '<div class="section"><div class="section-head"><h3>Entregas da semana</h3></div><div class="table-wrap"><table><thead><tr><th>Instrutor</th><th>Habilidade</th><th>Nível</th><th>Status</th><th></th></tr></thead><tbody>'+plans.map(p=>{let s=data.skills.find(x=>x.id===p.skillId);if(!s)return '';return '<tr><td>'+esc(p.person)+'</td><td>'+esc(s.title)+'</td><td>'+esc(s.level)+'</td><td>'+esc(s.status)+'</td><td>'+(role==='manager'?'<button class="btn btn-danger" onclick="removePlan('+p.id+')">Remover</button>':'<button class="btn btn-soft" onclick="openSkill('+s.id+')">Abrir</button>')+'</td></tr>'}).join('')+'</tbody></table></div></div>'}
+function planTable(person){let plans=data.plans.filter(p=>!person||p.person===person);return '<div class="section"><div class="section-head"><h3>Entregas da semana</h3></div><div class="table-wrap"><table><thead><tr><th>Instrutor</th><th>Habilidade</th><th>Nível</th><th>Status</th><th></th></tr></thead><tbody>'+plans.map(p=>{let s=data.skills.find(x=>x.id===p.skillId);if(!s)return '';return '<tr><td>'+esc(p.person)+'</td><td>'+esc(s.title)+'</td><td>'+esc(s.level)+'</td><td>'+esc(s.status)+'</td><td>'+(role==='admin'?'<button class="btn btn-danger" onclick="removePlan('+p.id+')">Remover</button>':'<button class="btn btn-soft" onclick="openSkill('+s.id+')">Abrir</button>')+'</td></tr>'}).join('')+'</tbody></table></div></div>'}
 function removePlan(id){data.plans=data.plans.filter(p=>p.id!==id);save();renderWeek()}
-function renderTeam(){header('Equipe','Acompanhe a distribuição das metas por instrutor.');document.getElementById('content').innerHTML='<div class="section"><div class="section-head"><h3>Instrutores</h3></div><div class="grid">'+data.people.map(p=>{let total=data.skills.filter(s=>s.owner===p).length;let weekly=data.plans.filter(x=>x.person===p).length;return '<div class="card"><div class="person"><div class="avatar">'+esc(p[0])+'</div><div><b>'+esc(p)+'</b><div class="muted">Instrutor</div></div></div><div style="margin-top:14px" class="muted">'+total+' habilidade(s) atribuída(s) • '+weekly+' entrega(s) na semana</div></div>'}).join('')+'</div></div>'}
+function renderTeam(){
+  header('Equipe','Acompanhe os integrantes, cargos e a distribuição das metas.');
+  const knownNames=new Set(teamUsers.map(u=>u.name).filter(Boolean));
+  const localOnly=data.people.filter(name=>!knownNames.has(name)).map(name=>({name,position:'Instrutor',role:'instructor',active:true}));
+  const members=[...teamUsers,...localOnly];
+  document.getElementById('content').innerHTML='<div class="section"><div class="section-head"><h3>Equipe EAD</h3></div><div class="grid">'+members.map(p=>{let name=p.name||p.email||'Usuário';let total=data.skills.filter(s=>s.owner===name).length;let weekly=data.plans.filter(x=>x.person===name).length;return '<div class="card"><div class="person"><div class="avatar">'+esc(name[0]||'?')+'</div><div><b>'+esc(name)+'</b><div class="muted">'+esc(p.position||'Instrutor')+'</div></div></div><div style="margin-top:14px" class="muted">'+total+' habilidade(s) atribuída(s) • '+weekly+' entrega(s) na semana</div></div>'}).join('')+'</div></div>'
+}
 function showModal(){document.getElementById('modal').classList.remove('hidden')}function closeModal(){document.getElementById('modal').classList.add('hidden')}
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
 updateCloudBadge();
-initCloud();
 </script>
 </body>
 </html>
