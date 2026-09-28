@@ -102,6 +102,8 @@ let currentPersonName = "";
 let teamUsers = [];
 let cloudUnsubscribe = null;
 let agentPendingPlan = null;
+let openingUserUid = null;
+let appReadyUid = null;
 let agentMessages = [
   {
     type:'assistant',
@@ -224,14 +226,22 @@ async function loginWithEmail(event){
   const password=document.getElementById('loginPassword').value;
   const btn=document.getElementById('loginButton');
   const error=document.getElementById('loginError');
+
   error.textContent='';
   btn.disabled=true;
   btn.textContent='Entrando...';
+
   try{
-    await auth.signInWithEmailAndPassword(email,password);
+    await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    const credential=await auth.signInWithEmailAndPassword(email,password);
+
+    // Não dependemos apenas do onAuthStateChanged.
+    // Isso evita ficar preso em "Entrando..." quando já existe uma sessão salva.
+    await openAuthenticatedApp(credential.user);
   }catch(err){
-    console.error(err);
-    error.textContent=friendlyAuthError(err);
+    console.error('Falha no login:',err);
+    const message=err && err.message ? err.message : '';
+    error.textContent=message.startsWith('EAD:') ? message.replace(/^EAD:\s*/,'') : friendlyAuthError(err);
     btn.disabled=false;
     btn.textContent='Entrar';
   }
@@ -292,26 +302,61 @@ async function loadTeamUsers(){
 }
 
 async function openAuthenticatedApp(user){
-  const profile=await ensureUserProfile(user);
+  if(!user) return;
+  if(appReadyUid===user.uid && !document.getElementById('app').classList.contains('hidden')) return;
+  if(openingUserUid===user.uid) return;
+
+  openingUserUid=user.uid;
   const loginError=document.getElementById('loginError');
-  if(!profile || profile.ativo===false){
-    loginError.textContent='Usuário autenticado, mas ainda sem perfil liberado no EAD Irmen.';
-    await auth.signOut();
-    return;
+  const btn=document.getElementById('loginButton');
+
+  try{
+    const profile=await ensureUserProfile(user);
+
+    if(!profile){
+      throw new Error('EAD: Login autenticado, mas o perfil ainda não foi cadastrado no EAD Irmen.');
+    }
+
+    if(profile.ativo===false){
+      throw new Error('EAD: Este login está desativado. Procure um administrador.');
+    }
+
+    if(!['admin','instructor'].includes(profile.perfil)){
+      throw new Error('EAD: O perfil deste usuário está inválido no Firestore.');
+    }
+
+    currentUserProfile=profile;
+    role=profile.perfil;
+    currentPersonName=profile.nome||user.email||'Usuário';
+
+    document.getElementById('profileName').textContent=currentPersonName;
+    document.getElementById('profileRole').textContent='Perfil: '+(profile.cargo || (role==='admin'?'ADM':'Instrutor'));
+
+    // Abre a interface primeiro. Sincronizações secundárias não podem travar o login.
+    document.getElementById('login').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+
+    buildNav();
+    go('dashboard');
+    appReadyUid=user.uid;
+
+    // Carregamentos complementares executam depois que a interface já abriu.
+    await loadTeamUsers();
+    await initCloud();
+    go(currentPage);
+  }catch(err){
+    appReadyUid=null;
+    document.getElementById('app').classList.add('hidden');
+    document.getElementById('login').classList.remove('hidden');
+    loginError.textContent=(err && err.message ? err.message.replace(/^EAD:\s*/,'') : 'Falha ao carregar o perfil do usuário.');
+    throw err;
+  }finally{
+    openingUserUid=null;
+    if(btn){
+      btn.disabled=false;
+      btn.textContent='Entrar';
+    }
   }
-  currentUserProfile=profile;
-  role=profile.perfil;
-  currentPersonName=profile.nome||user.email||'Usuário';
-
-  document.getElementById('profileName').textContent=currentPersonName;
-  document.getElementById('profileRole').textContent='Perfil: '+(profile.cargo || (role==='admin'?'ADM':'Instrutor'));
-  document.getElementById('login').classList.add('hidden');
-  document.getElementById('app').classList.remove('hidden');
-
-  await loadTeamUsers();
-  await initCloud();
-  buildNav();
-  go('dashboard');
 }
 
 async function logout(){
@@ -341,18 +386,17 @@ auth.onAuthStateChanged(async user=>{
     try{
       await openAuthenticatedApp(user);
     }catch(err){
-      console.error(err);
-      document.getElementById('login').classList.remove('hidden');
-      document.getElementById('app').classList.add('hidden');
-      document.getElementById('loginError').textContent='Falha ao carregar o perfil do usuário.';
-      const btn=document.getElementById('loginButton');
-      btn.disabled=false;
-      btn.textContent='Entrar';
+      console.error('Falha ao abrir sessão autenticada:',err);
+      // Limpa uma sessão inconsistente para que uma nova tentativa de login
+      // realmente dispare o fluxo de autenticação.
+      try{ await auth.signOut(); }catch(_){}
     }
   }else{
     role='';
     currentUserProfile=null;
     currentPersonName='';
+    appReadyUid=null;
+    openingUserUid=null;
     if(cloudUnsubscribe){cloudUnsubscribe();cloudUnsubscribe=null;}
     document.getElementById('app').classList.add('hidden');
     document.getElementById('login').classList.remove('hidden');
