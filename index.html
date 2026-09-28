@@ -111,7 +111,7 @@ async function save(){
       skills:data.skills,
       plans:data.plans,
       people:data.people,
-      updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+      atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()
     });
     cloudMessage='Firebase sincronizado';
     updateCloudBadge();
@@ -139,8 +139,8 @@ async function initCloud(){
         skills:defaults.skills,
         plans:defaults.plans,
         people:defaults.people,
-        createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+        criadoEm:firebase.firestore.FieldValue.serverTimestamp(),
+        atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()
       });
       data=JSON.parse(JSON.stringify(defaults));
       cacheLocal();
@@ -215,12 +215,12 @@ async function ensureUserProfile(user){
   const isZion=email.startsWith('zion.almeida@irmen.');
   if(isZion){
     const profile={
-      name:'Zion Almeida',
+      nome:'Zion Almeida',
       email:user.email||'',
-      role:'admin',
-      position:'ADM',
-      active:true,
-      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      perfil:'admin',
+      cargo:'ADM',
+      ativo:true,
+      criadoEm:firebase.firestore.FieldValue.serverTimestamp()
     };
     await ref.set(profile);
     return {uid:user.uid,...profile};
@@ -231,8 +231,8 @@ async function ensureUserProfile(user){
 async function loadTeamUsers(){
   try{
     const snap=await db.collection('usuarios').get();
-    teamUsers=snap.docs.map(d=>({uid:d.id,...d.data()})).filter(u=>u.active!==false);
-    const names=teamUsers.map(u=>u.name).filter(Boolean);
+    teamUsers=snap.docs.map(d=>({uid:d.id,...d.data()})).filter(u=>u.ativo!==false);
+    const names=teamUsers.map(u=>u.nome).filter(Boolean);
     names.forEach(name=>{ if(!data.people.includes(name)) data.people.push(name); });
   }catch(err){
     console.warn('Não foi possível carregar usuários da equipe',err);
@@ -243,17 +243,17 @@ async function loadTeamUsers(){
 async function openAuthenticatedApp(user){
   const profile=await ensureUserProfile(user);
   const loginError=document.getElementById('loginError');
-  if(!profile || profile.active===false){
+  if(!profile || profile.ativo===false){
     loginError.textContent='Usuário autenticado, mas ainda sem perfil liberado no EAD Irmen.';
     await auth.signOut();
     return;
   }
   currentUserProfile=profile;
-  role=profile.role;
-  currentPersonName=profile.name||user.email||'Usuário';
+  role=profile.perfil;
+  currentPersonName=profile.nome||user.email||'Usuário';
 
   document.getElementById('profileName').textContent=currentPersonName;
-  document.getElementById('profileRole').textContent='Perfil: '+(profile.position || (role==='admin'?'ADM':'Instrutor'));
+  document.getElementById('profileRole').textContent='Perfil: '+(profile.cargo || (role==='admin'?'ADM':'Instrutor'));
   document.getElementById('login').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
 
@@ -314,7 +314,7 @@ function planTable(person){let plans=data.plans.filter(p=>!person||p.person===pe
 function removePlan(id){data.plans=data.plans.filter(p=>p.id!==id);save();renderWeek()}
 
 function userRoleLabel(u){
-  return u && u.role==='admin' ? 'ADM' : 'Instrutor';
+  return u && u.perfil==='admin' ? 'ADM' : 'Instrutor';
 }
 
 function userCreationError(err){
@@ -357,9 +357,9 @@ async function createUserLogin(event){
       email,
       role:newRole,
       position:newRole==='admin'?'ADM':'Instrutor',
-      active:true,
-      createdBy:currentUserProfile&&currentUserProfile.uid?currentUserProfile.uid:null,
-      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      ativo:true,
+      criadoPor:currentUserProfile&&currentUserProfile.uid?currentUserProfile.uid:null,
+      criadoEm:firebase.firestore.FieldValue.serverTimestamp()
     };
 
     await db.collection('usuarios').doc(uid).set(profile);
@@ -386,7 +386,7 @@ function renderUsers(success=''){
   header('Usuários','Crie e acompanhe os acessos da equipe. Existem apenas os perfis ADM e Instrutor.');
 
   const rows=teamUsers.length
-    ? teamUsers.map(u=>'<tr><td><div class="person"><div class="avatar">'+esc((u.name||u.email||'?')[0])+'</div><div><b>'+esc(u.name||'Sem nome')+'</b><div class="muted">'+esc(u.email||'')+'</div></div></div></td><td>'+esc(userRoleLabel(u))+'</td><td><span class="status '+(u.active===false?'s-rev':'s-done')+'">'+(u.active===false?'Inativo':'Ativo')+'</span></td></tr>').join('')
+    ? teamUsers.map(u=>'<tr><td><div class="person"><div class="avatar">'+esc((u.nome||u.email||'?')[0])+'</div><div><b>'+esc(u.nome||'Sem nome')+'</b><div class="muted">'+esc(u.email||'')+'</div></div></div></td><td>'+esc(userRoleLabel(u))+'</td><td><span class="status '+(u.ativo===false?'s-rev':'s-done')+'">'+(u.ativo===false?'Inativo':'Ativo')+'</span></td></tr>').join('')
     : '<tr><td colspan="3" class="empty">Nenhum usuário cadastrado.</td></tr>';
 
   document.getElementById('content').innerHTML=
@@ -404,10 +404,10 @@ function renderUsers(success=''){
 }
 function renderTeam(){
   header('Equipe','Acompanhe os integrantes, cargos e a distribuição das metas.');
-  const knownNames=new Set(teamUsers.map(u=>u.name).filter(Boolean));
-  const localOnly=data.people.filter(name=>!knownNames.has(name)).map(name=>({name,position:'Instrutor',role:'instructor',active:true}));
+  const knownNames=new Set(teamUsers.map(u=>u.nome).filter(Boolean));
+  const localOnly=data.people.filter(name=>!knownNames.has(name)).map(name=>({name,position:'Instrutor',role:'instructor',ativo:true}));
   const members=[...teamUsers,...localOnly];
-  document.getElementById('content').innerHTML='<div class="section"><div class="section-head"><h3>Equipe EAD</h3></div><div class="grid">'+members.map(p=>{let name=p.name||p.email||'Usuário';let total=data.skills.filter(s=>s.owner===name).length;let weekly=data.plans.filter(x=>x.person===name).length;return '<div class="card"><div class="person"><div class="avatar">'+esc(name[0]||'?')+'</div><div><b>'+esc(name)+'</b><div class="muted">'+esc(p.position||'Instrutor')+'</div></div></div><div style="margin-top:14px" class="muted">'+total+' habilidade(s) atribuída(s) • '+weekly+' entrega(s) na semana</div></div>'}).join('')+'</div></div>'
+  document.getElementById('content').innerHTML='<div class="section"><div class="section-head"><h3>Equipe EAD</h3></div><div class="grid">'+members.map(p=>{let name=p.nome||p.email||'Usuário';let total=data.skills.filter(s=>s.owner===name).length;let weekly=data.plans.filter(x=>x.person===name).length;return '<div class="card"><div class="person"><div class="avatar">'+esc(name[0]||'?')+'</div><div><b>'+esc(name)+'</b><div class="muted">'+esc(p.cargo||'Instrutor')+'</div></div></div><div style="margin-top:14px" class="muted">'+total+' habilidade(s) atribuída(s) • '+weekly+' entrega(s) na semana</div></div>'}).join('')+'</div></div>'
 }
 function showModal(){document.getElementById('modal').classList.remove('hidden')}function closeModal(){document.getElementById('modal').classList.add('hidden')}
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
