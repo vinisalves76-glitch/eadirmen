@@ -903,7 +903,7 @@ function renderUsers(success=''){
             '<button class="btn btn-soft" onclick="openEditUser(\''+u.uid+'\')">Editar</button>'+
             (isSelf
               ? '<span class="muted" style="align-self:center">Usuário atual</span>'
-              : '<button class="btn btn-soft" onclick="toggleUserActive(\''+u.uid+'\')">'+(active?'Desativar':'Ativar')+'</button>'+)+
+              : '<button class="btn btn-soft" onclick="toggleUserActive(\''+u.uid+'\')">'+(active?'Desativar':'Ativar')+'</button>')+
           '</div></td>'+
         '</tr>';
       }).join('')
