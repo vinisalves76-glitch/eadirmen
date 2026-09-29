@@ -103,23 +103,47 @@ button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;dis
 .fleet-event .date{font-size:12px;color:var(--muted)}.fleet-event .event-title{font-weight:800;margin:2px 0}.fleet-event .event-text{font-size:13px;line-height:1.45;color:#475467}
 .fleet-readonly{padding:10px 12px;border-radius:10px;background:#f3f4f6;color:#475467;font-size:12px;margin-bottom:12px}
 .fleet-report-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+.fleet-dashboard-hero{background:linear-gradient(135deg,#0b1220 0%,#172033 55%,#0f2940 100%);border-radius:20px;padding:22px;color:#fff;margin-bottom:16px;position:relative;overflow:hidden}
+.fleet-dashboard-hero:after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;background:rgba(56,189,248,.13);right:-65px;top:-95px}
+.fleet-dashboard-hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;position:relative;z-index:1}
+.fleet-dashboard-hero h3{font-size:24px;margin:0 0 6px}.fleet-dashboard-hero p{margin:0;color:#cbd5e1;font-size:13px}
+.fleet-dashboard-hero-actions{display:flex;gap:8px;flex-wrap:wrap}
+.fleet-dashboard-hero .btn{border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.09);color:#fff}.fleet-dashboard-hero .btn:hover{background:rgba(255,255,255,.15)}
+.fleet-dashboard-filters{display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-top:18px;position:relative;z-index:1}
+.fleet-dashboard-filters>div{display:flex;flex-direction:column;gap:5px}
+.fleet-dashboard-filters label{font-size:10px;color:#94a3b8;font-weight:900;text-transform:uppercase;letter-spacing:.06em}
+.fleet-dashboard-filters select{min-width:150px;border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;background:#fff;color:#111827;font-weight:700}
+.fleet-dashboard-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.fleet-dashboard-kpi{position:relative;background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px 15px 14px;overflow:hidden;box-shadow:0 7px 24px rgba(15,23,42,.04)}
+.fleet-dashboard-kpi:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#64748b}
+.fleet-dashboard-kpi.success:before{background:#16a34a}.fleet-dashboard-kpi.danger:before{background:#dc2626}.fleet-dashboard-kpi.info:before{background:#0284c7}.fleet-dashboard-kpi.warning:before{background:#d97706}.fleet-dashboard-kpi.electric:before{background:#7c3aed}
+.fleet-dashboard-kpi .kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#64748b;font-weight:900}
+.fleet-dashboard-kpi b{display:block;font-size:23px;margin-top:6px;letter-spacing:-.035em;color:#0f172a}
+.fleet-dashboard-kpi small{display:block;margin-top:4px;color:#94a3b8;font-size:10px;line-height:1.35}
+.fleet-dashboard-main{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1.05fr) minmax(280px,.9fr);gap:16px;margin-bottom:16px}
 .fleet-dashboard-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px}
-.fleet-chart{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;min-width:0}
-.fleet-chart h3{margin:0 0 4px}.fleet-chart .muted{margin-bottom:12px}
-.fleet-bar-list{display:flex;flex-direction:column;gap:11px}
-.fleet-bar-row{display:grid;grid-template-columns:minmax(110px,1fr) minmax(120px,2fr) auto;gap:10px;align-items:center}
-.fleet-bar-label{font-size:12px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.fleet-bar-track{height:12px;border-radius:999px;background:#eef1f4;overflow:hidden}
-.fleet-bar-fill{height:100%;border-radius:999px;background:#171717;min-width:2px}
-.fleet-bar-value{font-size:12px;font-weight:800;white-space:nowrap}
-.fleet-dashboard-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:16px}
-.fleet-dashboard-kpi{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px}
-.fleet-dashboard-kpi span{display:block;font-size:12px;color:var(--muted)}
-.fleet-dashboard-kpi b{display:block;font-size:23px;margin-top:5px;letter-spacing:-.02em}
-.fleet-dashboard-top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
-.fleet-dashboard-top select{border:1px solid #d0d5dd;border-radius:10px;padding:9px 12px;background:#fff}
-@media(max-width:1000px){.fleet-dashboard-kpis{grid-template-columns:repeat(2,1fr)}.fleet-dashboard-grid{grid-template-columns:1fr}}
-@media(max-width:700px){.fleet-dashboard-kpis{grid-template-columns:1fr}.fleet-bar-row{grid-template-columns:90px minmax(90px,1fr) auto}}
+.fleet-chart{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;min-width:0;box-shadow:0 6px 20px rgba(15,23,42,.035)}
+.fleet-chart-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:12px}
+.fleet-chart h3{margin:0;font-size:15px}.fleet-chart .chart-sub{font-size:11px;color:#94a3b8;margin-top:3px}
+.fleet-chart-canvas{height:265px;position:relative}.fleet-chart-canvas.compact{height:235px}
+.fleet-insight-panel{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 6px 20px rgba(15,23,42,.035)}
+.fleet-insight-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.fleet-insight-title h3{margin:0;font-size:15px}
+.fleet-insight-list{display:flex;flex-direction:column;gap:9px}
+.fleet-insight{border:1px solid #eef0f3;border-radius:12px;padding:10px 11px;background:#fafbfc}
+.fleet-insight-top{display:flex;justify-content:space-between;gap:8px;align-items:center}.fleet-insight b{font-size:12px}.fleet-insight small{display:block;color:#667085;margin-top:4px;line-height:1.35}
+.fleet-mini-badge{display:inline-flex;align-items:center;padding:4px 7px;border-radius:999px;font-size:9px;font-weight:900;white-space:nowrap}
+.fleet-mini-badge.red{background:#fef2f2;color:#b91c1c}.fleet-mini-badge.amber{background:#fffbeb;color:#b45309}.fleet-mini-badge.green{background:#ecfdf3;color:#15803d}.fleet-mini-badge.blue{background:#eff6ff;color:#1d4ed8}
+.fleet-dashboard-section{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:16px;box-shadow:0 6px 20px rgba(15,23,42,.035)}
+.fleet-dashboard-section .section-head{margin-bottom:12px}
+.fleet-dashboard-table table{min-width:1180px}
+.fleet-dashboard-table th{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#667085;background:#f8fafc}
+.fleet-dashboard-table td{vertical-align:middle}
+.fleet-dashboard-table .money-positive{font-weight:900;color:#15803d}
+.fleet-dashboard-table .soc-low{font-weight:900;color:#b91c1c}.fleet-dashboard-table .soc-mid{font-weight:900;color:#b45309}.fleet-dashboard-table .soc-ok{font-weight:900;color:#15803d}
+.fleet-chart-fallback{height:100%;display:grid;place-items:center;text-align:center;color:#94a3b8;font-size:12px;border:1px dashed #d0d5dd;border-radius:12px}
+@media(max-width:1250px){.fleet-dashboard-kpis{grid-template-columns:repeat(3,1fr)}.fleet-dashboard-main{grid-template-columns:1fr 1fr}.fleet-dashboard-main .fleet-insight-panel{grid-column:1/-1}}
+@media(max-width:900px){.fleet-dashboard-grid,.fleet-dashboard-main{grid-template-columns:1fr}.fleet-dashboard-kpis{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:650px){.fleet-dashboard-kpis{grid-template-columns:1fr}.fleet-dashboard-filters{display:grid;grid-template-columns:1fr}.fleet-dashboard-filters select{width:100%}.fleet-dashboard-hero-actions{width:100%}.fleet-dashboard-hero-actions .btn{flex:1}.fleet-chart-canvas{height:230px}}
 .fleet-report-card{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fafafa}
 .fleet-report-card b{display:block;font-size:22px;margin-top:3px}
 @media(max-width:1000px){.fleet-cards{grid-template-columns:repeat(2,1fr)}.fleet-overview{grid-template-columns:1fr}.fleet-detail-grid{grid-template-columns:repeat(2,1fr)}}
@@ -141,7 +165,7 @@ button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;dis
       <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Sua senha" required>
       <button id="loginButton" type="submit">Entrar</button>
       <div id="loginError" class="login-error"></div>
-      <div class="login-help">O sistema possui apenas dois perfis: ADM e Instrutor. O ADM possui acesso geral e pode criar novos logins.</div>
+      <div class="login-help">Perfis disponíveis: ADM, Consultor de Treinamento e Instrutor. O ADM possui acesso geral e pode criar novos logins.</div>
     </form>
   </div>
 </section>
@@ -161,6 +185,7 @@ button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;dis
 <div id="modal" class="modal hidden"><div class="modal-box"><div id="modalContent"></div></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -267,7 +292,8 @@ const fleetDemoPropulsao=['Mecânico','Mecânico','Elétrico','Híbrido','Mecân
 const fleetDemoEconomy={2:{horimetroInicioEconomia:1700,consumoEletricoKwhHora:36,tarifaEnergia:0.82,consumoDieselReferenciaLHora:15,precoDiesel:6.20},5:{horimetroInicioEconomia:400,consumoEletricoKwhHora:22,tarifaEnergia:0.82,consumoDieselReferenciaLHora:9,precoDiesel:6.20}};
 fleetPrototype=fleetPrototype.map((m,index)=>{const tipo=m.tipoPropulsao||fleetDemoPropulsao[index%fleetDemoPropulsao.length];return{...(tipo==='Elétrico'?(fleetDemoEconomy[index]||{}):{}),...m,tipoPropulsao:tipo,soc:Number.isFinite(Number(m.soc))?Math.max(0,Math.min(100,Number(m.soc))):fleetDemoSoc[index%fleetDemoSoc.length]};});
 let fleetFilters={busca:'',status:'Todos',cliente:'Todos'};
-let fleetDashboardClient='Todos';
+let fleetDashboardFilters={cliente:'Todos',tipo:'Todos',status:'Todos'};
+let fleetDashboardCharts=[];
 
 const defaults={
  skills:[
@@ -1719,47 +1745,173 @@ function renderFleet(){
   renderFleetTable();
 }
 
-function fleetDashboardBarRows(items,formatter){
-  if(!items.length) return '<div class="muted">Sem dados para exibir.</div>';
-  const max=Math.max(...items.map(x=>Math.max(0,Number(x.value)||0)),1);
-  return '<div class="fleet-bar-list">'+items.map(x=>{
-    const value=Math.max(0,Number(x.value)||0);
-    const width=Math.max(value>0?3:0,Math.min(100,(value/max)*100));
-    return '<div class="fleet-bar-row"><div class="fleet-bar-label" title="'+esc(x.label)+'">'+esc(x.label)+'</div><div class="fleet-bar-track"><div class="fleet-bar-fill" style="width:'+width+'%"></div></div><div class="fleet-bar-value">'+esc(formatter?formatter(value,x):String(value))+'</div></div>';
-  }).join('')+'</div>';
+function destroyFleetDashboardCharts(){
+  if(!Array.isArray(fleetDashboardCharts)) fleetDashboardCharts=[];
+  fleetDashboardCharts.forEach(chart=>{try{chart.destroy()}catch(_){ }});
+  fleetDashboardCharts=[];
 }
-function setFleetDashboardClient(value){fleetDashboardClient=value;openFleetDashboard()}
+
+function setFleetDashboardFilter(key,value){
+  fleetDashboardFilters[key]=value;
+  openFleetDashboard();
+}
+
+function fleetChart(canvasId,config){
+  const canvas=document.getElementById(canvasId);
+  if(!canvas) return;
+  if(typeof Chart==='undefined'){
+    canvas.parentElement.innerHTML='<div class="fleet-chart-fallback">Não foi possível carregar os gráficos.</div>';
+    return;
+  }
+  const chart=new Chart(canvas,config);
+  fleetDashboardCharts.push(chart);
+}
+
+function renderFleetDashboardCharts(view){
+  destroyFleetDashboardCharts();
+  if(typeof Chart==='undefined') return;
+
+  Chart.defaults.font.family='Inter, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+  Chart.defaults.color='#667085';
+  Chart.defaults.borderColor='#eef1f4';
+
+  const legend={position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,boxHeight:8,padding:14,font:{size:11,weight:'600'}}};
+  const tooltip={backgroundColor:'#0f172a',titleColor:'#fff',bodyColor:'#e2e8f0',padding:11,cornerRadius:9,displayColors:true};
+
+  fleetChart('fleetStatusChart',{
+    type:'doughnut',
+    data:{labels:view.statusLabels,datasets:[{data:view.statusValues,backgroundColor:['#16a34a','#f59e0b','#dc2626','#3b82f6'],borderWidth:0,hoverOffset:6}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend,tooltip}}
+  });
+
+  fleetChart('fleetPropulsionChart',{
+    type:'doughnut',
+    data:{labels:view.propulsionLabels,datasets:[{data:view.propulsionValues,backgroundColor:['#64748b','#7c3aed','#06b6d4'],borderWidth:0,hoverOffset:6}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend,tooltip}}
+  });
+
+  fleetChart('fleetEconomyChart',{
+    type:'bar',
+    data:{labels:view.economyLabels,datasets:[{label:'Economia acumulada',data:view.economyValues,backgroundColor:'#16a34a',borderRadius:7,borderSkipped:false}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...tooltip,callbacks:{label:ctx=>' '+fleetMoney(ctx.raw)}}},scales:{x:{beginAtZero:true,grid:{color:'#f1f5f9'},ticks:{callback:v=>'R$ '+Number(v).toLocaleString('pt-BR',{notation:'compact'})}},y:{grid:{display:false},ticks:{font:{size:10,weight:'600'}}}}}
+  });
+
+  fleetChart('fleetCostChart',{
+    type:'bar',
+    data:{labels:view.costLabels,datasets:[
+      {label:'Diesel equivalente / h',data:view.dieselCostValues,backgroundColor:'#f59e0b',borderRadius:6,borderSkipped:false},
+      {label:'Elétrico / h',data:view.electricCostValues,backgroundColor:'#06b6d4',borderRadius:6,borderSkipped:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend,tooltip:{...tooltip,callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fleetMoney(ctx.raw)}}},scales:{y:{beginAtZero:true,grid:{color:'#f1f5f9'},ticks:{callback:v=>'R$ '+Number(v).toLocaleString('pt-BR')}},x:{grid:{display:false},ticks:{font:{size:10,weight:'600'}}}}}
+  });
+
+  fleetChart('fleetSocChart',{
+    type:'bar',
+    data:{labels:view.socLabels,datasets:[{label:'SOC',data:view.socValues,backgroundColor:view.socValues.map(v=>v<=20?'#dc2626':v<=50?'#f59e0b':'#16a34a'),borderRadius:7,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...tooltip,callbacks:{label:ctx=>' SOC: '+ctx.raw+'%'}}},scales:{y:{beginAtZero:true,max:100,grid:{color:'#f1f5f9'},ticks:{callback:v=>v+'%'}},x:{grid:{display:false},ticks:{font:{size:10,weight:'600'}}}}}
+  });
+
+  fleetChart('fleetClientStatusChart',{
+    type:'bar',
+    data:{labels:view.clientLabels,datasets:[
+      {label:'Normal',data:view.clientNormal,backgroundColor:'#16a34a',stack:'status',borderRadius:4},
+      {label:'Atenção',data:view.clientAttention,backgroundColor:'#f59e0b',stack:'status',borderRadius:4},
+      {label:'Crítico',data:view.clientCritical,backgroundColor:'#dc2626',stack:'status',borderRadius:4},
+      {label:'Em visita',data:view.clientVisit,backgroundColor:'#3b82f6',stack:'status',borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend,tooltip},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:10,weight:'600'}}},y:{stacked:true,beginAtZero:true,ticks:{precision:0},grid:{color:'#f1f5f9'}}}}
+  });
+}
 
 function openFleetDashboard(){
-  header('Dashboard Geral • Frotas','Visualize toda a frota, testes, economia e parâmetros de acompanhamento em uma única tela.');
+  header('Dashboard Geral • Frotas','Visão executiva dos testes, criticidade, utilização e economia operacional da frota.');
+
   const clients=[...new Set(fleetPrototype.map(x=>x.cliente).filter(Boolean))].sort();
-  const machines=fleetPrototype.filter(m=>fleetDashboardClient==='Todos'||m.cliente===fleetDashboardClient);
+  const types=['Mecânico','Híbrido','Elétrico'];
+  const statuses=['Operação normal','Atenção','Crítico','Em visita'];
+
+  const machines=fleetPrototype.filter(m=>{
+    const byClient=fleetDashboardFilters.cliente==='Todos'||m.cliente===fleetDashboardFilters.cliente;
+    const byType=fleetDashboardFilters.tipo==='Todos'||(m.tipoPropulsao||'Mecânico')===fleetDashboardFilters.tipo;
+    const byStatus=fleetDashboardFilters.status==='Todos'||m.status===fleetDashboardFilters.status;
+    return byClient&&byType&&byStatus;
+  });
+
   const electric=machines.filter(m=>m.tipoPropulsao==='Elétrico');
   const battery=machines.filter(m=>fleetHasBattery(m));
   const economies=electric.map(m=>({m,e:fleetEconomy(m)})).filter(x=>x.e);
-  const totalHours=machines.reduce((sum,m)=>sum+Math.max(0,Number(m.horimetro)||0),0);
   const totalSaving=economies.reduce((sum,x)=>sum+x.e.economiaTotal,0);
   const dieselEquivalent=economies.reduce((sum,x)=>sum+x.e.hours*Math.max(0,Number(x.m.consumoDieselReferenciaLHora)||0),0);
   const critical=machines.filter(m=>m.status==='Crítico').length;
+  const priority=machines.filter(m=>m.prioridadeTreinamento==='Alta'||m.prioridadeTreinamento==='Crítica').length;
   const totalTests=machines.reduce((sum,m)=>sum+(Array.isArray(m.historico)?m.historico.length:0),0);
-  const propulsion=['Mecânico','Híbrido','Elétrico'].map(label=>({label,value:machines.filter(m=>(m.tipoPropulsao||'Mecânico')===label).length}));
-  const statuses=['Operação normal','Atenção','Crítico','Em visita'].map(label=>({label,value:machines.filter(m=>m.status===label).length}));
-  const savingBars=economies.map(x=>({label:x.m.codigo+' • '+x.m.modelo,value:Math.max(0,x.e.economiaTotal)})).sort((a,b)=>b.value-a.value);
-  const socBars=battery.map(m=>({label:m.codigo+' • '+m.modelo,value:Math.max(0,Math.min(100,Number(m.soc)||0))})).sort((a,b)=>a.value-b.value);
-  const hourBars=machines.map(m=>({label:m.codigo+' • '+m.modelo,value:Math.max(0,Number(m.horimetro)||0)})).sort((a,b)=>b.value-a.value);
+  const avgSoc=battery.length?battery.reduce((sum,m)=>sum+Math.max(0,Math.min(100,Number(m.soc)||0)),0)/battery.length:0;
+
   const recent=[];
   machines.forEach(m=>(m.historico||[]).forEach(h=>recent.push({...h,machine:m})));
   recent.sort((a,b)=>String(b.data||'').localeCompare(String(a.data||'')));
+
+  const criticalMachines=machines.filter(m=>m.status==='Crítico');
+  const lowSoc=battery.filter(m=>Number(m.soc||0)<=30);
+  const topEconomy=economies.slice().sort((a,b)=>b.e.economiaTotal-a.e.economiaTotal)[0];
+  const trainingPriority=machines.filter(m=>m.prioridadeTreinamento==='Crítica'||m.prioridadeTreinamento==='Alta').slice(0,3);
+
   const clientOptions='<option>Todos</option>'+clients.map(x=>'<option>'+esc(x)+'</option>').join('');
-  const electricRows=electric.length?electric.map(m=>{const e=fleetEconomy(m),price=fleetCurrentCost(m);return '<tr><td><b>'+esc(m.codigo)+' • '+esc(m.modelo)+'</b><div class="machine-sub">'+esc(m.cliente)+'</div></td><td>'+Number(m.horimetro||0).toLocaleString('pt-BR')+' h</td><td>'+Number(m.soc||0)+'%</td><td>'+Number(m.consumoEletricoKwhHora||0).toLocaleString('pt-BR')+' kWh/h</td><td>'+fleetMoney(price?.tarifaEnergia||0)+'/kWh</td><td>'+Number(m.consumoDieselReferenciaLHora||0).toLocaleString('pt-BR')+' L/h</td><td>'+fleetMoney(price?.precoDiesel||0)+'/L</td><td><b>'+(e?fleetMoney(e.economiaHora)+'/h':'—')+'</b></td><td><b>'+(e?fleetMoney(e.economiaTotal):'—')+'</b></td><td><button class="btn btn-soft" onclick="openFleetMachineReport('+m.id+')">Relatório</button></td></tr>';}).join(''):'<tr><td colspan="10" class="empty">Nenhuma máquina elétrica neste filtro.</td></tr>';
-  const recentRows=recent.length?recent.slice(0,10).map(h=>'<tr><td>'+fleetDate(h.data)+'</td><td><b>'+esc(h.machine.codigo)+' • '+esc(h.machine.modelo)+'</b></td><td>'+esc(h.tipo||'Acompanhamento')+'</td><td>'+(h.horimetro!==undefined?Number(h.horimetro).toLocaleString('pt-BR')+' h':'—')+'</td><td>'+(h.soc!==undefined?Number(h.soc)+'%':'—')+'</td><td>'+esc(h.descricao||'')+'</td></tr>').join(''):'<tr><td colspan="6" class="empty">Sem registros de acompanhamento.</td></tr>';
+  const typeOptions='<option>Todos</option>'+types.map(x=>'<option>'+esc(x)+'</option>').join('');
+  const statusOptions='<option>Todos</option>'+statuses.map(x=>'<option>'+esc(x)+'</option>').join('');
+
+  const electricRows=electric.length?electric.map(m=>{
+    const e=fleetEconomy(m),price=fleetCurrentCost(m),soc=Math.max(0,Math.min(100,Number(m.soc)||0));
+    const socClass=soc<=20?'soc-low':soc<=50?'soc-mid':'soc-ok';
+    return '<tr><td><b>'+esc(m.codigo)+' • '+esc(m.modelo)+'</b><div class="machine-sub">'+esc(m.cliente)+' • '+esc(m.local)+'</div></td><td>'+Number(m.horimetro||0).toLocaleString('pt-BR')+' h</td><td class="'+socClass+'">'+soc+'%</td><td>'+Number(m.consumoEletricoKwhHora||0).toLocaleString('pt-BR')+' kWh/h</td><td>'+fleetMoney(price?.tarifaEnergia||0)+'/kWh</td><td>'+Number(m.consumoDieselReferenciaLHora||0).toLocaleString('pt-BR')+' L/h</td><td>'+fleetMoney(price?.precoDiesel||0)+'/L</td><td class="money-positive">'+(e?fleetMoney(e.economiaHora)+'/h':'—')+'</td><td class="money-positive">'+(e?fleetMoney(e.economiaTotal):'—')+'</td><td><button class="btn btn-soft" onclick="openFleetMachineReport('+m.id+')">Abrir relatório</button></td></tr>';
+  }).join(''):'<tr><td colspan="10" class="empty">Nenhuma máquina elétrica neste filtro.</td></tr>';
+
+  const recentRows=recent.length?recent.slice(0,10).map(h=>'<tr><td>'+fleetDate(h.data)+'</td><td><b>'+esc(h.machine.codigo)+' • '+esc(h.machine.modelo)+'</b><div class="machine-sub">'+esc(h.machine.cliente)+'</div></td><td>'+esc(h.tipo||'Acompanhamento')+'</td><td>'+(h.horimetro!==undefined?Number(h.horimetro).toLocaleString('pt-BR')+' h':'—')+'</td><td>'+(h.soc!==undefined?Number(h.soc)+'%':'—')+'</td><td>'+esc(h.descricao||'')+'</td></tr>').join(''):'<tr><td colspan="6" class="empty">Sem registros de acompanhamento.</td></tr>';
+
+  const insights=[];
+  criticalMachines.slice(0,2).forEach(m=>insights.push('<div class="fleet-insight"><div class="fleet-insight-top"><b>'+esc(m.codigo)+' • '+esc(m.modelo)+'</b><span class="fleet-mini-badge red">CRÍTICO</span></div><small>'+esc(m.cliente)+' • '+esc(m.proximaAcao||'Sem próxima ação cadastrada')+'</small></div>'));
+  lowSoc.slice(0,2).forEach(m=>insights.push('<div class="fleet-insight"><div class="fleet-insight-top"><b>'+esc(m.codigo)+' • '+esc(m.modelo)+'</b><span class="fleet-mini-badge amber">SOC '+Number(m.soc||0)+'%</span></div><small>'+esc(m.cliente)+' • carga baixa registrada.</small></div>'));
+  if(topEconomy) insights.push('<div class="fleet-insight"><div class="fleet-insight-top"><b>'+esc(topEconomy.m.codigo)+' • '+esc(topEconomy.m.modelo)+'</b><span class="fleet-mini-badge green">MAIOR ECONOMIA</span></div><small>'+esc(topEconomy.m.cliente)+' • '+fleetMoney(topEconomy.e.economiaTotal)+' acumulados.</small></div>');
+  trainingPriority.slice(0,2).forEach(m=>insights.push('<div class="fleet-insight"><div class="fleet-insight-top"><b>'+esc(m.codigo)+' • '+esc(m.modelo)+'</b><span class="fleet-mini-badge blue">TREINAMENTO</span></div><small>'+esc(m.necessidadeTreinamento||'Necessidade prioritária de treinamento')+'</small></div>'));
+
+  destroyFleetDashboardCharts();
+
   document.getElementById('content').innerHTML=
-    '<div class="fleet-dashboard-top"><div><span class="fleet-demo">DASHBOARD GERAL • dados do protótipo</span></div><div class="actions"><span class="muted">Cliente</span><select id="fleetDashboardClientSelect" onchange="setFleetDashboardClient(this.value)">'+clientOptions+'</select><button class="btn btn-soft" onclick="renderFleet()">Voltar para frota</button><button class="btn btn-soft" onclick="downloadFleetCsv()">Exportar CSV</button></div></div>'+
-    '<div class="fleet-dashboard-kpis"><div class="fleet-dashboard-kpi"><span>Máquinas visualizadas</span><b>'+machines.length+'</b></div><div class="fleet-dashboard-kpi"><span>Horímetro somado</span><b>'+totalHours.toLocaleString('pt-BR')+' h</b></div><div class="fleet-dashboard-kpi"><span>Estado crítico</span><b>'+critical+'</b></div><div class="fleet-dashboard-kpi"><span>Economia elétrica estimada</span><b>'+fleetMoney(totalSaving)+'</b></div><div class="fleet-dashboard-kpi"><span>Diesel equivalente evitado</span><b>'+dieselEquivalent.toLocaleString('pt-BR',{maximumFractionDigits:0})+' L</b></div></div>'+
-    '<div class="fleet-dashboard-grid"><div class="fleet-chart"><h3>Distribuição por tipo</h3><div class="muted">Quantidade por tecnologia.</div>'+fleetDashboardBarRows(propulsion,v=>v.toLocaleString('pt-BR'))+'</div><div class="fleet-chart"><h3>Estado da frota</h3><div class="muted">Situação atual dos equipamentos.</div>'+fleetDashboardBarRows(statuses,v=>v.toLocaleString('pt-BR'))+'</div><div class="fleet-chart"><h3>Economia acumulada por elétrica</h3><div class="muted">Comparativo energético estimado com diesel.</div>'+fleetDashboardBarRows(savingBars,v=>fleetMoney(v))+'</div><div class="fleet-chart"><h3>SOC das máquinas com bateria</h3><div class="muted">Carga registrada no último acompanhamento.</div>'+fleetDashboardBarRows(socBars,v=>v.toLocaleString('pt-BR')+'%')+'</div><div class="fleet-chart"><h3>Horímetro por máquina</h3><div class="muted">Utilização acumulada da frota.</div>'+fleetDashboardBarRows(hourBars,v=>v.toLocaleString('pt-BR')+' h')+'</div><div class="fleet-chart"><h3>Atividade de acompanhamento</h3><div class="muted">Testes, visitas, treinamentos e registros.</div><div class="fleet-report-grid"><div class="fleet-report-card"><span class="muted">Registros</span><b>'+totalTests+'</b></div><div class="fleet-report-card"><span class="muted">Elétricas</span><b>'+electric.length+'</b></div><div class="fleet-report-card"><span class="muted">Com bateria</span><b>'+battery.length+'</b></div></div></div></div>'+
-    '<div class="section"><div class="section-head"><div><h3>Parâmetros dos testes • elétricas</h3><div class="muted">Parâmetros atuais usados nos cálculos de economia.</div></div></div><div class="table-wrap"><table><thead><tr><th>Máquina</th><th>Horímetro</th><th>SOC</th><th>Consumo elétrico</th><th>Energia</th><th>Diesel ref.</th><th>Preço diesel</th><th>Economia/h</th><th>Economia acumulada</th><th></th></tr></thead><tbody>'+electricRows+'</tbody></table></div></div>'+
-    '<div class="section"><div class="section-head"><div><h3>Últimos testes e acompanhamentos</h3><div class="muted">Registros mais recentes da frota selecionada.</div></div></div><div class="table-wrap"><table><thead><tr><th>Data</th><th>Máquina</th><th>Tipo</th><th>Horímetro</th><th>SOC</th><th>Registro</th></tr></thead><tbody>'+recentRows+'</tbody></table></div></div>';
-  const select=document.getElementById('fleetDashboardClientSelect');if(select)select.value=fleetDashboardClient;
+    '<div class="fleet-dashboard-hero"><div class="fleet-dashboard-hero-top"><div><h3>Visão consolidada da frota</h3><p>Indicadores técnicos, criticidade, utilização e resultado financeiro dos testes em um único painel.</p></div><div class="fleet-dashboard-hero-actions"><button class="btn" onclick="renderFleet()">Voltar para frota</button><button class="btn" onclick="downloadFleetCsv()">Exportar CSV</button><button class="btn" onclick="openFleetReport()">Gerar relatório</button></div></div><div class="fleet-dashboard-filters"><div><label>Cliente</label><select id="fleetDashClient" onchange="setFleetDashboardFilter(\'cliente\',this.value)">'+clientOptions+'</select></div><div><label>Tipo</label><select id="fleetDashType" onchange="setFleetDashboardFilter(\'tipo\',this.value)">'+typeOptions+'</select></div><div><label>Status</label><select id="fleetDashStatus" onchange="setFleetDashboardFilter(\'status\',this.value)">'+statusOptions+'</select></div></div></div>'+
+    '<div class="fleet-dashboard-kpis"><div class="fleet-dashboard-kpi info"><span class="kpi-label">Máquinas</span><b>'+machines.length+'</b><small>Equipamentos no filtro atual</small></div><div class="fleet-dashboard-kpi electric"><span class="kpi-label">Elétricas</span><b>'+electric.length+'</b><small>'+battery.length+' com bateria monitorada</small></div><div class="fleet-dashboard-kpi danger"><span class="kpi-label">Estado crítico</span><b>'+critical+'</b><small>'+priority+' com treinamento prioritário</small></div><div class="fleet-dashboard-kpi success"><span class="kpi-label">Economia estimada</span><b>'+fleetMoney(totalSaving)+'</b><small>Acumulado das máquinas elétricas</small></div><div class="fleet-dashboard-kpi warning"><span class="kpi-label">Diesel equivalente evitado</span><b>'+dieselEquivalent.toLocaleString('pt-BR',{maximumFractionDigits:0})+' L</b><small>Referência calculada nos testes</small></div><div class="fleet-dashboard-kpi"><span class="kpi-label">SOC médio</span><b>'+(battery.length?avgSoc.toFixed(0)+'%':'—')+'</b><small>'+totalTests+' registros de acompanhamento</small></div></div>'+
+    '<div class="fleet-dashboard-main"><div class="fleet-chart"><div class="fleet-chart-head"><div><h3>Estado da frota</h3><div class="chart-sub">Distribuição rápida por situação operacional</div></div></div><div class="fleet-chart-canvas compact"><canvas id="fleetStatusChart"></canvas></div></div><div class="fleet-chart"><div class="fleet-chart-head"><div><h3>Tipo de propulsão</h3><div class="chart-sub">Composição da frota acompanhada</div></div></div><div class="fleet-chart-canvas compact"><canvas id="fleetPropulsionChart"></canvas></div></div><div class="fleet-insight-panel"><div class="fleet-insight-title"><h3>Atenção imediata</h3><span class="fleet-mini-badge red">'+critical+' crítico(s)</span></div><div class="fleet-insight-list">'+(insights.length?insights.slice(0,6).join(''):'<div class="muted">Nenhum alerta relevante neste filtro.</div>')+'</div></div></div>'+
+    '<div class="fleet-dashboard-grid"><div class="fleet-chart"><div class="fleet-chart-head"><div><h3>Economia acumulada por máquina</h3><div class="chart-sub">Resultado estimado da operação elétrica em relação ao diesel</div></div></div><div class="fleet-chart-canvas"><canvas id="fleetEconomyChart"></canvas></div></div><div class="fleet-chart"><div class="fleet-chart-head"><div><h3>Custo energético por hora</h3><div class="chart-sub">Diesel equivalente x operação elétrica</div></div></div><div class="fleet-chart-canvas"><canvas id="fleetCostChart"></canvas></div></div><div class="fleet-chart"><div class="fleet-chart-head"><div><h3>SOC das máquinas com bateria</h3><div class="chart-sub">Verde acima de 50%, amarelo até 50%, vermelho até 20%</div></div></div><div class="fleet-chart-canvas"><canvas id="fleetSocChart"></canvas></div></div><div class="fleet-chart"><div class="fleet-chart-head"><div><h3>Criticidade por cliente</h3><div class="chart-sub">Distribuição dos estados para priorização de atendimento</div></div></div><div class="fleet-chart-canvas"><canvas id="fleetClientStatusChart"></canvas></div></div></div>'+
+    '<div class="fleet-dashboard-section fleet-dashboard-table"><div class="section-head"><div><h3>Parâmetros dos testes • máquinas elétricas</h3><div class="muted">Dados atuais usados no cálculo de economia. Os preços históricos permanecem preservados por vigência.</div></div></div><div class="table-wrap"><table><thead><tr><th>Máquina</th><th>Horímetro</th><th>SOC</th><th>Consumo elétrico</th><th>Energia</th><th>Diesel ref.</th><th>Preço diesel</th><th>Economia/h</th><th>Economia acumulada</th><th>Ação</th></tr></thead><tbody>'+electricRows+'</tbody></table></div></div>'+
+    '<div class="fleet-dashboard-section"><div class="section-head"><div><h3>Últimos testes e acompanhamentos</h3><div class="muted">Atividades mais recentes da frota filtrada.</div></div><span class="fleet-mini-badge blue">'+recent.length+' registro(s)</span></div><div class="table-wrap"><table><thead><tr><th>Data</th><th>Máquina</th><th>Tipo</th><th>Horímetro</th><th>SOC</th><th>Registro</th></tr></thead><tbody>'+recentRows+'</tbody></table></div></div>';
+
+  const clientSelect=document.getElementById('fleetDashClient');
+  const typeSelect=document.getElementById('fleetDashType');
+  const statusSelect=document.getElementById('fleetDashStatus');
+  if(clientSelect) clientSelect.value=fleetDashboardFilters.cliente;
+  if(typeSelect) typeSelect.value=fleetDashboardFilters.tipo;
+  if(statusSelect) statusSelect.value=fleetDashboardFilters.status;
+
+  const sortedEconomy=economies.slice().sort((a,b)=>b.e.economiaTotal-a.e.economiaTotal);
+  const clientList=[...new Set(machines.map(m=>m.cliente).filter(Boolean))].sort();
+
+  renderFleetDashboardCharts({
+    statusLabels:statuses,
+    statusValues:statuses.map(label=>machines.filter(m=>m.status===label).length),
+    propulsionLabels:types,
+    propulsionValues:types.map(label=>machines.filter(m=>(m.tipoPropulsao||'Mecânico')===label).length),
+    economyLabels:sortedEconomy.map(x=>x.m.codigo+' • '+x.m.modelo),
+    economyValues:sortedEconomy.map(x=>Math.max(0,x.e.economiaTotal)),
+    costLabels:economies.map(x=>x.m.codigo+' • '+x.m.modelo),
+    dieselCostValues:economies.map(x=>x.e.custoDieselHora),
+    electricCostValues:economies.map(x=>x.e.custoEletricoHora),
+    socLabels:battery.map(m=>m.codigo+' • '+m.modelo),
+    socValues:battery.map(m=>Math.max(0,Math.min(100,Number(m.soc)||0))),
+    clientLabels:clientList,
+    clientNormal:clientList.map(client=>machines.filter(m=>m.cliente===client&&m.status==='Operação normal').length),
+    clientAttention:clientList.map(client=>machines.filter(m=>m.cliente===client&&m.status==='Atenção').length),
+    clientCritical:clientList.map(client=>machines.filter(m=>m.cliente===client&&m.status==='Crítico').length),
+    clientVisit:clientList.map(client=>machines.filter(m=>m.cliente===client&&m.status==='Em visita').length)
+  });
 }
 
 function openFleetMachine(id){
