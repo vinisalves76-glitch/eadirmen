@@ -124,7 +124,7 @@ module.exports = async function handler(req, res) {
 
       if (!nome) return res.status(400).json({ error: 'Informe o nome.' });
       if (!email || !email.includes('@')) return res.status(400).json({ error: 'Informe um e-mail valido.' });
-      if (!['admin', 'instructor'].includes(perfil)) {
+      if (!['admin', 'consultant', 'instructor'].includes(perfil)) {
         return res.status(400).json({ error: 'Perfil invalido.' });
       }
       if (senha && senha.length < 6) {
@@ -144,7 +144,7 @@ module.exports = async function handler(req, res) {
         nome,
         email,
         perfil,
-        cargo: perfil === 'admin' ? 'ADM' : 'Instrutor',
+        cargo: perfil === 'admin' ? 'ADM' : perfil === 'consultant' ? 'Consultor de Treinamento' : 'Instrutor',
         ativo: targetProfile.ativo !== false,
         atualizadoEm: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
