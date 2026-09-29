@@ -1696,67 +1696,48 @@ function saveFleetEvent(id){
 }
 
 function openFleetMachineReport(id){
-  const m=fleetPrototype.find(x=>Number(x.id)===Number(id));
-  if(!m) return;
+  const m=fleetPrototype.find(x=>Number(x.id)===Number(id));if(!m)return;
   const history=(m.historico||[]).slice().sort((a,b)=>String(b.data).localeCompare(String(a.data)));
+  const e=fleetEconomy(m);
+  const economy=m.tipoPropulsao==='Elétrico'
+    ? (e
+      ? '<div class="fleet-panel" style="margin-top:14px"><h3>Comparativo diesel x elétrico</h3><div class="fleet-report-grid"><div class="fleet-report-card"><span class="muted">Custo diesel equivalente</span><b>'+fleetMoney(e.custoDieselHora)+'/h</b></div><div class="fleet-report-card"><span class="muted">Custo elétrico</span><b>'+fleetMoney(e.custoEletricoHora)+'/h</b></div><div class="fleet-report-card"><span class="muted">Economia por hora</span><b>'+fleetMoney(e.economiaHora)+'/h</b></div><div class="fleet-report-card"><span class="muted">Horas consideradas</span><b>'+e.hours.toLocaleString('pt-BR')+' h</b></div><div class="fleet-report-card"><span class="muted">Economia acumulada estimada</span><b>'+fleetMoney(e.economiaTotal)+'</b></div><div class="fleet-report-card"><span class="muted">Redução estimada</span><b>'+e.percentual.toFixed(1)+'%</b></div></div><div class="fleet-readonly">Estimativa baseada nos parâmetros cadastrados da operação. Não inclui manutenção, perdas de carregamento, demanda elétrica ou outros custos.</div></div>'
+      : '<div class="fleet-panel" style="margin-top:14px"><h3>Comparativo diesel x elétrico</h3><div class="fleet-readonly">Preencha consumo elétrico, tarifa, consumo diesel de referência e preço do diesel para calcular a economia.</div></div>')
+    : '';
 
   document.getElementById('modalContent').innerHTML=
     '<div class="section-head"><div><h3>Relatório da Máquina • '+esc(m.codigo)+' • '+esc(m.modelo)+'</h3><div class="muted">'+esc(m.cliente)+' • '+esc(m.local)+' • Série '+esc(m.serie)+'</div></div><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div>'+
     '<div class="fleet-report-grid">'+
+      '<div class="fleet-report-card"><span class="muted">Tipo</span><b>'+esc(m.tipoPropulsao||'Mecânico')+'</b></div>'+
       '<div class="fleet-report-card"><span class="muted">Horímetro atual</span><b>'+Number(m.horimetro||0).toLocaleString('pt-BR')+' h</b></div>'+
-      '<div class="fleet-report-card"><span class="muted">SOC da bateria</span><b>'+Math.max(0,Math.min(100,Number(m.soc||0)))+'%</b></div>'+
+      (fleetHasBattery(m)?'<div class="fleet-report-card"><span class="muted">SOC da bateria</span><b>'+Math.max(0,Math.min(100,Number(m.soc||0)))+'%</b></div>':'')+
       '<div class="fleet-report-card"><span class="muted">Estado atual</span><div style="margin-top:7px">'+fleetStatusBadge(m.status)+'</div></div>'+
     '</div>'+
-    '<div class="fleet-detail-grid">'+
-      '<div class="fleet-detail-item"><span>Consultor responsável</span><b>'+esc(m.consultor||'—')+'</b></div>'+
-      '<div class="fleet-detail-item"><span>Última atualização</span><b>'+fleetDate(m.ultimaAtualizacao)+'</b></div>'+
-      '<div class="fleet-detail-item"><span>Prioridade de treinamento</span>'+fleetPriorityBadge(m.prioridadeTreinamento)+'</div>'+
-    '</div>'+
+    economy+
+    '<div class="fleet-detail-grid"><div class="fleet-detail-item"><span>Consultor responsável</span><b>'+esc(m.consultor||'—')+'</b></div><div class="fleet-detail-item"><span>Última atualização</span><b>'+fleetDate(m.ultimaAtualizacao)+'</b></div><div class="fleet-detail-item"><span>Prioridade de treinamento</span>'+fleetPriorityBadge(m.prioridadeTreinamento)+'</div></div>'+
     '<div class="fleet-note"><b>Necessidade de treinamento</b><div class="muted" style="margin-top:5px">'+esc(m.necessidadeTreinamento||'Sem necessidade registrada')+'</div></div>'+
     '<div class="fleet-note"><b>Próxima ação</b><div class="muted" style="margin-top:5px">'+esc(m.proximaAcao||'Sem próxima ação registrada')+'</div></div>'+
     '<div class="fleet-note"><b>Observações</b><div class="muted" style="margin-top:5px">'+esc(m.observacoes||'Sem observações')+'</div></div>'+
-    '<div style="margin-top:20px"><h3>Histórico completo da máquina</h3>'+
-      '<div class="fleet-timeline">'+
-        (history.length?history.map(h=>
-          '<div class="fleet-event">'+
-            '<div class="date">'+fleetDate(h.data)+' • '+esc(h.responsavel||'')+'</div>'+
-            '<div class="event-title">'+esc(h.tipo||'Acompanhamento')+'</div>'+
-            '<div class="event-text">'+esc(h.descricao||'')+'</div>'+
-            '<div class="machine-sub" style="margin-top:5px">'+
-              (h.horimetro!==undefined?'Horímetro: '+Number(h.horimetro).toLocaleString('pt-BR')+' h':'Horímetro não registrado')+
-              ' • '+
-              (h.soc!==undefined?'SOC: '+Number(h.soc)+'%':'SOC não registrado')+
-            '</div>'+
-          '</div>'
-        ).join(''):'<div class="muted">Nenhum acompanhamento registrado.</div>')+
-      '</div>'+
-    '</div>'+
-    '<div class="actions" style="margin-top:16px"><button class="btn btn-primary" onclick="printFleetMachineReport('+m.id+')">Imprimir / Salvar PDF</button><button class="btn btn-soft" onclick="openFleetMachine('+m.id+')">Voltar para máquina</button></div>'+
-    '<div class="fleet-readonly" style="margin-top:12px">SOC significa State of Charge: percentual estimado de carga disponível da bateria.</div>';
+    '<div style="margin-top:20px"><h3>Histórico completo da máquina</h3><div class="fleet-timeline">'+
+      (history.length?history.map(h=>'<div class="fleet-event"><div class="date">'+fleetDate(h.data)+' • '+esc(h.responsavel||'')+'</div><div class="event-title">'+esc(h.tipo||'Acompanhamento')+'</div><div class="event-text">'+esc(h.descricao||'')+'</div><div class="machine-sub" style="margin-top:5px">'+(h.horimetro!==undefined?'Horímetro: '+Number(h.horimetro).toLocaleString('pt-BR')+' h':'Horímetro não registrado')+(h.soc!==undefined?' • SOC: '+Number(h.soc)+'%':'')+'</div></div>').join(''):'<div class="muted">Nenhum acompanhamento registrado.</div>')+
+    '</div></div>'+
+    '<div class="actions" style="margin-top:16px"><button class="btn btn-primary" onclick="printFleetMachineReport('+m.id+')">Imprimir / Salvar PDF</button><button class="btn btn-soft" onclick="openFleetMachine('+m.id+')">Voltar para máquina</button></div>';
   showModal();
 }
 
 function printFleetMachineReport(id){
-  const m=fleetPrototype.find(x=>Number(x.id)===Number(id));
-  if(!m) return;
-  const history=(m.historico||[]).slice().sort((a,b)=>String(b.data).localeCompare(String(a.data)));
-  const historyRows=history.map(h=>
-    '<tr><td>'+fleetDate(h.data)+'</td><td>'+esc(h.tipo||'Acompanhamento')+'</td><td>'+esc(h.responsavel||'')+'</td><td>'+esc(h.descricao||'')+'</td><td>'+(h.horimetro!==undefined?Number(h.horimetro).toLocaleString('pt-BR')+' h':'—')+'</td><td>'+(h.soc!==undefined?Number(h.soc)+'%':'—')+'</td></tr>'
-  ).join('');
-  const w=window.open('','_blank');
-  if(!w) return alert('O navegador bloqueou a janela de impressão.');
-  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Relatório '+esc(m.codigo)+'</title><style>body{font-family:Arial,sans-serif;padding:28px;color:#111}h1{font-size:22px;margin-bottom:4px}h2{font-size:16px;margin-top:24px}.meta{color:#555;margin-bottom:18px}.cards{display:flex;gap:10px;margin:16px 0}.card{border:1px solid #ddd;border-radius:8px;padding:12px;min-width:150px}.card small{display:block;color:#666}.card b{font-size:20px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #ddd;padding:7px;text-align:left;vertical-align:top}th{background:#f3f4f6}.box{border:1px solid #ddd;padding:10px;margin:8px 0;border-radius:8px}</style></head><body>'+
-    '<h1>Relatório de Acompanhamento da Máquina</h1><div class="meta">'+esc(m.codigo)+' • '+esc(m.modelo)+' • Série '+esc(m.serie)+' • '+esc(m.cliente)+' • '+esc(m.local)+'</div>'+
-    '<div class="cards"><div class="card"><small>Horímetro</small><b>'+Number(m.horimetro||0).toLocaleString('pt-BR')+' h</b></div><div class="card"><small>SOC da bateria</small><b>'+Math.max(0,Math.min(100,Number(m.soc||0)))+'%</b></div><div class="card"><small>Estado atual</small><b style="font-size:14px">'+esc(m.status)+'</b></div></div>'+
-    '<div class="box"><b>Necessidade de treinamento:</b><br>'+esc(m.necessidadeTreinamento||'—')+'</div>'+
-    '<div class="box"><b>Próxima ação:</b><br>'+esc(m.proximaAcao||'—')+'</div>'+
-    '<div class="box"><b>Observações:</b><br>'+esc(m.observacoes||'—')+'</div>'+
-    '<h2>Histórico completo</h2><table><thead><tr><th>Data</th><th>Tipo</th><th>Responsável</th><th>Registro</th><th>Horímetro</th><th>SOC</th></tr></thead><tbody>'+historyRows+'</tbody></table>'+
-    '<p style="color:#666;font-size:10px;margin-top:18px">Gerado em '+new Date().toLocaleString('pt-BR')+' • SOC = State of Charge (percentual de carga da bateria).</p>'+
-    '</body></html>');
-  w.document.close();
-  w.focus();
-  setTimeout(()=>w.print(),250);
+  const m=fleetPrototype.find(x=>Number(x.id)===Number(id));if(!m)return;
+  const e=fleetEconomy(m),history=(m.historico||[]).slice().sort((a,b)=>String(b.data).localeCompare(String(a.data)));
+  const historyRows=history.map(h=>'<tr><td>'+fleetDate(h.data)+'</td><td>'+esc(h.tipo||'Acompanhamento')+'</td><td>'+esc(h.responsavel||'')+'</td><td>'+esc(h.descricao||'')+'</td><td>'+(h.horimetro!==undefined?Number(h.horimetro).toLocaleString('pt-BR')+' h':'—')+'</td><td>'+(h.soc!==undefined?Number(h.soc)+'%':'—')+'</td></tr>').join('');
+  const economy=m.tipoPropulsao==='Elétrico'
+    ? (e
+      ? '<h2>Comparativo diesel x elétrico</h2><div class="cards"><div class="card"><small>Diesel equivalente</small><b>'+fleetMoney(e.custoDieselHora)+'/h</b></div><div class="card"><small>Elétrico</small><b>'+fleetMoney(e.custoEletricoHora)+'/h</b></div><div class="card"><small>Economia por hora</small><b>'+fleetMoney(e.economiaHora)+'/h</b></div><div class="card"><small>Economia acumulada</small><b>'+fleetMoney(e.economiaTotal)+'</b></div><div class="card"><small>Redução estimada</small><b>'+e.percentual.toFixed(1)+'%</b></div></div><div class="box"><b>Base de cálculo:</b> '+Number(m.consumoEletricoKwhHora).toLocaleString('pt-BR')+' kWh/h × '+fleetMoney(m.tarifaEnergia)+'/kWh versus '+Number(m.consumoDieselReferenciaLHora).toLocaleString('pt-BR')+' L/h × '+fleetMoney(m.precoDiesel)+'/L.</div>'
+      : '<h2>Comparativo diesel x elétrico</h2><div class="box">Parâmetros insuficientes para calcular a economia.</div>')
+    : '';
+
+  const w=window.open('','_blank');if(!w)return alert('O navegador bloqueou a janela de impressão.');
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Relatório '+esc(m.codigo)+'</title><style>body{font-family:Arial,sans-serif;padding:28px;color:#111}h1{font-size:22px}h2{font-size:16px;margin-top:24px}.meta{color:#555}.cards{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.card,.box{border:1px solid #ddd;border-radius:8px;padding:10px}.card small{display:block;color:#666}.card b{font-size:17px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #ddd;padding:7px;text-align:left;vertical-align:top}th{background:#f3f4f6}</style></head><body><h1>Relatório de Acompanhamento da Máquina</h1><div class="meta">'+esc(m.codigo)+' • '+esc(m.modelo)+' • '+esc(m.tipoPropulsao||'Mecânico')+' • Série '+esc(m.serie)+' • '+esc(m.cliente)+' • '+esc(m.local)+'</div><div class="cards"><div class="card"><small>Horímetro</small><b>'+Number(m.horimetro||0).toLocaleString('pt-BR')+' h</b></div>'+(fleetHasBattery(m)?'<div class="card"><small>SOC</small><b>'+Number(m.soc||0)+'%</b></div>':'')+'<div class="card"><small>Estado</small><b>'+esc(m.status)+'</b></div></div>'+economy+'<div class="box"><b>Necessidade de treinamento:</b><br>'+esc(m.necessidadeTreinamento||'—')+'</div><div class="box"><b>Próxima ação:</b><br>'+esc(m.proximaAcao||'—')+'</div><div class="box"><b>Observações:</b><br>'+esc(m.observacoes||'—')+'</div><h2>Histórico completo</h2><table><thead><tr><th>Data</th><th>Tipo</th><th>Responsável</th><th>Registro</th><th>Horímetro</th><th>SOC</th></tr></thead><tbody>'+historyRows+'</tbody></table><p style="font-size:10px;color:#666">Para máquinas elétricas, a economia é uma estimativa baseada nos parâmetros cadastrados da operação.</p></body></html>');
+  w.document.close();w.focus();setTimeout(()=>w.print(),250);
 }
 
 function openFleetReport(){
