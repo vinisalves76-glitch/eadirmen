@@ -533,10 +533,23 @@ function buildNav(){
 
 auth.onAuthStateChanged(async user=>{
   if(user){
-    // Segurança: nunca reaproveita login salvo de outra visita.
-    // Só entra se o usuário acabou de autenticar manualmente nesta página.
+    // Pode existir uma sessão antiga armazenada por versões anteriores.
+    // Não fazemos signOut automático aqui porque isso pode correr em paralelo
+    // com um novo clique em "Entrar" e derrubar a sessão recém-autenticada.
+    // A interface continua bloqueada até o usuário autenticar manualmente nesta página.
     if(!loginAutorizadoNestaPagina){
-      try{ await auth.signOut(); }catch(_){}
+      appReadyUid=null;
+      openingUserUid=null;
+      document.getElementById('app').classList.add('hidden');
+      document.getElementById('login').classList.remove('hidden');
+
+      const email=document.getElementById('loginEmail');
+      if(email && !email.value){
+        email.value=localStorage.getItem('ead-irmen-last-email')||user.email||'';
+      }
+
+      const btn=document.getElementById('loginButton');
+      if(btn){btn.disabled=false;btn.textContent='Entrar';}
       return;
     }
 
@@ -545,7 +558,13 @@ auth.onAuthStateChanged(async user=>{
     }catch(err){
       console.error('Falha ao abrir sessão autenticada:',err);
       loginAutorizadoNestaPagina=false;
-      try{ await auth.signOut(); }catch(_){}
+      appReadyUid=null;
+      openingUserUid=null;
+      document.getElementById('app').classList.add('hidden');
+      document.getElementById('login').classList.remove('hidden');
+
+      const btn=document.getElementById('loginButton');
+      if(btn){btn.disabled=false;btn.textContent='Entrar';}
     }
   }else{
     role='';
