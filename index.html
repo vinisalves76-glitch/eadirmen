@@ -70,6 +70,44 @@ button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;dis
 .agent-warning{padding:10px;border-radius:10px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:12px;margin-top:10px}
 .agent-confirm{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
 @media(max-width:900px){.agent-shell{grid-template-columns:1fr}.agent-messages{height:360px}}
+
+.fleet-toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.fleet-toolbar-left,.fleet-toolbar-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.fleet-demo{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border-radius:999px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:12px;font-weight:800}
+.fleet-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
+.fleet-kpi{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 6px 18px rgba(15,23,42,.04)}
+.fleet-kpi .value{font-size:30px;font-weight:900;margin-top:5px;letter-spacing:-.03em}
+.fleet-kpi .hint{font-size:12px;color:var(--muted);margin-top:4px}
+.fleet-filters{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:14px}
+.fleet-filters input,.fleet-filters select{width:100%;border:1px solid #d0d5dd;border-radius:10px;padding:10px;background:#fff}
+.fleet-table .machine-title{font-weight:800;color:#111827}
+.fleet-table .machine-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.fleet-status{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border-radius:999px;font-size:12px;font-weight:800;white-space:nowrap}
+.fleet-status.normal{background:#ecfdf3;color:#15803d}.fleet-status.atencao{background:#fffbeb;color:#b45309}.fleet-status.critico{background:#fef2f2;color:#b91c1c}.fleet-status.visita{background:#eff6ff;color:#1d4ed8}
+.fleet-priority{display:inline-flex;padding:4px 7px;border-radius:8px;font-size:11px;font-weight:800;background:#f3f4f6;color:#374151}
+.fleet-priority.alta,.fleet-priority.critica{background:#fef2f2;color:#b91c1c}.fleet-priority.media{background:#fffbeb;color:#b45309}.fleet-priority.baixa{background:#ecfdf3;color:#15803d}
+.fleet-overview{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:16px;margin-bottom:16px}
+.fleet-panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px}
+.fleet-panel h3{margin:0 0 12px}
+.fleet-action-list{display:flex;flex-direction:column;gap:9px}
+.fleet-action{padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:#fafafa}
+.fleet-action b{display:block;margin-bottom:3px}.fleet-action small{color:var(--muted)}
+.fleet-detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0}
+.fleet-detail-item{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fafafa}
+.fleet-detail-item span{display:block;color:var(--muted);font-size:12px;margin-bottom:4px}.fleet-detail-item b{font-size:14px}
+.fleet-note{padding:13px;border:1px solid var(--line);border-radius:12px;background:#fff;margin-top:12px}
+.fleet-timeline{display:flex;flex-direction:column;gap:0;margin-top:12px}
+.fleet-event{position:relative;padding:0 0 18px 24px;border-left:2px solid #e5e7eb;margin-left:7px}
+.fleet-event:last-child{border-left-color:transparent;padding-bottom:0}
+.fleet-event:before{content:"";position:absolute;width:12px;height:12px;border-radius:999px;background:#171717;left:-7px;top:3px;border:3px solid #fff;box-shadow:0 0 0 1px #d1d5db}
+.fleet-event .date{font-size:12px;color:var(--muted)}.fleet-event .event-title{font-weight:800;margin:2px 0}.fleet-event .event-text{font-size:13px;line-height:1.45;color:#475467}
+.fleet-readonly{padding:10px 12px;border-radius:10px;background:#f3f4f6;color:#475467;font-size:12px;margin-bottom:12px}
+.fleet-report-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+.fleet-report-card{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fafafa}
+.fleet-report-card b{display:block;font-size:22px;margin-top:3px}
+@media(max-width:1000px){.fleet-cards{grid-template-columns:repeat(2,1fr)}.fleet-overview{grid-template-columns:1fr}.fleet-detail-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.fleet-cards,.fleet-detail-grid,.fleet-report-grid{grid-template-columns:1fr}.fleet-filters{grid-template-columns:1fr}.fleet-toolbar-right{width:100%}.fleet-toolbar-right .btn{flex:1}.fleet-table table{min-width:960px}}
+
 .modal{position:fixed;inset:0;background:#0008;display:grid;place-items:center;padding:20px;z-index:30}.modal-box{width:min(720px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:18px;padding:22px}
 @media(max-width:1000px){.cards{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr 1fr}.week{grid-template-columns:1fr 1fr}.agent-shell{grid-template-columns:1fr}.app{grid-template-columns:210px 1fr}}
 @media(max-width:720px){.login{justify-content:center;padding:18px;background-position:center}.login-card{padding:24px}.role-grid,.cards,.grid,.week,.form-grid{grid-template-columns:1fr}.span2{grid-column:auto}.app{display:block}.side{height:auto;position:relative}.profile{position:static;margin-top:20px}.main{padding:18px}.nav{display:flex;overflow:auto}.nav button{white-space:nowrap}.top{flex-direction:column}}
@@ -140,6 +178,74 @@ let agentMessages = [
     text:'Sou o Agente ADM do EAD Irmen. Posso analisar a carga da equipe, distribuir habilidades e montar o planejamento semanal. Exemplo: "Quero liberar 15 habilidades essa semana, temos 2 instrutores livres. Organize o trabalho entre os dois."'
   }
 ];
+
+
+const fleetPrototypeDefaults=[
+  {
+    id:1001,codigo:'FRT-001',modelo:'SY215C',serie:'DEMO-SY215-001',cliente:'Cliente Mineração A',local:'Itabira/MG',
+    horimetro:2840,status:'Atenção',consultor:'Zion Almeida',ultimaAtualizacao:'2026-09-26',
+    proximaAcao:'Acompanhar operação e revisar rotina de inspeção diária.',
+    necessidadeTreinamento:'Operação segura e inspeção diária',prioridadeTreinamento:'Alta',
+    observacoes:'Dados demonstrativos do protótipo. Máquina com necessidade de reforço em inspeção pré-operacional.',
+    historico:[
+      {id:1,data:'2026-09-26',tipo:'Acompanhamento',descricao:'Identificada oportunidade de reforçar checklist pré-operacional e leitura de alertas.',responsavel:'Consultor de Treinamento'},
+      {id:2,data:'2026-09-12',tipo:'Visita técnica',descricao:'Coleta inicial de dados de operação e conversa com equipe do cliente.',responsavel:'Consultor de Treinamento'}
+    ]
+  },
+  {
+    id:1002,codigo:'FRT-002',modelo:'SY365H',serie:'DEMO-SY365-002',cliente:'Cliente Mineração A',local:'Itabira/MG',
+    horimetro:4150,status:'Operação normal',consultor:'Mariana',ultimaAtualizacao:'2026-09-25',
+    proximaAcao:'Manter acompanhamento mensal.',
+    necessidadeTreinamento:'Sem necessidade imediata',prioridadeTreinamento:'Baixa',
+    observacoes:'Operação acompanhada sem desvios relevantes no último registro.',
+    historico:[
+      {id:1,data:'2026-09-25',tipo:'Acompanhamento',descricao:'Rotina de operação dentro do esperado. Mantido acompanhamento mensal.',responsavel:'Mariana'}
+    ]
+  },
+  {
+    id:1003,codigo:'FRT-003',modelo:'SW956E',serie:'DEMO-SW956-003',cliente:'Cliente Logística B',local:'Contagem/MG',
+    horimetro:1980,status:'Crítico',consultor:'Zion Almeida',ultimaAtualizacao:'2026-09-27',
+    proximaAcao:'Agendar visita e treinamento direcionado para a equipe.',
+    necessidadeTreinamento:'Boas práticas de operação e diagnóstico inicial',prioridadeTreinamento:'Crítica',
+    observacoes:'Ocorrências repetidas registradas pela operação. Necessário aprofundar causa e comportamento operacional.',
+    historico:[
+      {id:1,data:'2026-09-27',tipo:'Falha recorrente',descricao:'Novo relato de ocorrência durante o turno. Sinalizado para acompanhamento prioritário.',responsavel:'Zion Almeida'},
+      {id:2,data:'2026-09-18',tipo:'Acompanhamento',descricao:'Levantadas dúvidas da equipe sobre operação e resposta a alertas do equipamento.',responsavel:'Zion Almeida'}
+    ]
+  },
+  {
+    id:1004,codigo:'FRT-004',modelo:'SY215C',serie:'DEMO-SY215-004',cliente:'Cliente Construção C',local:'Betim/MG',
+    horimetro:920,status:'Em visita',consultor:'Carlos',ultimaAtualizacao:'2026-09-29',
+    proximaAcao:'Concluir visita e registrar plano de capacitação.',
+    necessidadeTreinamento:'Inspeção, segurança e uso correto dos modos de trabalho',prioridadeTreinamento:'Média',
+    observacoes:'Visita de acompanhamento em andamento.',
+    historico:[
+      {id:1,data:'2026-09-29',tipo:'Visita técnica',descricao:'Visita iniciada para observação de aplicação e levantamento das necessidades da equipe.',responsavel:'Carlos'}
+    ]
+  },
+  {
+    id:1005,codigo:'FRT-005',modelo:'SRT95',serie:'DEMO-SRT95-005',cliente:'Cliente Mineração D',local:'Nova Lima/MG',
+    horimetro:6320,status:'Atenção',consultor:'Mariana',ultimaAtualizacao:'2026-09-23',
+    proximaAcao:'Consolidar necessidades por turno e planejar reciclagem.',
+    necessidadeTreinamento:'Reciclagem operacional por turno',prioridadeTreinamento:'Alta',
+    observacoes:'Diferença de procedimento entre turnos identificada durante acompanhamento.',
+    historico:[
+      {id:1,data:'2026-09-23',tipo:'Acompanhamento',descricao:'Comparados procedimentos de dois turnos e identificada oportunidade de padronização.',responsavel:'Mariana'}
+    ]
+  },
+  {
+    id:1006,codigo:'FRT-006',modelo:'SY135C',serie:'DEMO-SY135-006',cliente:'Cliente Construção E',local:'Belo Horizonte/MG',
+    horimetro:540,status:'Operação normal',consultor:'Carlos',ultimaAtualizacao:'2026-09-22',
+    proximaAcao:'Nova avaliação após 250 horas.',
+    necessidadeTreinamento:'Integração de novos operadores',prioridadeTreinamento:'Média',
+    observacoes:'Equipamento em acompanhamento de início de operação.',
+    historico:[
+      {id:1,data:'2026-09-22',tipo:'Treinamento',descricao:'Orientação inicial realizada com operadores responsáveis pelo equipamento.',responsavel:'Carlos'}
+    ]
+  }
+];
+let fleetPrototype=JSON.parse(localStorage.getItem('ead-irmen-fleet-prototype')||'null')||JSON.parse(JSON.stringify(fleetPrototypeDefaults));
+let fleetFilters={busca:'',status:'Todos',cliente:'Todos'};
 
 const defaults={
  skills:[
@@ -357,7 +463,7 @@ async function openAuthenticatedApp(user){
       throw new Error('EAD: Este login está desativado. Procure um administrador.');
     }
 
-    if(!['admin','instructor'].includes(profile.perfil)){
+    if(!['admin','consultant','instructor'].includes(profile.perfil)){
       throw new Error('EAD: O perfil deste usuário está inválido no Firestore.');
     }
 
@@ -366,14 +472,14 @@ async function openAuthenticatedApp(user){
     currentPersonName=profile.nome||user.email||'Usuário';
 
     document.getElementById('profileName').textContent=currentPersonName;
-    document.getElementById('profileRole').textContent='Perfil: '+(profile.cargo || (role==='admin'?'ADM':'Instrutor'));
+    document.getElementById('profileRole').textContent='Perfil: '+(profile.cargo || (role==='admin'?'ADM':role==='consultant'?'Consultor de Treinamento':'Instrutor'));
 
     // Abre a interface primeiro. Sincronizações secundárias não podem travar o login.
     document.getElementById('login').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
 
     buildNav();
-    go('dashboard');
+    go(role==='consultant'?'fleet':'dashboard');
     appReadyUid=user.uid;
 
     // Carregamentos complementares executam depois que a interface já abriu.
@@ -402,8 +508,10 @@ async function logout(){
 
 function buildNav(){
   const items=role==='admin'
-    ? [['dashboard','Visão geral'],['agent','Agente ADM'],['skills','Habilidades'],['week','Planejamento semanal'],['team','Equipe'],['users','Usuários']]
-    : [['dashboard','Minha semana'],['skills','Minhas habilidades'],['week','Planejamento']];
+    ? [['dashboard','Visão geral'],['agent','Agente ADM'],['fleet','Frotas'],['skills','Habilidades'],['week','Planejamento semanal'],['team','Equipe'],['users','Usuários']]
+    : role==='consultant'
+      ? [['fleet','Acompanhamento de Frotas']]
+      : [['dashboard','Minha semana'],['fleet','Frotas'],['skills','Minhas habilidades'],['week','Planejamento']];
 
   const nav=document.getElementById('nav');
   nav.innerHTML='';
@@ -455,7 +563,7 @@ auth.onAuthStateChanged(async user=>{
     if(btn){btn.disabled=false;btn.textContent='Entrar';}
   }
 })
-function go(p){currentPage=p;document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.p===p)); if(p==='dashboard')renderDashboard();if(p==='agent')renderAgent();if(p==='skills')renderSkills();if(p==='week')renderWeek();if(p==='team')renderTeam();if(p==='users')renderUsers()}
+function go(p){currentPage=p;document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.p===p)); if(p==='dashboard')renderDashboard();if(p==='agent')renderAgent();if(p==='fleet')renderFleet();if(p==='skills')renderSkills();if(p==='week')renderWeek();if(p==='team')renderTeam();if(p==='users')renderUsers()}
 function header(t,s){document.getElementById('pageTitle').textContent=t;document.getElementById('pageSub').textContent=s;document.getElementById('today').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'})}
 function renderDashboard(){header(role==='admin'?'Visão geral do projeto':'Minha semana',role==='admin'?'Acompanhe a produção das microaulas EAD.':'Acompanhe suas habilidades e entregas da semana.');let skills=role==='admin'?data.skills:data.skills.filter(s=>s.owner===currentPersonName);let done=skills.filter(s=>s.status==='Concluída').length;let rev=skills.filter(s=>s.status==='Em revisão').length;let prod=skills.filter(s=>s.status==='Em produção').length;document.getElementById('content').innerHTML='<div class="cards"><div class="card"><div class="muted">Habilidades</div><div class="metric">'+skills.length+'</div></div><div class="card"><div class="muted">Em produção</div><div class="metric">'+prod+'</div></div><div class="card"><div class="muted">Em revisão</div><div class="metric">'+rev+'</div></div><div class="card"><div class="muted">Concluídas</div><div class="metric">'+done+'</div></div></div><div class="section"><div class="section-head"><h3>'+(role==='admin'?'Andamento das habilidades':'Minhas entregas')+'</h3></div><div class="grid">'+skills.map(skillCard).join('')+'</div></div>'}
 function skillCard(s){let c=s.status==='Concluída'?'s-done':s.status==='Em revisão'?'s-rev':s.status==='Em produção'?'s-prod':'s-plan';return '<div class="skill"><div class="skill-top"><b>'+esc(s.title)+'</b><span class="tag">'+esc(s.level)+'</span></div><p class="muted">'+esc(s.owner)+' • '+esc(s.duration)+'</p><span class="status '+c+'">'+esc(s.status)+'</span><div class="progress"><i style="width:'+Number(s.progress||0)+'%"></i></div><div class="muted">'+Number(s.progress||0)+'% concluído</div><div class="actions"><button class="btn btn-soft" onclick="openSkill('+s.id+')">Abrir</button>'+(role==='admin'?'<button class="btn btn-danger" onclick="removeSkill('+s.id+')">Excluir</button>':'')+'</div></div>'}
@@ -471,7 +579,10 @@ function planTable(person){let plans=data.plans.filter(p=>!person||p.person===pe
 function removePlan(id){data.plans=data.plans.filter(p=>p.id!==id);save();renderWeek()}
 
 function userRoleLabel(u){
-  return u && u.perfil==='admin' ? 'ADM' : 'Instrutor';
+  if(!u) return 'Instrutor';
+  if(u.perfil==='admin') return 'ADM';
+  if(u.perfil==='consultant') return 'Consultor de Treinamento';
+  return 'Instrutor';
 }
 
 function userCreationError(err){
@@ -519,13 +630,13 @@ function openEditUser(uid){
     '<div class="section-head"><div><h3>Editar usuário</h3><div class="muted">Altere os dados de acesso e o perfil do colaborador.</div></div><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div>'+
     '<div class="form-grid">'+
       '<div class="field"><label>Nome completo</label><input id="editUserName" value="'+esc(u.nome||'')+'"></div>'+
-      '<div class="field"><label>Perfil</label><select id="editUserRole" '+(isSelf?'disabled':'')+'><option value="instructor">Instrutor</option><option value="admin">ADM</option></select></div>'+
+      '<div class="field"><label>Perfil</label><select id="editUserRole" '+(isSelf?'disabled':'')+'><option value="instructor">Instrutor</option><option value="consultant">Consultor de Treinamento</option><option value="admin">ADM</option></select></div>'+
       '<div class="field span2"><label>E-mail de login</label><input id="editUserEmail" type="email" value="'+esc(u.email||'')+'"></div>'+
       '<div class="field span2"><label>Nova senha</label><input id="editUserPassword" type="password" minlength="6" placeholder="Deixe em branco para manter a senha atual"><div class="muted" style="margin-top:6px">Se preenchida, a senha do Firebase Authentication será alterada imediatamente.</div></div>'+
       '<div class="span2"><button id="saveUserButton" class="btn btn-primary" onclick="saveUserEdit(\''+uid+'\')">Salvar alterações</button><div id="editUserMessage" class="muted" style="margin-top:10px"></div></div>'+
     '</div>';
 
-  document.getElementById('editUserRole').value=u.perfil==='admin'?'admin':'instructor';
+  document.getElementById('editUserRole').value=['admin','consultant','instructor'].includes(u.perfil)?u.perfil:'instructor';
   showModal();
 }
 
@@ -618,7 +729,7 @@ async function createUserLogin(event){
 
   if(!name){msg.textContent='Informe o nome.';return;}
   if(password.length<6){msg.textContent='A senha precisa ter pelo menos 6 caracteres.';return;}
-  if(!['admin','instructor'].includes(newRole)){msg.textContent='Selecione ADM ou Instrutor.';return;}
+  if(!['admin','consultant','instructor'].includes(newRole)){msg.textContent='Selecione ADM, Consultor de Treinamento ou Instrutor.';return;}
 
   btn.disabled=true;
   btn.textContent='Criando...';
@@ -631,7 +742,7 @@ async function createUserLogin(event){
       nome:name,
       email,
       perfil:newRole,
-      cargo:newRole==='admin'?'ADM':'Instrutor',
+      cargo:newRole==='admin'?'ADM':newRole==='consultant'?'Consultor de Treinamento':'Instrutor',
       ativo:true,
       criadoPor:currentUserProfile&&currentUserProfile.uid?currentUserProfile.uid:null,
       criadoEm:firebase.firestore.FieldValue.serverTimestamp()
@@ -1367,6 +1478,361 @@ function renderAgent(){
   if(box) box.scrollTop=box.scrollHeight;
 }
 
+
+function fleetCanEdit(){
+  return role==='admin' || role==='consultant';
+}
+
+function fleetSavePrototype(){
+  localStorage.setItem('ead-irmen-fleet-prototype',JSON.stringify(fleetPrototype));
+}
+
+function fleetResetPrototype(){
+  if(!fleetCanEdit()) return;
+  if(!confirm('Restaurar os dados demonstrativos do protótipo?')) return;
+  fleetPrototype=JSON.parse(JSON.stringify(fleetPrototypeDefaults));
+  fleetSavePrototype();
+  renderFleet();
+}
+
+function fleetStatusClass(status){
+  if(status==='Operação normal') return 'normal';
+  if(status==='Atenção') return 'atencao';
+  if(status==='Crítico') return 'critico';
+  return 'visita';
+}
+
+function fleetPriorityClass(priority){
+  const p=normalizeAgentText(priority||'');
+  if(p==='critica') return 'critica';
+  if(p==='alta') return 'alta';
+  if(p==='media') return 'media';
+  return 'baixa';
+}
+
+function fleetStatusBadge(status){
+  return '<span class="fleet-status '+fleetStatusClass(status)+'">'+esc(status)+'</span>';
+}
+
+function fleetPriorityBadge(priority){
+  return '<span class="fleet-priority '+fleetPriorityClass(priority)+'">'+esc(priority||'Baixa')+'</span>';
+}
+
+function fleetDate(value){
+  if(!value) return '—';
+  const parts=String(value).split('-');
+  if(parts.length===3) return parts[2]+'/'+parts[1]+'/'+parts[0];
+  return value;
+}
+
+function fleetFiltered(){
+  const q=normalizeAgentText(fleetFilters.busca);
+  return fleetPrototype.filter(m=>{
+    const matchesSearch=!q || normalizeAgentText([m.codigo,m.modelo,m.serie,m.cliente,m.local,m.consultor,m.necessidadeTreinamento].join(' ')).includes(q);
+    const matchesStatus=fleetFilters.status==='Todos' || m.status===fleetFilters.status;
+    const matchesClient=fleetFilters.cliente==='Todos' || m.cliente===fleetFilters.cliente;
+    return matchesSearch && matchesStatus && matchesClient;
+  });
+}
+
+function setFleetFilter(key,value){
+  fleetFilters[key]=value;
+  renderFleetTable();
+}
+
+function renderFleetTable(){
+  const tbody=document.getElementById('fleetTableBody');
+  const count=document.getElementById('fleetResultCount');
+  if(!tbody) return;
+
+  const items=fleetFiltered();
+  if(count) count.textContent=items.length+' equipamento(s)';
+
+  tbody.innerHTML=items.length
+    ? items.map(m=>
+      '<tr>'+
+        '<td><div class="machine-title">'+esc(m.codigo)+' • '+esc(m.modelo)+'</div><div class="machine-sub">Série: '+esc(m.serie)+'</div></td>'+
+        '<td><b>'+esc(m.cliente)+'</b><div class="machine-sub">'+esc(m.local)+'</div></td>'+
+        '<td>'+Number(m.horimetro||0).toLocaleString('pt-BR')+' h</td>'+
+        '<td>'+fleetStatusBadge(m.status)+'</td>'+
+        '<td><div>'+esc(m.necessidadeTreinamento||'—')+'</div><div style="margin-top:5px">'+fleetPriorityBadge(m.prioridadeTreinamento)+'</div></td>'+
+        '<td><div>'+esc(m.proximaAcao||'—')+'</div><div class="machine-sub">Atualizado em '+fleetDate(m.ultimaAtualizacao)+'</div></td>'+
+        '<td><button class="btn btn-soft" onclick="openFleetMachine('+m.id+')">'+(fleetCanEdit()?'Abrir / editar':'Visualizar')+'</button></td>'+
+      '</tr>'
+    ).join('')
+    : '<tr><td colspan="7" class="empty">Nenhuma máquina encontrada com estes filtros.</td></tr>';
+}
+
+function renderFleet(){
+  header('Consultor de Treinamento • Acompanhamento de Frotas','Centralize máquinas acompanhadas, necessidades de capacitação, ações e relatórios.');
+
+  const normal=fleetPrototype.filter(x=>x.status==='Operação normal').length;
+  const attention=fleetPrototype.filter(x=>x.status==='Atenção').length;
+  const critical=fleetPrototype.filter(x=>x.status==='Crítico').length;
+  const training=fleetPrototype.filter(x=>x.prioridadeTreinamento==='Alta'||x.prioridadeTreinamento==='Crítica').length;
+  const clients=[...new Set(fleetPrototype.map(x=>x.cliente).filter(Boolean))].sort();
+  const urgent=fleetPrototype
+    .filter(x=>x.status==='Crítico'||x.status==='Atenção'||x.prioridadeTreinamento==='Crítica')
+    .slice()
+    .sort((a,b)=>(a.status==='Crítico'?-1:0)-(b.status==='Crítico'?-1:0))
+    .slice(0,5);
+
+  document.getElementById('content').innerHTML=
+    '<div class="fleet-toolbar">'+
+      '<div class="fleet-toolbar-left"><span class="fleet-demo">PROTÓTIPO • dados demonstrativos</span><span class="muted">Seu acesso: '+esc(role==='admin'?'ADM':role==='consultant'?'Consultor de Treinamento':'Instrutor • somente leitura')+'</span></div>'+
+      '<div class="fleet-toolbar-right">'+
+        '<button class="btn btn-soft" onclick="downloadFleetCsv()">Exportar CSV</button>'+
+        '<button class="btn btn-soft" onclick="openFleetReport()">Gerar relatório</button>'+
+        (fleetCanEdit()?'<button class="btn btn-primary" onclick="newFleetMachine()">+ Nova máquina</button>':'')+
+      '</div>'+
+    '</div>'+
+
+    '<div class="fleet-cards">'+
+      '<div class="fleet-kpi"><div class="muted">Máquinas acompanhadas</div><div class="value">'+fleetPrototype.length+'</div><div class="hint">Base central de acompanhamento</div></div>'+
+      '<div class="fleet-kpi"><div class="muted">Operação normal</div><div class="value">'+normal+'</div><div class="hint">Sem ação crítica imediata</div></div>'+
+      '<div class="fleet-kpi"><div class="muted">Em atenção / crítico</div><div class="value">'+(attention+critical)+'</div><div class="hint">'+critical+' equipamento(s) crítico(s)</div></div>'+
+      '<div class="fleet-kpi"><div class="muted">Treinamento prioritário</div><div class="value">'+training+'</div><div class="hint">Prioridade alta ou crítica</div></div>'+
+    '</div>'+
+
+    '<div class="fleet-overview">'+
+      '<div class="fleet-panel">'+
+        '<h3>Prioridades de acompanhamento</h3>'+
+        '<div class="fleet-action-list">'+
+          (urgent.length?urgent.map(m=>'<div class="fleet-action"><b>'+esc(m.codigo)+' • '+esc(m.modelo)+' — '+esc(m.cliente)+'</b><small>'+esc(m.proximaAcao||'Sem próxima ação cadastrada')+'</small></div>').join(''):'<div class="muted">Nenhuma prioridade aberta.</div>')+
+        '</div>'+
+      '</div>'+
+      '<div class="fleet-panel">'+
+        '<h3>Visão do Consultor</h3>'+
+        '<div class="agent-stat"><span>Clientes acompanhados</span><b>'+clients.length+'</b></div>'+
+        '<div class="agent-stat"><span>Máquinas com treinamento crítico</span><b>'+fleetPrototype.filter(x=>x.prioridadeTreinamento==='Crítica').length+'</b></div>'+
+        '<div class="agent-stat"><span>Visitas em andamento</span><b>'+fleetPrototype.filter(x=>x.status==='Em visita').length+'</b></div>'+
+        '<div class="agent-stat"><span>Registros de acompanhamento</span><b>'+fleetPrototype.reduce((n,x)=>n+(Array.isArray(x.historico)?x.historico.length:0),0)+'</b></div>'+
+      '</div>'+
+    '</div>'+
+
+    '<div class="section">'+
+      '<div class="section-head"><div><h3>Máquinas em acompanhamento</h3><div id="fleetResultCount" class="muted"></div></div>'+(fleetCanEdit()?'<button class="btn btn-soft" onclick="fleetResetPrototype()">Restaurar demonstração</button>':'')+'</div>'+
+      '<div class="fleet-filters">'+
+        '<input value="'+esc(fleetFilters.busca)+'" placeholder="Buscar por código, modelo, série, cliente, local..." oninput="setFleetFilter(\'busca\',this.value)">'+
+        '<select onchange="setFleetFilter(\'status\',this.value)"><option>Todos</option><option>Operação normal</option><option>Atenção</option><option>Crítico</option><option>Em visita</option></select>'+
+        '<select onchange="setFleetFilter(\'cliente\',this.value)"><option>Todos</option>'+clients.map(x=>'<option>'+esc(x)+'</option>').join('')+'</select>'+
+      '</div>'+
+      '<div class="table-wrap fleet-table"><table><thead><tr><th>Equipamento</th><th>Cliente / local</th><th>Horímetro</th><th>Status</th><th>Necessidade de treinamento</th><th>Próxima ação</th><th>Ações</th></tr></thead><tbody id="fleetTableBody"></tbody></table></div>'+
+    '</div>';
+
+  const statusSelect=document.querySelector('.fleet-filters select:nth-of-type(1)');
+  const clientSelect=document.querySelector('.fleet-filters select:nth-of-type(2)');
+  if(statusSelect) statusSelect.value=fleetFilters.status;
+  if(clientSelect) clientSelect.value=fleetFilters.cliente;
+  renderFleetTable();
+}
+
+function openFleetMachine(id){
+  const m=fleetPrototype.find(x=>Number(x.id)===Number(id));
+  if(!m) return;
+  const editable=fleetCanEdit();
+  const history=(m.historico||[]).slice().sort((a,b)=>String(b.data).localeCompare(String(a.data)));
+
+  document.getElementById('modalContent').innerHTML=
+    '<div class="section-head"><div><h3>'+esc(m.codigo)+' • '+esc(m.modelo)+'</h3><div class="muted">'+esc(m.cliente)+' • '+esc(m.local)+'</div></div><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div>'+
+    (!editable?'<div class="fleet-readonly">Perfil Instrutor: este módulo está em modo somente visualização.</div>':'')+
+    '<div class="fleet-detail-grid">'+
+      '<div class="fleet-detail-item"><span>Número de série</span><b>'+esc(m.serie)+'</b></div>'+
+      '<div class="fleet-detail-item"><span>Horímetro</span><b>'+Number(m.horimetro||0).toLocaleString('pt-BR')+' h</b></div>'+
+      '<div class="fleet-detail-item"><span>Status</span>'+fleetStatusBadge(m.status)+'</div>'+
+      '<div class="fleet-detail-item"><span>Consultor responsável</span><b>'+esc(m.consultor||'—')+'</b></div>'+
+      '<div class="fleet-detail-item"><span>Última atualização</span><b>'+fleetDate(m.ultimaAtualizacao)+'</b></div>'+
+      '<div class="fleet-detail-item"><span>Prioridade de treinamento</span>'+fleetPriorityBadge(m.prioridadeTreinamento)+'</div>'+
+    '</div>'+
+    '<div class="fleet-note"><b>Necessidade de treinamento</b><div class="muted" style="margin-top:5px">'+esc(m.necessidadeTreinamento||'Sem necessidade registrada')+'</div></div>'+
+    '<div class="fleet-note"><b>Próxima ação</b><div class="muted" style="margin-top:5px">'+esc(m.proximaAcao||'Sem próxima ação registrada')+'</div></div>'+
+    '<div class="fleet-note"><b>Observações</b><div class="muted" style="margin-top:5px">'+esc(m.observacoes||'Sem observações')+'</div></div>'+
+    (editable?'<div class="actions" style="margin-top:14px"><button class="btn btn-primary" onclick="editFleetMachine('+m.id+')">Editar cadastro</button><button class="btn btn-soft" onclick="newFleetEvent('+m.id+')">+ Registrar acompanhamento</button></div>':'')+
+    '<div style="margin-top:20px"><h3>Histórico de acompanhamento</h3>'+
+      '<div class="fleet-timeline">'+
+        (history.length?history.map(h=>'<div class="fleet-event"><div class="date">'+fleetDate(h.data)+' • '+esc(h.responsavel||'')+'</div><div class="event-title">'+esc(h.tipo||'Acompanhamento')+'</div><div class="event-text">'+esc(h.descricao||'')+'</div></div>').join(''):'<div class="muted">Nenhum acompanhamento registrado.</div>')+
+      '</div>'+
+    '</div>';
+  showModal();
+}
+
+function fleetMachineForm(m){
+  const isEdit=!!m;
+  const x=m||{codigo:'',modelo:'',serie:'',cliente:'',local:'',horimetro:'',status:'Operação normal',consultor:currentPersonName||'',ultimaAtualizacao:new Date().toISOString().slice(0,10),proximaAcao:'',necessidadeTreinamento:'',prioridadeTreinamento:'Média',observacoes:''};
+  return '<div class="section-head"><div><h3>'+(isEdit?'Editar máquina':'Nova máquina em acompanhamento')+'</h3><div class="muted">Cadastre os dados necessários para acompanhamento e decisões de treinamento.</div></div><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div>'+
+    '<div class="form-grid">'+
+      '<div class="field"><label>Código / identificação interna</label><input id="fmCodigo" value="'+esc(x.codigo)+'" placeholder="Ex.: FRT-007"></div>'+
+      '<div class="field"><label>Modelo</label><input id="fmModelo" value="'+esc(x.modelo)+'" placeholder="Modelo da máquina"></div>'+
+      '<div class="field"><label>Número de série</label><input id="fmSerie" value="'+esc(x.serie)+'"></div>'+
+      '<div class="field"><label>Horímetro (h)</label><input id="fmHorimetro" type="number" min="0" value="'+esc(x.horimetro)+'"></div>'+
+      '<div class="field"><label>Cliente</label><input id="fmCliente" value="'+esc(x.cliente)+'"></div>'+
+      '<div class="field"><label>Local / unidade</label><input id="fmLocal" value="'+esc(x.local)+'" placeholder="Cidade/UF ou operação"></div>'+
+      '<div class="field"><label>Status</label><select id="fmStatus"><option>Operação normal</option><option>Atenção</option><option>Crítico</option><option>Em visita</option></select></div>'+
+      '<div class="field"><label>Consultor responsável</label><input id="fmConsultor" value="'+esc(x.consultor)+'"></div>'+
+      '<div class="field"><label>Prioridade de treinamento</label><select id="fmPrioridade"><option>Baixa</option><option>Média</option><option>Alta</option><option>Crítica</option></select></div>'+
+      '<div class="field"><label>Última atualização</label><input id="fmAtualizacao" type="date" value="'+esc(x.ultimaAtualizacao)+'"></div>'+
+      '<div class="field span2"><label>Necessidade de treinamento</label><textarea id="fmTreinamento">'+esc(x.necessidadeTreinamento)+'</textarea></div>'+
+      '<div class="field span2"><label>Próxima ação</label><textarea id="fmAcao">'+esc(x.proximaAcao)+'</textarea></div>'+
+      '<div class="field span2"><label>Observações</label><textarea id="fmObs">'+esc(x.observacoes)+'</textarea></div>'+
+      '<div class="span2"><button class="btn btn-primary" onclick="saveFleetMachine('+(isEdit?x.id:'null')+')">'+(isEdit?'Salvar alterações':'Adicionar ao acompanhamento')+'</button></div>'+
+    '</div>'+
+    '<div class="fleet-readonly" style="margin-top:12px">Protótipo: estes registros ficam somente neste navegador e não alteram a base de produção.</div>';
+}
+
+function newFleetMachine(){
+  if(!fleetCanEdit()) return;
+  document.getElementById('modalContent').innerHTML=fleetMachineForm(null);
+  showModal();
+  document.getElementById('fmStatus').value='Operação normal';
+  document.getElementById('fmPrioridade').value='Média';
+}
+
+function editFleetMachine(id){
+  if(!fleetCanEdit()) return;
+  const m=fleetPrototype.find(x=>Number(x.id)===Number(id));
+  if(!m) return;
+  document.getElementById('modalContent').innerHTML=fleetMachineForm(m);
+  showModal();
+  document.getElementById('fmStatus').value=m.status;
+  document.getElementById('fmPrioridade').value=m.prioridadeTreinamento||'Média';
+}
+
+function saveFleetMachine(id){
+  if(!fleetCanEdit()) return;
+  const codigo=document.getElementById('fmCodigo').value.trim();
+  const modelo=document.getElementById('fmModelo').value.trim();
+  const serie=document.getElementById('fmSerie').value.trim();
+  const cliente=document.getElementById('fmCliente').value.trim();
+  if(!codigo||!modelo||!serie||!cliente) return alert('Preencha código, modelo, número de série e cliente.');
+
+  let m=id!==null?fleetPrototype.find(x=>Number(x.id)===Number(id)):null;
+  if(!m){
+    m={id:Date.now(),historico:[]};
+    fleetPrototype.push(m);
+  }
+
+  m.codigo=codigo;
+  m.modelo=modelo;
+  m.serie=serie;
+  m.cliente=cliente;
+  m.local=document.getElementById('fmLocal').value.trim();
+  m.horimetro=Math.max(0,Number(document.getElementById('fmHorimetro').value)||0);
+  m.status=document.getElementById('fmStatus').value;
+  m.consultor=document.getElementById('fmConsultor').value.trim();
+  m.prioridadeTreinamento=document.getElementById('fmPrioridade').value;
+  m.ultimaAtualizacao=document.getElementById('fmAtualizacao').value||new Date().toISOString().slice(0,10);
+  m.necessidadeTreinamento=document.getElementById('fmTreinamento').value.trim();
+  m.proximaAcao=document.getElementById('fmAcao').value.trim();
+  m.observacoes=document.getElementById('fmObs').value.trim();
+  if(!Array.isArray(m.historico)) m.historico=[];
+
+  fleetSavePrototype();
+  closeModal();
+  renderFleet();
+}
+
+function newFleetEvent(id){
+  if(!fleetCanEdit()) return;
+  const m=fleetPrototype.find(x=>Number(x.id)===Number(id));
+  if(!m) return;
+  document.getElementById('modalContent').innerHTML=
+    '<div class="section-head"><div><h3>Registrar acompanhamento</h3><div class="muted">'+esc(m.codigo)+' • '+esc(m.modelo)+' • '+esc(m.cliente)+'</div></div><button class="btn btn-soft" onclick="openFleetMachine('+m.id+')">Voltar</button></div>'+
+    '<div class="form-grid">'+
+      '<div class="field"><label>Data</label><input id="feData" type="date" value="'+new Date().toISOString().slice(0,10)+'"></div>'+
+      '<div class="field"><label>Tipo de registro</label><select id="feTipo"><option>Acompanhamento</option><option>Visita técnica</option><option>Treinamento</option><option>Falha recorrente</option><option>Reunião com cliente</option></select></div>'+
+      '<div class="field"><label>Novo horímetro (opcional)</label><input id="feHorimetro" type="number" min="0" placeholder="'+Number(m.horimetro||0)+'"></div>'+
+      '<div class="field"><label>Status após acompanhamento</label><select id="feStatus"><option>Operação normal</option><option>Atenção</option><option>Crítico</option><option>Em visita</option></select></div>'+
+      '<div class="field span2"><label>Descrição / evidências observadas</label><textarea id="feDescricao" placeholder="Registre fatos, comportamento da operação, dúvidas da equipe, ocorrências e orientações realizadas."></textarea></div>'+
+      '<div class="field span2"><label>Necessidade de treinamento atualizada</label><textarea id="feTreinamento">'+esc(m.necessidadeTreinamento||'')+'</textarea></div>'+
+      '<div class="field span2"><label>Próxima ação</label><textarea id="feAcao">'+esc(m.proximaAcao||'')+'</textarea></div>'+
+      '<div class="span2"><button class="btn btn-primary" onclick="saveFleetEvent('+m.id+')">Registrar acompanhamento</button></div>'+
+    '</div>';
+  showModal();
+  document.getElementById('feStatus').value=m.status;
+}
+
+function saveFleetEvent(id){
+  if(!fleetCanEdit()) return;
+  const m=fleetPrototype.find(x=>Number(x.id)===Number(id));
+  if(!m) return;
+  const desc=document.getElementById('feDescricao').value.trim();
+  if(!desc) return alert('Descreva o acompanhamento realizado.');
+
+  const date=document.getElementById('feData').value||new Date().toISOString().slice(0,10);
+  if(!Array.isArray(m.historico)) m.historico=[];
+  m.historico.push({
+    id:Date.now(),
+    data:date,
+    tipo:document.getElementById('feTipo').value,
+    descricao:desc,
+    responsavel:currentPersonName||'Consultor de Treinamento'
+  });
+
+  const hours=Number(document.getElementById('feHorimetro').value);
+  if(hours>0) m.horimetro=hours;
+  m.status=document.getElementById('feStatus').value;
+  m.necessidadeTreinamento=document.getElementById('feTreinamento').value.trim();
+  m.proximaAcao=document.getElementById('feAcao').value.trim();
+  m.ultimaAtualizacao=date;
+
+  fleetSavePrototype();
+  openFleetMachine(m.id);
+}
+
+function openFleetReport(){
+  const total=fleetPrototype.length;
+  const critical=fleetPrototype.filter(x=>x.status==='Crítico').length;
+  const attention=fleetPrototype.filter(x=>x.status==='Atenção').length;
+  const priority=fleetPrototype.filter(x=>x.prioridadeTreinamento==='Alta'||x.prioridadeTreinamento==='Crítica').length;
+  const byClient=[...new Set(fleetPrototype.map(x=>x.cliente))].map(client=>({client,count:fleetPrototype.filter(x=>x.cliente===client).length}));
+  const priorities=fleetPrototype.filter(x=>x.status==='Crítico'||x.prioridadeTreinamento==='Crítica'||x.prioridadeTreinamento==='Alta');
+
+  document.getElementById('modalContent').innerHTML=
+    '<div class="section-head"><div><h3>Relatório Executivo • Acompanhamento de Frotas</h3><div class="muted">Gerado em '+new Date().toLocaleString('pt-BR')+'</div></div><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div>'+
+    '<div class="fleet-report-grid">'+
+      '<div class="fleet-report-card"><span class="muted">Máquinas acompanhadas</span><b>'+total+'</b></div>'+
+      '<div class="fleet-report-card"><span class="muted">Atenção / crítico</span><b>'+(attention+critical)+'</b></div>'+
+      '<div class="fleet-report-card"><span class="muted">Treinamento prioritário</span><b>'+priority+'</b></div>'+
+    '</div>'+
+    '<div class="fleet-panel" style="margin-top:12px"><h3>Distribuição por cliente</h3>'+byClient.map(x=>'<div class="agent-stat"><span>'+esc(x.client)+'</span><b>'+x.count+' máquina(s)</b></div>').join('')+'</div>'+
+    '<div class="fleet-panel" style="margin-top:12px"><h3>Prioridades para atuação</h3>'+
+      (priorities.length?priorities.map(x=>'<div class="fleet-action"><b>'+esc(x.codigo)+' • '+esc(x.modelo)+' — '+esc(x.cliente)+'</b><small>'+esc(x.necessidadeTreinamento||'Sem necessidade registrada')+' • Próxima ação: '+esc(x.proximaAcao||'—')+'</small></div>').join(''):'<div class="muted">Sem prioridades abertas.</div>')+
+    '</div>'+
+    '<div class="actions" style="margin-top:14px"><button class="btn btn-primary" onclick="printFleetReport()">Imprimir / Salvar PDF</button><button class="btn btn-soft" onclick="downloadFleetCsv()">Exportar CSV</button></div>'+
+    '<div class="fleet-readonly" style="margin-top:12px">Relatório demonstrativo do protótipo. Na versão final, os filtros, período, cliente e unidade poderão ser selecionados antes da geração.</div>';
+  showModal();
+}
+
+function printFleetReport(){
+  const rows=fleetPrototype.map(m=>
+    '<tr><td>'+esc(m.codigo)+'</td><td>'+esc(m.modelo)+'</td><td>'+esc(m.cliente)+'</td><td>'+esc(m.local)+'</td><td>'+esc(m.status)+'</td><td>'+esc(m.necessidadeTreinamento||'')+'</td><td>'+esc(m.proximaAcao||'')+'</td></tr>'
+  ).join('');
+  const w=window.open('','_blank');
+  if(!w) return alert('O navegador bloqueou a janela de impressão.');
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Relatório de Frotas</title><style>body{font-family:Arial,sans-serif;padding:28px;color:#111}h1{font-size:22px}p{color:#555}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #ddd;padding:7px;text-align:left;vertical-align:top}th{background:#f3f4f6}</style></head><body><h1>Relatório de Acompanhamento de Frotas</h1><p>Gerado em '+new Date().toLocaleString('pt-BR')+' • EAD Irmen</p><table><thead><tr><th>Código</th><th>Modelo</th><th>Cliente</th><th>Local</th><th>Status</th><th>Necessidade de treinamento</th><th>Próxima ação</th></tr></thead><tbody>'+rows+'</tbody></table></body></html>');
+  w.document.close();
+  w.focus();
+  setTimeout(()=>w.print(),250);
+}
+
+function downloadFleetCsv(){
+  const header=['Código','Modelo','Número de série','Cliente','Local','Horímetro','Status','Consultor','Última atualização','Necessidade de treinamento','Prioridade','Próxima ação','Observações'];
+  const rows=fleetPrototype.map(m=>[
+    m.codigo,m.modelo,m.serie,m.cliente,m.local,m.horimetro,m.status,m.consultor,m.ultimaAtualizacao,m.necessidadeTreinamento,m.prioridadeTreinamento,m.proximaAcao,m.observacoes
+  ]);
+  const quote=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const csv='\uFEFF'+[header,...rows].map(row=>row.map(quote).join(';')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='acompanhamento-frotas-'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 function renderUsers(success=''){
   if(role!=='admin'){go('dashboard');return;}
   header('Usuários','Crie e gerencie os acessos da equipe. Edite nome, e-mail, senha, perfil e status do login.');
@@ -1394,7 +1860,7 @@ function renderUsers(success=''){
       '<div class="section-head"><div><h3>Criar novo login</h3><div class="muted">O usuário poderá entrar no EAD Irmen usando este e-mail e senha.</div></div></div>'+
       '<form class="form-grid" onsubmit="createUserLogin(event)">'+
         '<div class="field"><label>Nome completo</label><input id="newUserName" placeholder="Nome do colaborador" required></div>'+
-        '<div class="field"><label>Perfil</label><select id="newUserRole"><option value="instructor">Instrutor</option><option value="admin">ADM</option></select></div>'+
+        '<div class="field"><label>Perfil</label><select id="newUserRole"><option value="instructor">Instrutor</option><option value="consultant">Consultor de Treinamento</option><option value="admin">ADM</option></select></div>'+
         '<div class="field"><label>E-mail</label><input id="newUserEmail" type="email" placeholder="nome@irmen..." required></div>'+
         '<div class="field"><label>Senha inicial</label><input id="newUserPassword" type="password" minlength="6" placeholder="Mínimo 6 caracteres" required></div>'+
         '<div class="span2"><button id="createUserButton" class="btn btn-primary" type="submit">Criar login</button><div id="userCreateMessage" class="muted" style="margin-top:10px;'+(success?'color:#15803d;font-weight:700':'')+'">'+esc(success)+'</div></div>'+
