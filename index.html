@@ -1577,7 +1577,8 @@ function renderFleetTable(){
       '<tr>'+
         '<td><div class="machine-title">'+esc(m.codigo)+' • '+esc(m.modelo)+'</div><div class="machine-sub">Série: '+esc(m.serie)+'</div></td>'+
         '<td><b>'+esc(m.cliente)+'</b><div class="machine-sub">'+esc(m.local)+'</div></td>'+
-        '<td>'+Number(m.horimetro||0).toLocaleString('pt-BR')+' h</td>'+\n        '<td><b>'+Math.max(0,Math.min(100,Number(m.soc||0)))+'%</b><div class="machine-sub">SOC da bateria</div></td>'+
+        '<td>'+Number(m.horimetro||0).toLocaleString('pt-BR')+' h</td>'+
+        '<td><b>'+Math.max(0,Math.min(100,Number(m.soc||0)))+'%</b><div class="machine-sub">SOC da bateria</div></td>'+
         '<td>'+fleetStatusBadge(m.status)+'</td>'+
         '<td><div>'+esc(m.necessidadeTreinamento||'—')+'</div><div style="margin-top:5px">'+fleetPriorityBadge(m.prioridadeTreinamento)+'</div></td>'+
         '<td><div>'+esc(m.proximaAcao||'—')+'</div><div class="machine-sub">Atualizado em '+fleetDate(m.ultimaAtualizacao)+'</div></td>'+
@@ -1740,7 +1741,8 @@ function saveFleetMachine(id){
   m.serie=serie;
   m.cliente=cliente;
   m.local=document.getElementById('fmLocal').value.trim();
-  m.horimetro=Math.max(0,Number(document.getElementById('fmHorimetro').value)||0);\n  m.soc=Math.max(0,Math.min(100,Number(document.getElementById('fmSoc').value)||0));
+  m.horimetro=Math.max(0,Number(document.getElementById('fmHorimetro').value)||0);
+  m.soc=Math.max(0,Math.min(100,Number(document.getElementById('fmSoc').value)||0));
   m.status=document.getElementById('fmStatus').value;
   m.consultor=document.getElementById('fmConsultor').value.trim();
   m.prioridadeTreinamento=document.getElementById('fmPrioridade').value;
