@@ -319,6 +319,10 @@ fleetPrototype=fleetPrototype.map((m,index)=>{const tipo=m.tipoPropulsao||fleetD
 let fleetFilters={busca:'',status:'Todos',cliente:'Todos'};
 let fleetDashboardFilters={cliente:'Todos',tipo:'Todos',status:'Todos'};
 let fleetDashboardCharts=[];
+let fleetShiftRecords=[];
+let fleetShiftLoading=false;
+let fleetShiftLoaded=false;
+let fleetShiftError='';
 
 const defaults={
  skills:[
@@ -1666,6 +1670,94 @@ function saveFleetCostUpdate(id){
   m.tarifaEnergia=tarifaEnergia;m.precoDiesel=precoDiesel;fleetSavePrototype();openFleetMachineReport(m.id);
 }
 
+async function loadFleetShiftRecords(force=false){
+  if(fleetShiftLoading) return;
+  if(fleetShiftLoaded&&!force){
+    renderFleetShiftPanel();
+    return;
+  }
+
+  fleetShiftLoading=true;
+  fleetShiftError='';
+  renderFleetShiftPanel();
+
+  try{
+    if(!auth.currentUser) throw new Error('Sessão não encontrada.');
+    const token=await auth.currentUser.getIdToken();
+    const response=await fetch('/api/fleet-shifts',{
+      headers:{'Authorization':'Bearer '+token}
+    });
+
+    let body={};
+    try{body=await response.json()}catch(_){}
+    if(!response.ok) throw new Error(body.error||'Não foi possível carregar os turnos.');
+
+    fleetShiftRecords=Array.isArray(body.records)?body.records:[];
+    fleetShiftLoaded=true;
+  }catch(err){
+    console.error('Falha ao sincronizar turnos:',err);
+    fleetShiftError=err.message||'Falha ao carregar registros do app.';
+  }finally{
+    fleetShiftLoading=false;
+    renderFleetShiftPanel();
+  }
+}
+
+function fleetShiftMetrics(records){
+  const rows=Array.isArray(records)?records:[];
+  return {
+    turns:rows.length,
+    km:rows.reduce((s,r)=>s+Math.max(0,Number(r.distanceKm)||0),0),
+    cycles:rows.reduce((s,r)=>s+Math.max(0,Number(r.loadedCycles)||0),0),
+    avgSocUse:rows.length?rows.reduce((s,r)=>s+Math.max(0,Number(r.socVariation)||0),0)/rows.length:0
+  };
+}
+
+function fleetShiftCard(r){
+  return '<div class="fleet-event">'+
+    '<div class="date">'+fleetDate(r.date)+' • '+esc(r.shift||'Turno')+' • '+esc(r.operator||'Operador não informado')+'</div>'+
+    '<div class="event-title">'+esc(r.machineCode||'—')+' • dados enviados pelo app do cliente</div>'+
+    '<div class="event-text">Km '+Number(r.kmStart||0).toLocaleString('pt-BR')+' → '+Number(r.kmEnd||0).toLocaleString('pt-BR')+
+      ' • Distância '+Number(r.distanceKm||0).toLocaleString('pt-BR')+' km'+
+      ' • SOC '+Number(r.socStart||0).toLocaleString('pt-BR')+'% → '+Number(r.socEnd||0).toLocaleString('pt-BR')+'%'+
+      ' • Ciclos carregados '+Number(r.loadedCycles||0).toLocaleString('pt-BR')+'</div>'+
+    (r.notes?'<div class="machine-sub" style="margin-top:5px">'+esc(r.notes)+'</div>':'')+
+  '</div>';
+}
+
+function renderFleetShiftPanel(){
+  const el=document.getElementById('fleetShiftSyncPanel');
+  if(!el) return;
+
+  if(fleetShiftLoading){
+    el.innerHTML='<div class="muted">Sincronizando registros enviados pelo app do cliente...</div>';
+    return;
+  }
+
+  if(fleetShiftError){
+    el.innerHTML='<div class="fleet-readonly" style="border-color:#fecaca;background:#fef2f2;color:#991b1b">'+esc(fleetShiftError)+'</div><div class="actions" style="margin-top:10px"><button class="btn btn-soft" onclick="loadFleetShiftRecords(true)">Tentar novamente</button></div>';
+    return;
+  }
+
+  const metrics=fleetShiftMetrics(fleetShiftRecords);
+  const latest=fleetShiftRecords.slice(0,6);
+
+  el.innerHTML=
+    '<div class="fleet-report-grid">'+
+      '<div class="fleet-report-card"><span class="muted">Turnos recebidos</span><b>'+metrics.turns+'</b></div>'+
+      '<div class="fleet-report-card"><span class="muted">Km registrados</span><b>'+metrics.km.toLocaleString('pt-BR',{maximumFractionDigits:1})+' km</b></div>'+
+      '<div class="fleet-report-card"><span class="muted">Ciclos carregados</span><b>'+metrics.cycles.toLocaleString('pt-BR')+'</b></div>'+
+    '</div>'+
+    '<div class="fleet-timeline" style="margin-top:12px">'+
+      (latest.length?latest.map(fleetShiftCard).join(''):'<div class="muted">Nenhum turno foi enviado pelo app do cliente ainda.</div>')+
+    '</div>';
+}
+
+function fleetMachineShiftRecords(machineCode){
+  const code=String(machineCode||'').toUpperCase();
+  return fleetShiftRecords.filter(r=>String(r.machineCode||'').toUpperCase()===code);
+}
+
 function fleetFiltered(){
   const q=normalizeAgentText(fleetFilters.busca);
   return fleetPrototype.filter(m=>{
@@ -1754,6 +1846,11 @@ function renderFleet(){
     '</div>'+
 
     '<div class="section">'+
+      '<div class="section-head"><div><h3>Dados recebidos do app do cliente</h3><div class="muted">Turnos enviados pelos operadores e sincronizados com a central de frotas.</div></div><button class="btn btn-soft" onclick="loadFleetShiftRecords(true)">Atualizar</button></div>'+
+      '<div id="fleetShiftSyncPanel"><div class="muted">Preparando sincronização...</div></div>'+
+    '</div>'+
+
+    '<div class="section">'+
       '<div class="section-head"><div><h3>Máquinas em acompanhamento</h3><div id="fleetResultCount" class="muted"></div></div>'+(fleetCanEdit()?'<button class="btn btn-soft" onclick="fleetResetPrototype()">Restaurar demonstração</button>':'')+'</div>'+
       '<div class="fleet-filters">'+
         '<input value="'+esc(fleetFilters.busca)+'" placeholder="Buscar por código, modelo, série, cliente, local..." oninput="setFleetFilter(\'busca\',this.value)">'+
@@ -1767,6 +1864,7 @@ function renderFleet(){
   const clientSelect=document.querySelector('.fleet-filters select:nth-of-type(2)');
   if(statusSelect) statusSelect.value=fleetFilters.status;
   if(clientSelect) clientSelect.value=fleetFilters.cliente;
+  loadFleetShiftRecords(false);
   renderFleetTable();
 }
 
@@ -1948,6 +2046,9 @@ function openFleetMachine(id){
   (m.tipoPropulsao==='Elétrico'&&e?'<div class="fleet-panel" style="margin-top:14px"><h3>Economia estimada</h3><div class="fleet-report-grid"><div class="fleet-report-card"><span class="muted">Diesel equivalente</span><b>'+fleetMoney(e.custoDieselHora)+'/h</b></div><div class="fleet-report-card"><span class="muted">Elétrico</span><b>'+fleetMoney(e.custoEletricoHora)+'/h</b></div><div class="fleet-report-card"><span class="muted">Economia acumulada</span><b>'+fleetMoney(e.economiaTotal)+'</b></div></div></div>':'')+
   '<div class="fleet-note"><b>Necessidade de treinamento</b><div class="muted" style="margin-top:5px">'+esc(m.necessidadeTreinamento||'Sem necessidade registrada')+'</div></div><div class="fleet-note"><b>Próxima ação</b><div class="muted" style="margin-top:5px">'+esc(m.proximaAcao||'Sem próxima ação registrada')+'</div></div><div class="fleet-note"><b>Observações</b><div class="muted" style="margin-top:5px">'+esc(m.observacoes||'Sem observações')+'</div></div>'+
   '<div class="actions" style="margin-top:14px">'+(editable?'<button class="btn btn-primary" onclick="editFleetMachine('+m.id+')">Editar cadastro</button><button class="btn btn-soft" onclick="newFleetEvent('+m.id+')">+ Registrar acompanhamento</button>'+(m.tipoPropulsao==='Elétrico'?'<button class="btn btn-soft" onclick="openFleetCostUpdate('+m.id+')">Atualizar custos</button>':''):'')+'<button class="btn btn-soft" onclick="openFleetMachineReport('+m.id+')">Abrir relatório</button></div>'+
+  '<div style="margin-top:20px"><h3>Registros enviados pelo app do cliente</h3><div class="fleet-timeline">'+
+    (fleetMachineShiftRecords(m.codigo).length?fleetMachineShiftRecords(m.codigo).slice(0,12).map(fleetShiftCard).join(''):'<div class="muted">Nenhum turno sincronizado para esta máquina.</div>')+
+  '</div></div>'+
   '<div style="margin-top:20px"><h3>Histórico de acompanhamento</h3><div class="fleet-timeline">'+(history.length?history.map(h=>'<div class="fleet-event"><div class="date">'+fleetDate(h.data)+' • '+esc(h.responsavel||'')+'</div><div class="event-title">'+esc(h.tipo||'Acompanhamento')+'</div><div class="event-text">'+esc(h.descricao||'')+'</div></div>').join(''):'<div class="muted">Nenhum acompanhamento registrado.</div>')+'</div></div>';
   showModal();
 }
