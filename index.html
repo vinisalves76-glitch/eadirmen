@@ -144,6 +144,31 @@ button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;dis
 @media(max-width:1250px){.fleet-dashboard-kpis{grid-template-columns:repeat(3,1fr)}.fleet-dashboard-main{grid-template-columns:1fr 1fr}.fleet-dashboard-main .fleet-insight-panel{grid-column:1/-1}}
 @media(max-width:900px){.fleet-dashboard-grid,.fleet-dashboard-main{grid-template-columns:1fr}.fleet-dashboard-kpis{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:650px){.fleet-dashboard-kpis{grid-template-columns:1fr}.fleet-dashboard-filters{display:grid;grid-template-columns:1fr}.fleet-dashboard-filters select{width:100%}.fleet-dashboard-hero-actions{width:100%}.fleet-dashboard-hero-actions .btn{flex:1}.fleet-chart-canvas{height:230px}}
+@media print{
+  body.fleet-print-dashboard{background:#fff}
+  body.fleet-print-dashboard .side,
+  body.fleet-print-dashboard .top{display:none!important}
+  body.fleet-print-dashboard .app{display:block!important}
+  body.fleet-print-dashboard .main{padding:0!important;max-width:none!important}
+  body.fleet-print-dashboard .fleet-dashboard-hero-actions,
+  body.fleet-print-dashboard .fleet-dashboard-filters{display:none!important}
+  body.fleet-print-dashboard .fleet-dashboard-hero{background:#0f172a!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body.fleet-print-dashboard .fleet-dashboard-kpis{grid-template-columns:repeat(3,1fr)!important;gap:8px}
+  body.fleet-print-dashboard .fleet-dashboard-main{grid-template-columns:1fr 1fr!important;gap:8px}
+  body.fleet-print-dashboard .fleet-dashboard-main .fleet-insight-panel{grid-column:1/-1}
+  body.fleet-print-dashboard .fleet-dashboard-grid{grid-template-columns:1fr 1fr!important;gap:8px}
+  body.fleet-print-dashboard .fleet-chart,
+  body.fleet-print-dashboard .fleet-dashboard-section,
+  body.fleet-print-dashboard .fleet-dashboard-kpi,
+  body.fleet-print-dashboard .fleet-insight-panel{box-shadow:none!important;break-inside:avoid}
+  body.fleet-print-dashboard .fleet-chart-canvas{height:220px!important}
+  body.fleet-print-dashboard .fleet-chart-canvas.compact{height:205px!important}
+  body.fleet-print-dashboard .fleet-dashboard-table{break-before:page}
+  body.fleet-print-dashboard .fleet-dashboard-table table{min-width:0!important;font-size:8px}
+  body.fleet-print-dashboard .fleet-dashboard-table th{font-size:7px}
+  body.fleet-print-dashboard .btn{display:none!important}
+  @page{size:A4 landscape;margin:9mm}
+}
 .fleet-report-card{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fafafa}
 .fleet-report-card b{display:block;font-size:22px;margin-top:3px}
 @media(max-width:1000px){.fleet-cards{grid-template-columns:repeat(2,1fr)}.fleet-overview{grid-template-columns:1fr}.fleet-detail-grid{grid-template-columns:repeat(2,1fr)}}
@@ -2003,6 +2028,40 @@ function printFleetMachineReport(id){
 }
 
 function openFleetReport(){
+  document.getElementById('modalContent').innerHTML=
+    '<div class="section-head"><div><h3>Gerar relatório da frota</h3><div class="muted">Escolha como deseja visualizar e salvar o relatório.</div></div><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div>'+
+    '<div class="grid" style="margin-top:14px">'+
+      '<button type="button" class="card" style="text-align:left;cursor:pointer;border:1px solid #d0d5dd" onclick="printFleetDashboardReport()">'+
+        '<div style="font-size:30px;margin-bottom:10px">📊</div>'+
+        '<h3 style="margin:0 0 7px">Com gráficos</h3>'+
+        '<div class="muted">Gera o relatório visual no padrão do Dashboard Geral, com gráficos de pizza, barras, KPIs, economia, SOC e criticidade.</div>'+
+      '</button>'+
+      '<button type="button" class="card" style="text-align:left;cursor:pointer;border:1px solid #d0d5dd" onclick="openFleetReportSummary()">'+
+        '<div style="font-size:30px;margin-bottom:10px">📄</div>'+
+        '<h3 style="margin:0 0 7px">Sem gráficos</h3>'+
+        '<div class="muted">Gera uma versão mais enxuta com indicadores, prioridades e tabelas para impressão rápida.</div>'+
+      '</button>'+
+    '</div>'+
+    '<div class="fleet-readonly" style="margin-top:14px">Nos dois formatos, use <b>Salvar como PDF</b> na janela de impressão para baixar o arquivo.</div>';
+  showModal();
+}
+
+function printFleetDashboardReport(){
+  closeModal();
+  document.body.classList.add('fleet-print-dashboard');
+  openFleetDashboard();
+
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>document.body.classList.remove('fleet-print-dashboard'),500);
+  },700);
+}
+
+window.addEventListener('afterprint',()=>{
+  document.body.classList.remove('fleet-print-dashboard');
+});
+
+function openFleetReportSummary(){
   const total=fleetPrototype.length;
   const critical=fleetPrototype.filter(x=>x.status==='Crítico').length;
   const attention=fleetPrototype.filter(x=>x.status==='Atenção').length;
