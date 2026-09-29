@@ -183,7 +183,7 @@ let agentMessages = [
 const fleetPrototypeDefaults=[
   {
     id:1001,codigo:'FRT-001',modelo:'SY215C',serie:'DEMO-SY215-001',cliente:'Cliente Mineração A',local:'Itabira/MG',
-    horimetro:2840,status:'Atenção',consultor:'Zion Almeida',ultimaAtualizacao:'2026-09-26',
+    horimetro:2840,soc:78,status:'Atenção',consultor:'Zion Almeida',ultimaAtualizacao:'2026-09-26',
     proximaAcao:'Acompanhar operação e revisar rotina de inspeção diária.',
     necessidadeTreinamento:'Operação segura e inspeção diária',prioridadeTreinamento:'Alta',
     observacoes:'Dados demonstrativos do protótipo. Máquina com necessidade de reforço em inspeção pré-operacional.',
@@ -194,7 +194,7 @@ const fleetPrototypeDefaults=[
   },
   {
     id:1002,codigo:'FRT-002',modelo:'SY365H',serie:'DEMO-SY365-002',cliente:'Cliente Mineração A',local:'Itabira/MG',
-    horimetro:4150,status:'Operação normal',consultor:'Mariana',ultimaAtualizacao:'2026-09-25',
+    horimetro:4150,soc:64,status:'Operação normal',consultor:'Mariana',ultimaAtualizacao:'2026-09-25',
     proximaAcao:'Manter acompanhamento mensal.',
     necessidadeTreinamento:'Sem necessidade imediata',prioridadeTreinamento:'Baixa',
     observacoes:'Operação acompanhada sem desvios relevantes no último registro.',
@@ -204,7 +204,7 @@ const fleetPrototypeDefaults=[
   },
   {
     id:1003,codigo:'FRT-003',modelo:'SW956E',serie:'DEMO-SW956-003',cliente:'Cliente Logística B',local:'Contagem/MG',
-    horimetro:1980,status:'Crítico',consultor:'Zion Almeida',ultimaAtualizacao:'2026-09-27',
+    horimetro:1980,soc:32,status:'Crítico',consultor:'Zion Almeida',ultimaAtualizacao:'2026-09-27',
     proximaAcao:'Agendar visita e treinamento direcionado para a equipe.',
     necessidadeTreinamento:'Boas práticas de operação e diagnóstico inicial',prioridadeTreinamento:'Crítica',
     observacoes:'Ocorrências repetidas registradas pela operação. Necessário aprofundar causa e comportamento operacional.',
@@ -215,7 +215,7 @@ const fleetPrototypeDefaults=[
   },
   {
     id:1004,codigo:'FRT-004',modelo:'SY215C',serie:'DEMO-SY215-004',cliente:'Cliente Construção C',local:'Betim/MG',
-    horimetro:920,status:'Em visita',consultor:'Carlos',ultimaAtualizacao:'2026-09-29',
+    horimetro:920,soc:91,status:'Em visita',consultor:'Carlos',ultimaAtualizacao:'2026-09-29',
     proximaAcao:'Concluir visita e registrar plano de capacitação.',
     necessidadeTreinamento:'Inspeção, segurança e uso correto dos modos de trabalho',prioridadeTreinamento:'Média',
     observacoes:'Visita de acompanhamento em andamento.',
@@ -225,7 +225,7 @@ const fleetPrototypeDefaults=[
   },
   {
     id:1005,codigo:'FRT-005',modelo:'SRT95',serie:'DEMO-SRT95-005',cliente:'Cliente Mineração D',local:'Nova Lima/MG',
-    horimetro:6320,status:'Atenção',consultor:'Mariana',ultimaAtualizacao:'2026-09-23',
+    horimetro:6320,soc:48,status:'Atenção',consultor:'Mariana',ultimaAtualizacao:'2026-09-23',
     proximaAcao:'Consolidar necessidades por turno e planejar reciclagem.',
     necessidadeTreinamento:'Reciclagem operacional por turno',prioridadeTreinamento:'Alta',
     observacoes:'Diferença de procedimento entre turnos identificada durante acompanhamento.',
@@ -235,7 +235,7 @@ const fleetPrototypeDefaults=[
   },
   {
     id:1006,codigo:'FRT-006',modelo:'SY135C',serie:'DEMO-SY135-006',cliente:'Cliente Construção E',local:'Belo Horizonte/MG',
-    horimetro:540,status:'Operação normal',consultor:'Carlos',ultimaAtualizacao:'2026-09-22',
+    horimetro:540,soc:86,status:'Operação normal',consultor:'Carlos',ultimaAtualizacao:'2026-09-22',
     proximaAcao:'Nova avaliação após 250 horas.',
     necessidadeTreinamento:'Integração de novos operadores',prioridadeTreinamento:'Média',
     observacoes:'Equipamento em acompanhamento de início de operação.',
@@ -245,6 +245,11 @@ const fleetPrototypeDefaults=[
   }
 ];
 let fleetPrototype=JSON.parse(localStorage.getItem('ead-irmen-fleet-prototype')||'null')||JSON.parse(JSON.stringify(fleetPrototypeDefaults));
+const fleetDemoSoc=[78,64,32,91,48,86];
+fleetPrototype=fleetPrototype.map((m,index)=>({
+  ...m,
+  soc:Number.isFinite(Number(m.soc))?Math.max(0,Math.min(100,Number(m.soc))):fleetDemoSoc[index%fleetDemoSoc.length]
+}));
 let fleetFilters={busca:'',status:'Todos',cliente:'Todos'};
 
 const defaults={
@@ -1553,14 +1558,14 @@ function renderFleetTable(){
       '<tr>'+
         '<td><div class="machine-title">'+esc(m.codigo)+' • '+esc(m.modelo)+'</div><div class="machine-sub">Série: '+esc(m.serie)+'</div></td>'+
         '<td><b>'+esc(m.cliente)+'</b><div class="machine-sub">'+esc(m.local)+'</div></td>'+
-        '<td>'+Number(m.horimetro||0).toLocaleString('pt-BR')+' h</td>'+
+        '<td>'+Number(m.horimetro||0).toLocaleString('pt-BR')+' h</td>'+\n        '<td><b>'+Math.max(0,Math.min(100,Number(m.soc||0)))+'%</b><div class="machine-sub">SOC da bateria</div></td>'+
         '<td>'+fleetStatusBadge(m.status)+'</td>'+
         '<td><div>'+esc(m.necessidadeTreinamento||'—')+'</div><div style="margin-top:5px">'+fleetPriorityBadge(m.prioridadeTreinamento)+'</div></td>'+
         '<td><div>'+esc(m.proximaAcao||'—')+'</div><div class="machine-sub">Atualizado em '+fleetDate(m.ultimaAtualizacao)+'</div></td>'+
-        '<td><button class="btn btn-soft" onclick="openFleetMachine('+m.id+')">'+(fleetCanEdit()?'Abrir / editar':'Visualizar')+'</button></td>'+
+        '<td><div class="actions"><button class="btn btn-soft" onclick="openFleetMachine('+m.id+')">'+(fleetCanEdit()?'Abrir / editar':'Visualizar')+'</button><button class="btn btn-soft" onclick="openFleetMachineReport('+m.id+')">Abrir relatório</button></div></td>'+
       '</tr>'
     ).join('')
-    : '<tr><td colspan="7" class="empty">Nenhuma máquina encontrada com estes filtros.</td></tr>';
+    : '<tr><td colspan="8" class="empty">Nenhuma máquina encontrada com estes filtros.</td></tr>';
 }
 
 function renderFleet(){
@@ -1604,7 +1609,7 @@ function renderFleet(){
       '<div class="fleet-panel">'+
         '<h3>Visão do Consultor</h3>'+
         '<div class="agent-stat"><span>Clientes acompanhados</span><b>'+clients.length+'</b></div>'+
-        '<div class="agent-stat"><span>Máquinas com treinamento crítico</span><b>'+fleetPrototype.filter(x=>x.prioridadeTreinamento==='Crítica').length+'</b></div>'+
+        '<div class="agent-stat"><span>Estado crítico</span><b>'+fleetPrototype.filter(x=>x.status==='Crítico').length+'</b></div>'+
         '<div class="agent-stat"><span>Visitas em andamento</span><b>'+fleetPrototype.filter(x=>x.status==='Em visita').length+'</b></div>'+
         '<div class="agent-stat"><span>Registros de acompanhamento</span><b>'+fleetPrototype.reduce((n,x)=>n+(Array.isArray(x.historico)?x.historico.length:0),0)+'</b></div>'+
       '</div>'+
@@ -1617,7 +1622,7 @@ function renderFleet(){
         '<select onchange="setFleetFilter(\'status\',this.value)"><option>Todos</option><option>Operação normal</option><option>Atenção</option><option>Crítico</option><option>Em visita</option></select>'+
         '<select onchange="setFleetFilter(\'cliente\',this.value)"><option>Todos</option>'+clients.map(x=>'<option>'+esc(x)+'</option>').join('')+'</select>'+
       '</div>'+
-      '<div class="table-wrap fleet-table"><table><thead><tr><th>Equipamento</th><th>Cliente / local</th><th>Horímetro</th><th>Status</th><th>Necessidade de treinamento</th><th>Próxima ação</th><th>Ações</th></tr></thead><tbody id="fleetTableBody"></tbody></table></div>'+
+      '<div class="table-wrap fleet-table"><table><thead><tr><th>Equipamento</th><th>Cliente / local</th><th>Horímetro</th><th>SOC</th><th>Status</th><th>Necessidade de treinamento</th><th>Próxima ação</th><th>Ações</th></tr></thead><tbody id="fleetTableBody"></tbody></table></div>'+
     '</div>';
 
   const statusSelect=document.querySelector('.fleet-filters select:nth-of-type(1)');
@@ -1647,10 +1652,10 @@ function openFleetMachine(id){
     '<div class="fleet-note"><b>Necessidade de treinamento</b><div class="muted" style="margin-top:5px">'+esc(m.necessidadeTreinamento||'Sem necessidade registrada')+'</div></div>'+
     '<div class="fleet-note"><b>Próxima ação</b><div class="muted" style="margin-top:5px">'+esc(m.proximaAcao||'Sem próxima ação registrada')+'</div></div>'+
     '<div class="fleet-note"><b>Observações</b><div class="muted" style="margin-top:5px">'+esc(m.observacoes||'Sem observações')+'</div></div>'+
-    (editable?'<div class="actions" style="margin-top:14px"><button class="btn btn-primary" onclick="editFleetMachine('+m.id+')">Editar cadastro</button><button class="btn btn-soft" onclick="newFleetEvent('+m.id+')">+ Registrar acompanhamento</button></div>':'')+
+    '<div class="actions" style="margin-top:14px">'+(editable?'<button class="btn btn-primary" onclick="editFleetMachine('+m.id+')">Editar cadastro</button><button class="btn btn-soft" onclick="newFleetEvent('+m.id+')">+ Registrar acompanhamento</button>':'')+'<button class="btn btn-soft" onclick="openFleetMachineReport('+m.id+')">Abrir relatório</button></div>'+
     '<div style="margin-top:20px"><h3>Histórico de acompanhamento</h3>'+
       '<div class="fleet-timeline">'+
-        (history.length?history.map(h=>'<div class="fleet-event"><div class="date">'+fleetDate(h.data)+' • '+esc(h.responsavel||'')+'</div><div class="event-title">'+esc(h.tipo||'Acompanhamento')+'</div><div class="event-text">'+esc(h.descricao||'')+'</div></div>').join(''):'<div class="muted">Nenhum acompanhamento registrado.</div>')+
+        (history.length?history.map(h=>'<div class="fleet-event"><div class="date">'+fleetDate(h.data)+' • '+esc(h.responsavel||'')+'</div><div class="event-title">'+esc(h.tipo||'Acompanhamento')+'</div><div class="event-text">'+esc(h.descricao||'')+'</div>'+((h.horimetro!==undefined||h.soc!==undefined)?'<div class="machine-sub" style="margin-top:5px">'+(h.horimetro!==undefined?'Horímetro: '+Number(h.horimetro).toLocaleString('pt-BR')+' h':'')+(h.horimetro!==undefined&&h.soc!==undefined?' • ':'')+(h.soc!==undefined?'SOC: '+Number(h.soc)+'%':'')+'</div>':'')+'</div>').join(''):'<div class="muted">Nenhum acompanhamento registrado.</div>')+
       '</div>'+
     '</div>';
   showModal();
@@ -1658,7 +1663,7 @@ function openFleetMachine(id){
 
 function fleetMachineForm(m){
   const isEdit=!!m;
-  const x=m||{codigo:'',modelo:'',serie:'',cliente:'',local:'',horimetro:'',status:'Operação normal',consultor:currentPersonName||'',ultimaAtualizacao:new Date().toISOString().slice(0,10),proximaAcao:'',necessidadeTreinamento:'',prioridadeTreinamento:'Média',observacoes:''};
+  const x=m||{codigo:'',modelo:'',serie:'',cliente:'',local:'',horimetro:'',soc:100,status:'Operação normal',consultor:currentPersonName||'',ultimaAtualizacao:new Date().toISOString().slice(0,10),proximaAcao:'',necessidadeTreinamento:'',prioridadeTreinamento:'Média',observacoes:''};
   return '<div class="section-head"><div><h3>'+(isEdit?'Editar máquina':'Nova máquina em acompanhamento')+'</h3><div class="muted">Cadastre os dados necessários para acompanhamento e decisões de treinamento.</div></div><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div>'+
     '<div class="form-grid">'+
       '<div class="field"><label>Código / identificação interna</label><input id="fmCodigo" value="'+esc(x.codigo)+'" placeholder="Ex.: FRT-007"></div>'+
@@ -1716,7 +1721,7 @@ function saveFleetMachine(id){
   m.serie=serie;
   m.cliente=cliente;
   m.local=document.getElementById('fmLocal').value.trim();
-  m.horimetro=Math.max(0,Number(document.getElementById('fmHorimetro').value)||0);
+  m.horimetro=Math.max(0,Number(document.getElementById('fmHorimetro').value)||0);\n  m.soc=Math.max(0,Math.min(100,Number(document.getElementById('fmSoc').value)||0));
   m.status=document.getElementById('fmStatus').value;
   m.consultor=document.getElementById('fmConsultor').value.trim();
   m.prioridadeTreinamento=document.getElementById('fmPrioridade').value;
@@ -1759,17 +1764,21 @@ function saveFleetEvent(id){
   if(!desc) return alert('Descreva o acompanhamento realizado.');
 
   const date=document.getElementById('feData').value||new Date().toISOString().slice(0,10);
+  const hours=Number(document.getElementById('feHorimetro').value);
+  const soc=Math.max(0,Math.min(100,Number(document.getElementById('feSoc').value)||0));
+  if(hours>0) m.horimetro=hours;
+  m.soc=soc;
+
   if(!Array.isArray(m.historico)) m.historico=[];
   m.historico.push({
     id:Date.now(),
     data:date,
     tipo:document.getElementById('feTipo').value,
     descricao:desc,
-    responsavel:currentPersonName||'Consultor de Treinamento'
+    responsavel:currentPersonName||'Consultor de Treinamento',
+    horimetro:m.horimetro,
+    soc:m.soc
   });
-
-  const hours=Number(document.getElementById('feHorimetro').value);
-  if(hours>0) m.horimetro=hours;
   m.status=document.getElementById('feStatus').value;
   m.necessidadeTreinamento=document.getElementById('feTreinamento').value.trim();
   m.proximaAcao=document.getElementById('feAcao').value.trim();
@@ -1777,6 +1786,71 @@ function saveFleetEvent(id){
 
   fleetSavePrototype();
   openFleetMachine(m.id);
+}
+
+
+function openFleetMachineReport(id){
+  const m=fleetPrototype.find(x=>Number(x.id)===Number(id));
+  if(!m) return;
+  const history=(m.historico||[]).slice().sort((a,b)=>String(b.data).localeCompare(String(a.data)));
+
+  document.getElementById('modalContent').innerHTML=
+    '<div class="section-head"><div><h3>Relatório da Máquina • '+esc(m.codigo)+' • '+esc(m.modelo)+'</h3><div class="muted">'+esc(m.cliente)+' • '+esc(m.local)+' • Série '+esc(m.serie)+'</div></div><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div>'+
+    '<div class="fleet-report-grid">'+
+      '<div class="fleet-report-card"><span class="muted">Horímetro atual</span><b>'+Number(m.horimetro||0).toLocaleString('pt-BR')+' h</b></div>'+
+      '<div class="fleet-report-card"><span class="muted">SOC da bateria</span><b>'+Math.max(0,Math.min(100,Number(m.soc||0)))+'%</b></div>'+
+      '<div class="fleet-report-card"><span class="muted">Estado atual</span><div style="margin-top:7px">'+fleetStatusBadge(m.status)+'</div></div>'+
+    '</div>'+
+    '<div class="fleet-detail-grid">'+
+      '<div class="fleet-detail-item"><span>Consultor responsável</span><b>'+esc(m.consultor||'—')+'</b></div>'+
+      '<div class="fleet-detail-item"><span>Última atualização</span><b>'+fleetDate(m.ultimaAtualizacao)+'</b></div>'+
+      '<div class="fleet-detail-item"><span>Prioridade de treinamento</span>'+fleetPriorityBadge(m.prioridadeTreinamento)+'</div>'+
+    '</div>'+
+    '<div class="fleet-note"><b>Necessidade de treinamento</b><div class="muted" style="margin-top:5px">'+esc(m.necessidadeTreinamento||'Sem necessidade registrada')+'</div></div>'+
+    '<div class="fleet-note"><b>Próxima ação</b><div class="muted" style="margin-top:5px">'+esc(m.proximaAcao||'Sem próxima ação registrada')+'</div></div>'+
+    '<div class="fleet-note"><b>Observações</b><div class="muted" style="margin-top:5px">'+esc(m.observacoes||'Sem observações')+'</div></div>'+
+    '<div style="margin-top:20px"><h3>Histórico completo da máquina</h3>'+
+      '<div class="fleet-timeline">'+
+        (history.length?history.map(h=>
+          '<div class="fleet-event">'+
+            '<div class="date">'+fleetDate(h.data)+' • '+esc(h.responsavel||'')+'</div>'+
+            '<div class="event-title">'+esc(h.tipo||'Acompanhamento')+'</div>'+
+            '<div class="event-text">'+esc(h.descricao||'')+'</div>'+
+            '<div class="machine-sub" style="margin-top:5px">'+
+              (h.horimetro!==undefined?'Horímetro: '+Number(h.horimetro).toLocaleString('pt-BR')+' h':'Horímetro não registrado')+
+              ' • '+
+              (h.soc!==undefined?'SOC: '+Number(h.soc)+'%':'SOC não registrado')+
+            '</div>'+
+          '</div>'
+        ).join(''):'<div class="muted">Nenhum acompanhamento registrado.</div>')+
+      '</div>'+
+    '</div>'+
+    '<div class="actions" style="margin-top:16px"><button class="btn btn-primary" onclick="printFleetMachineReport('+m.id+')">Imprimir / Salvar PDF</button><button class="btn btn-soft" onclick="openFleetMachine('+m.id+')">Voltar para máquina</button></div>'+
+    '<div class="fleet-readonly" style="margin-top:12px">SOC significa State of Charge: percentual estimado de carga disponível da bateria.</div>';
+  showModal();
+}
+
+function printFleetMachineReport(id){
+  const m=fleetPrototype.find(x=>Number(x.id)===Number(id));
+  if(!m) return;
+  const history=(m.historico||[]).slice().sort((a,b)=>String(b.data).localeCompare(String(a.data)));
+  const historyRows=history.map(h=>
+    '<tr><td>'+fleetDate(h.data)+'</td><td>'+esc(h.tipo||'Acompanhamento')+'</td><td>'+esc(h.responsavel||'')+'</td><td>'+esc(h.descricao||'')+'</td><td>'+(h.horimetro!==undefined?Number(h.horimetro).toLocaleString('pt-BR')+' h':'—')+'</td><td>'+(h.soc!==undefined?Number(h.soc)+'%':'—')+'</td></tr>'
+  ).join('');
+  const w=window.open('','_blank');
+  if(!w) return alert('O navegador bloqueou a janela de impressão.');
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Relatório '+esc(m.codigo)+'</title><style>body{font-family:Arial,sans-serif;padding:28px;color:#111}h1{font-size:22px;margin-bottom:4px}h2{font-size:16px;margin-top:24px}.meta{color:#555;margin-bottom:18px}.cards{display:flex;gap:10px;margin:16px 0}.card{border:1px solid #ddd;border-radius:8px;padding:12px;min-width:150px}.card small{display:block;color:#666}.card b{font-size:20px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #ddd;padding:7px;text-align:left;vertical-align:top}th{background:#f3f4f6}.box{border:1px solid #ddd;padding:10px;margin:8px 0;border-radius:8px}</style></head><body>'+
+    '<h1>Relatório de Acompanhamento da Máquina</h1><div class="meta">'+esc(m.codigo)+' • '+esc(m.modelo)+' • Série '+esc(m.serie)+' • '+esc(m.cliente)+' • '+esc(m.local)+'</div>'+
+    '<div class="cards"><div class="card"><small>Horímetro</small><b>'+Number(m.horimetro||0).toLocaleString('pt-BR')+' h</b></div><div class="card"><small>SOC da bateria</small><b>'+Math.max(0,Math.min(100,Number(m.soc||0)))+'%</b></div><div class="card"><small>Estado atual</small><b style="font-size:14px">'+esc(m.status)+'</b></div></div>'+
+    '<div class="box"><b>Necessidade de treinamento:</b><br>'+esc(m.necessidadeTreinamento||'—')+'</div>'+
+    '<div class="box"><b>Próxima ação:</b><br>'+esc(m.proximaAcao||'—')+'</div>'+
+    '<div class="box"><b>Observações:</b><br>'+esc(m.observacoes||'—')+'</div>'+
+    '<h2>Histórico completo</h2><table><thead><tr><th>Data</th><th>Tipo</th><th>Responsável</th><th>Registro</th><th>Horímetro</th><th>SOC</th></tr></thead><tbody>'+historyRows+'</tbody></table>'+
+    '<p style="color:#666;font-size:10px;margin-top:18px">Gerado em '+new Date().toLocaleString('pt-BR')+' • SOC = State of Charge (percentual de carga da bateria).</p>'+
+    '</body></html>');
+  w.document.close();
+  w.focus();
+  setTimeout(()=>w.print(),250);
 }
 
 function openFleetReport(){
@@ -1816,9 +1890,9 @@ function printFleetReport(){
 }
 
 function downloadFleetCsv(){
-  const header=['Código','Modelo','Número de série','Cliente','Local','Horímetro','Status','Consultor','Última atualização','Necessidade de treinamento','Prioridade','Próxima ação','Observações'];
+  const header=['Código','Modelo','Número de série','Cliente','Local','Horímetro','SOC (%)','Status','Consultor','Última atualização','Necessidade de treinamento','Prioridade','Próxima ação','Observações'];
   const rows=fleetPrototype.map(m=>[
-    m.codigo,m.modelo,m.serie,m.cliente,m.local,m.horimetro,m.status,m.consultor,m.ultimaAtualizacao,m.necessidadeTreinamento,m.prioridadeTreinamento,m.proximaAcao,m.observacoes
+    m.codigo,m.modelo,m.serie,m.cliente,m.local,m.horimetro,m.soc,m.status,m.consultor,m.ultimaAtualizacao,m.necessidadeTreinamento,m.prioridadeTreinamento,m.proximaAcao,m.observacoes
   ]);
   const quote=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
   const csv='\uFEFF'+[header,...rows].map(row=>row.map(quote).join(';')).join('\n');
