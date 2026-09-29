@@ -313,6 +313,8 @@
 
 <script>
   const STORAGE_KEY='irmen-client-shift-prototype-v1';
+  const FLEET_API='/api/fleet-shifts';
+  const FLEET_CLIENT_KEY='IRMEN-FLEET-PREVIEW-2026';
   let pendingRecord=null;
 
   function records(){
@@ -431,18 +433,51 @@
     document.getElementById('confirmModal').classList.add('hidden');
   }
 
-  function confirmRecord(){
+  async function confirmRecord(){
     if(!pendingRecord)return;
-    const list=records();
-    list.unshift(pendingRecord);
-    saveRecords(list);
-    pendingRecord=null;
-    closeConfirm();
-    resetForm();
-    renderHome();
-    renderHistory();
-    goScreen('home');
-    showToast('Turno enviado com sucesso.');
+
+    const record={...pendingRecord};
+    const confirmBtn=document.querySelector('#confirmModal .btn-dark');
+    if(confirmBtn){
+      confirmBtn.disabled=true;
+      confirmBtn.textContent='Enviando...';
+    }
+
+    try{
+      const response=await fetch(FLEET_API,{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'X-Fleet-Client-Key':FLEET_CLIENT_KEY
+        },
+        body:JSON.stringify(record)
+      });
+
+      let body={};
+      try{body=await response.json()}catch(_){}
+      if(!response.ok) throw new Error(body.error||'Não foi possível sincronizar o turno.');
+
+      const synced={...record,id:body.id||record.id,synced:true,syncedAt:new Date().toISOString()};
+      const list=records();
+      list.unshift(synced);
+      saveRecords(list);
+
+      pendingRecord=null;
+      closeConfirm();
+      resetForm();
+      renderHome();
+      renderHistory();
+      goScreen('home');
+      showToast('Turno sincronizado com o módulo de frotas.');
+    }catch(err){
+      console.error(err);
+      showToast(err.message||'Falha ao sincronizar. Tente novamente.',true);
+    }finally{
+      if(confirmBtn){
+        confirmBtn.disabled=false;
+        confirmBtn.textContent='Confirmar e enviar';
+      }
+    }
   }
 
   function resetForm(){
