@@ -879,24 +879,96 @@ async function uploadProductionResult(skillId){
   const input=document.getElementById('mOutputFile');
   const file=input?.files?.[0];
   const outputType=document.getElementById('mOutputType')?.value||'Outro arquivo';
-  if(!file){productionUploadMessage('Selecione um arquivo antes de anexar.','error');return;}
-  if(file.size>25*1024*1024){productionUploadMessage('O arquivo deve ter no máximo 25 MB.','error');return;}
+
+  if(!file){
+    productionUploadMessage('Selecione um arquivo antes de anexar.','error');
+    return;
+  }
+  if(file.size>25*1024*1024){
+    productionUploadMessage('O arquivo deve ter no máximo 25 MB.','error');
+    return;
+  }
 
   applyWorkflowFormToSkill(skill);
-  if(!skillWorkflowMetrics(skill).planningDone){productionUploadMessage('Preencha objetivo, desenvolvimento e duração antes de anexar o resultado.','error');return;}
+  if(!skillWorkflowMetrics(skill).planningDone){
+    productionUploadMessage('Preencha objetivo, desenvolvimento e duração antes de anexar o resultado.','error');
+    return;
+  }
 
   const button=document.getElementById('mUploadOutputBtn');
   if(button){button.disabled=true;button.textContent='Enviando...';}
-  productionUploadMessage('Enviando resultado...');
+  productionUploadMessage('Preparando envio...');
+
+  let uploadTask=null;
+  let timeoutId=null;
 
   try{
     if(!auth.currentUser) throw new Error('auth-required');
+
+    await auth.currentUser.getIdToken(true);
+
     const safeName=file.name.replace(/[^a-zA-Z0-9._-]+/g,'_');
     const storagePath='microaulas/'+skill.id+'/resultados/'+Date.now()+'_'+safeName;
-    const snapshot=await storage.ref().child(storagePath).put(file,{contentType:file.type||'application/octet-stream'});
-    const url=await snapshot.ref.getDownloadURL();
+    const fileRef=storage.ref().child(storagePath);
+    uploadTask=fileRef.put(file,{contentType:file.type||'application/octet-stream'});
 
-    const output={id:Date.now(),type:outputType,name:file.name,url,storagePath,size:file.size,contentType:file.type||'',uploadedAt:new Date().toISOString(),uploadedBy:currentPersonName||''};
+    const snapshot=await new Promise((resolve,reject)=>{
+      let finished=false;
+
+      timeoutId=setTimeout(()=>{
+        if(finished) return;
+        finished=true;
+        try{uploadTask.cancel();}catch(_){}
+        const err=new Error('upload-timeout');
+        err.code='storage/retry-limit-exceeded';
+        reject(err);
+      },45000);
+
+      uploadTask.on('state_changed',
+        snap=>{
+          if(finished) return;
+          const total=Number(snap.totalBytes)||0;
+          const sent=Number(snap.bytesTransferred)||0;
+          const pct=total?Math.round((sent/total)*100):0;
+          productionUploadMessage('Enviando resultado... '+pct+'%');
+        },
+        err=>{
+          if(finished) return;
+          finished=true;
+          clearTimeout(timeoutId);
+          reject(err);
+        },
+        ()=>{
+          if(finished) return;
+          finished=true;
+          clearTimeout(timeoutId);
+          resolve(uploadTask.snapshot);
+        }
+      );
+    });
+
+    productionUploadMessage('Upload concluído. Salvando resultado...');
+    const url=await Promise.race([
+      snapshot.ref.getDownloadURL(),
+      new Promise((_,reject)=>setTimeout(()=>{
+        const err=new Error('download-url-timeout');
+        err.code='storage/retry-limit-exceeded';
+        reject(err);
+      },15000))
+    ]);
+
+    const output={
+      id:Date.now(),
+      type:outputType,
+      name:file.name,
+      url,
+      storagePath,
+      size:file.size,
+      contentType:file.type||'',
+      uploadedAt:new Date().toISOString(),
+      uploadedBy:currentPersonName||''
+    };
+
     skill.productionOutputs.push(output);
     skill.legacyProductionComplete=false;
     syncProductionOutputWithMaterials(skill,outputType,url);
@@ -911,15 +983,34 @@ async function uploadProductionResult(skillId){
     const production=document.getElementById('mProductionStep');
     if(production) production.value='Finalizado';
     if(input) input.value='';
-    productionUploadMessage('Resultado anexado. Produção marcada como Finalizada.','ok');
+    productionUploadMessage('Resultado anexado com sucesso. Produção finalizada.','ok');
     refreshWorkflowPreview();
+
   }catch(err){
     console.error('Falha ao anexar resultado:',err);
-    productionUploadMessage(friendlyProductionUploadError(err),'error');
+
+    let message=friendlyProductionUploadError(err);
+    const code=err&&err.code?err.code:'';
+
+    if(code.includes('object-not-found')){
+      message='O armazenamento não está disponível para este arquivo.';
+    }else if(code.includes('bucket-not-found')){
+      message='O armazenamento do projeto ainda não está configurado.';
+    }else if(code.includes('unauthenticated')){
+      message='Sua sessão expirou. Entre novamente no sistema.';
+    }else if(code.includes('retry-limit-exceeded')){
+      message='O envio demorou demais ou perdeu conexão. Tente novamente.';
+    }else if(String(err&&err.message||'').includes('auth-required')){
+      message='Sua sessão expirou. Entre novamente no sistema.';
+    }
+
+    productionUploadMessage(message,'error');
   }finally{
+    if(timeoutId) clearTimeout(timeoutId);
     if(button){button.disabled=false;button.textContent='Anexar resultado';}
   }
 }
+
 async function removeProductionResult(skillId,outputId){
   const skill=data.skills.find(x=>Number(x.id)===Number(skillId));
   if(!skill||!Array.isArray(skill.productionOutputs)) return;
