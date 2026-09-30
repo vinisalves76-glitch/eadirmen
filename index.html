@@ -1153,9 +1153,10 @@ function openSkill(id){
   refreshWorkflowPreview();
 }
 
-function saveSkill(id){
+async function saveSkill(id){
   let s=data.skills.find(x=>x.id===id);
   if(!s)return;
+
   if(role!=='admin'&&s.owner!==currentInstructorDataName()){
     alert('Você só pode atualizar habilidades atribuídas a você.');
     return;
@@ -1189,9 +1190,62 @@ function saveSkill(id){
   s.progress=metrics.progress;
 
   if(role==='admin'&&document.getElementById('mOwner')) s.owner=document.getElementById('mOwner').value;
-  save();
-  closeModal();
-  renderSkills();
+
+  const saveButton=document.querySelector('#modalContent .btn.btn-primary');
+  if(saveButton){
+    saveButton.disabled=true;
+    saveButton.textContent='Salvando...';
+  }
+
+  try{
+    if(role==='admin'){
+      await save();
+    }else{
+      const user=auth.currentUser;
+      if(!user) throw new Error('Sua sessão expirou. Entre novamente.');
+      const token=await user.getIdToken(true);
+
+      const response=await fetch('/api/instructor-skill',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization':'Bearer '+token
+        },
+        body:JSON.stringify({
+          skillId:s.id,
+          objective:s.objective,
+          development:s.development,
+          duration:s.duration,
+          materials:s.materials,
+          noMaterials:s.noMaterials,
+          workflow:s.workflow
+        })
+      });
+
+      let body={};
+      try{body=await response.json();}catch(_){}
+      if(!response.ok) throw new Error(body.error||'Não foi possível salvar.');
+
+      if(body.skill){
+        Object.assign(s,body.skill);
+      }
+
+      cacheLocal();
+      cloudMessage='Sistema atualizado';
+      updateCloudBadge();
+    }
+
+    closeModal();
+    renderSkills();
+  }catch(err){
+    console.error('Erro ao salvar habilidade:',err);
+    alert(err.message||'Não foi possível salvar as alterações.');
+  }finally{
+    if(saveButton){
+      saveButton.disabled=false;
+      saveButton.textContent='Salvar andamento';
+    }
+  }
 }
 
 function newSkill(){document.getElementById('modalContent').innerHTML='<div class="section-head"><h3>Nova habilidade</h3><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div><div class="form-grid"><div class="field span2"><label>Título</label><input id="nTitle"></div><div class="field"><label>Nível</label><select id="nLevel"><option>Básica</option><option>Intermediária</option><option>Média</option><option>Avançada</option></select></div><div class="field"><label>Responsável</label><select id="nOwner">'+data.people.map(p=>'<option>'+esc(p)+'</option>').join('')+'</select></div><div class="field"><label>Duração prevista</label><input id="nDuration" value="8 min"></div><div class="field span2"><label>Objetivo</label><textarea id="nObjective"></textarea></div><div class="field span2"><label>Desenvolvimento</label><textarea id="nDevelopment"></textarea></div><div class="span2"><button class="btn btn-primary" onclick="createSkill()">Criar habilidade</button></div></div>';showModal()}
