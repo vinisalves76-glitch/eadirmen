@@ -138,7 +138,6 @@ button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;dis
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script>
 const firebaseConfig = {
@@ -151,7 +150,6 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-const storage = firebase.storage();
 const auth = firebase.auth();
 const secondaryApp = firebase.initializeApp(firebaseConfig,'ead-irmen-user-creator');
 const secondaryAuth = secondaryApp.auth();
@@ -702,9 +700,8 @@ function skillWorkflowMetrics(s){
     materialsDone=s.materials.every(m=>m.status==='Finalizado');
   }
 
-  const productionHasResult=s.productionOutputs.length>0||s.legacyProductionComplete===true;
-  const productionScore=s.workflow.production==='Finalizado'&&productionHasResult?1:s.workflow.production==='Em produção'?0.5:0;
-  const productionDone=s.workflow.production==='Finalizado'&&productionHasResult;
+  const productionScore=s.workflow.production==='Finalizado'?1:s.workflow.production==='Em produção'?0.5:0;
+  const productionDone=s.workflow.production==='Finalizado';
   const reviewScore=s.workflow.review==='Aprovado'?1:s.workflow.review==='Em revisão'?0.5:0;
   const reviewDone=s.workflow.review==='Aprovado';
   const finalScore=s.workflow.finalization==='Finalizado'?1:s.workflow.finalization==='Em finalização'?0.5:0;
@@ -738,9 +735,8 @@ function skillMaterialRowHtml(material){
   return '<div class="workflow-material" data-material-type="'+esc(type)+'">'+
     '<div class="workflow-material-head"><b>'+esc(type)+'</b><button type="button" onclick="removeSkillMaterialRow(this)">Remover</button></div>'+
     '<div class="form-grid">'+
-      '<div class="field"><label>Descrição / identificação</label><input class="material-description" value="'+esc(m.description||'')+'" placeholder="Ex.: válvula de controle, apostila, apresentação..." oninput="refreshWorkflowPreview()"></div>'+
-      '<div class="field"><label>Status do material</label><select class="material-status" onchange="refreshWorkflowPreview()"><option>Pendente</option><option>Em produção</option><option>Finalizado</option></select></div>'+
-      '<div class="field span2"><label>Link / referência do material pronto</label><input class="material-reference" value="'+esc(m.reference||'')+'" placeholder="Cole um link ou identificação quando o material estiver pronto" oninput="materialReferenceChanged(this)"><div class="workflow-note">Quando um Slide ou Material impresso recebe a referência final, ele é marcado automaticamente como Finalizado.</div></div>'+
+      '<div class="field"><label>Descrição / identificação</label><input class="material-description" value="'+esc(m.description||'')+'" placeholder="Ex.: apresentação do sistema hidráulico, válvula de controle..." oninput="refreshWorkflowPreview()"></div>'+
+      '<div class="field"><label>Status do material</label><select class="material-status" onchange="refreshWorkflowPreview()"><option>Pendente</option><option>Em produção</option><option>Finalizado</option></select><div class="workflow-note">Quando terminar o slide, peça ou material, selecione apenas <b>Finalizado</b>. Não é necessário anexar arquivo.</div></div>'+
     '</div>'+
   '</div>';
 }
@@ -784,8 +780,7 @@ function readSkillMaterialsFromForm(){
     id:Number(row.dataset.materialId)||Date.now()+index,
     type:row.dataset.materialType||'Outro',
     description:row.querySelector('.material-description')?.value.trim()||'',
-    status:row.querySelector('.material-status')?.value||'Pendente',
-    reference:row.querySelector('.material-reference')?.value.trim()||''
+    status:row.querySelector('.material-status')?.value||'Pendente'
   }));
 }
 
@@ -1039,13 +1034,6 @@ async function removeProductionResult(skillId,outputId){
 }
 
 function productionStepChanged(){
-  const production=document.getElementById('mProductionStep');
-  if(!production) return;
-  const draft=draftSkillFromForm();
-  if(production.value==='Finalizado'&&!draft.productionOutputs.length&&draft.legacyProductionComplete!==true){
-    production.value='Em produção';
-    productionUploadMessage('Para finalizar a Produção, anexe o resultado produzido.','error');
-  }
   refreshWorkflowPreview();
 }
 
@@ -1126,29 +1114,24 @@ function openSkill(id){
   document.getElementById('modalContent').innerHTML=
     '<input type="hidden" id="mSkillId" value="'+s.id+'">'+
     '<div class="section-head"><div><h3>'+esc(s.title)+'</h3><div class="muted">'+esc(s.level)+' • '+esc(s.owner)+'</div></div><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div>'+
-    '<div class="workflow-summary"><div><h4>Andamento automático</h4><div class="muted">O progresso é calculado pelas etapas concluídas. Não precisa mais informar porcentagem manualmente.</div><div class="workflow-progress"><i id="mAutoProgressBar" style="width:'+metrics.progress+'%"></i></div></div><div style="text-align:right"><span class="muted">Progresso</span><div id="mAutoProgress" class="metric">'+metrics.progress+'%</div><div class="muted"><span id="mAutoStatus">'+esc(metrics.status)+'</span> • <span id="mCurrentStep">'+esc(metrics.currentIndex>=5?'Concluída':metrics.labels[metrics.currentIndex])+'</span></div></div></div>'+
+    '<div class="workflow-summary"><div><h4>Andamento automático</h4><div class="muted">O progresso é calculado conforme cada etapa é concluída.</div><div class="workflow-progress"><i id="mAutoProgressBar" style="width:'+metrics.progress+'%"></i></div></div><div style="text-align:right"><span class="muted">Progresso</span><div id="mAutoProgress" class="metric">'+metrics.progress+'%</div><div class="muted"><span id="mAutoStatus">'+esc(metrics.status)+'</span> • <span id="mCurrentStep">'+esc(metrics.currentIndex>=5?'Concluída':metrics.labels[metrics.currentIndex])+'</span></div></div></div>'+
     workflowStepHtml(metrics)+
 
-    '<div class="workflow-block"><div class="workflow-block-head"><div><h4>1. Planejamento da microaula</h4><p>Defina o que será ensinado, como será desenvolvido e a duração prevista.</p></div></div>'+
+    '<div class="workflow-block"><div class="workflow-block-head"><div><h4>1. Planejamento da microaula</h4><p>Defina o objetivo, como a microaula será desenvolvida e a duração prevista.</p></div></div>'+
       '<div class="form-grid"><div class="field span2"><label>Objetivo da microaula</label><textarea id="mObjective" oninput="refreshWorkflowPreview()">'+esc(s.objective)+'</textarea></div><div class="field span2"><label>Desenvolvimento / como será feita</label><textarea id="mDevelopment" oninput="refreshWorkflowPreview()">'+esc(s.development)+'</textarea></div><div class="field"><label>Duração</label><input id="mDuration" value="'+esc(s.duration)+'" oninput="refreshWorkflowPreview()"></div>'+ownerField+'</div>'+
     '</div>'+
 
-    '<div class="workflow-block"><div class="workflow-block-head"><div><h4>2. Materiais necessários</h4><p>Cadastre o que precisa estar pronto para produzir a microaula.</p></div></div>'+
+    '<div class="workflow-block"><div class="workflow-block-head"><div><h4>2. Materiais necessários</h4><p>Informe o que precisa ser preparado. Quando terminar cada item, apenas altere o status para Finalizado.</p></div></div>'+
       '<div class="material-tools"><button type="button" onclick="addSkillMaterial(\'Peça / componente\')">+ Peça / componente</button><button type="button" onclick="addSkillMaterial(\'Material impresso\')">+ Material impresso</button><button type="button" onclick="addSkillMaterial(\'Slide\')">+ Slide</button><button type="button" onclick="addSkillMaterial(\'Ferramenta / equipamento\')">+ Ferramenta</button><button type="button" onclick="addSkillMaterial(\'Máquina\')">+ Máquina</button><button type="button" onclick="addSkillMaterial(\'Outro\')">+ Outro</button></div>'+
       '<div id="skillMaterialsList">'+materialsHtml+'</div>'+
       '<label class="workflow-no-materials"><input id="mNoMaterials" type="checkbox" '+(s.noMaterials?'checked':'')+' onchange="toggleNoMaterials()"> Esta microaula não precisa de material adicional.</label>'+
     '</div>'+
 
-    '<div class="workflow-block"><div class="workflow-block-head"><div><h4>3. Produção</h4><p>Anexe o resultado produzido. Com o arquivo anexado, a Produção é marcada como Finalizada automaticamente.</p></div></div>'+
-      '<div class="field"><label>Produção da microaula</label><select id="mProductionStep" onchange="productionStepChanged()"><option>Não iniciado</option><option>Em produção</option><option>Finalizado</option></select><div class="workflow-note">Para concluir esta etapa é necessário anexar um resultado.</div></div>'+
-      '<div class="production-upload"><div class="production-upload-grid">'+
-        '<div class="field"><label>Tipo de resultado</label><select id="mOutputType" onchange="updateProductionFileAccept()"><option>Slide / PDF</option><option>Foto de peça / componente</option><option>Material impresso</option><option>Vídeo</option><option>Outro arquivo</option></select></div>'+
-        '<div class="field"><label>Arquivo produzido</label><input id="mOutputFile" type="file"></div>'+
-        '<button id="mUploadOutputBtn" type="button" class="btn btn-soft" onclick="uploadProductionResult('+s.id+')">Anexar resultado</button>'+
-      '</div><div class="workflow-note">Slide: PDF, PPT ou PPTX • Peça/componente: foto • Material impresso: PDF, DOC/DOCX ou imagem • Limite: 25 MB.</div><div id="productionUploadStatus" class="production-upload-status"></div><div id="productionOutputList" class="production-output-list"></div></div>'+
+    '<div class="workflow-block"><div class="workflow-block-head"><div><h4>3. Produção</h4><p>Quando a microaula estiver produzida, altere o status para Finalizado. Não é necessário anexar arquivos ou fotos.</p></div></div>'+
+      '<div class="field"><label>Produção da microaula</label><select id="mProductionStep" onchange="productionStepChanged()"><option>Não iniciado</option><option>Em produção</option><option>Finalizado</option></select></div>'+
     '</div>'+
 
-    '<div class="workflow-block"><div class="workflow-block-head"><div><h4>4. Revisão</h4><p>Após finalizar a produção, o conteúdo pode seguir para revisão técnica/didática.</p></div></div>'+
+    '<div class="workflow-block"><div class="workflow-block-head"><div><h4>4. Revisão</h4><p>Depois da produção, registre a revisão técnica/didática.</p></div></div>'+
       '<div class="field"><label>Revisão</label><select id="mReviewStep" onchange="refreshWorkflowPreview()"><option>Não iniciado</option><option>Em revisão</option><option>Aprovado</option></select></div>'+
     '</div>'+
 
@@ -1167,8 +1150,6 @@ function openSkill(id){
   document.getElementById('mFinalStep').value=s.workflow.finalization;
   if(role==='admin') document.getElementById('mOwner').value=s.owner;
   showModal();
-  renderProductionOutputs(s);
-  updateProductionFileAccept();
   refreshWorkflowPreview();
 }
 
@@ -1186,15 +1167,12 @@ function saveSkill(id){
   s.duration=document.getElementById('mDuration').value.trim();
   s.materials=readSkillMaterialsFromForm();
   s.noMaterials=!!document.getElementById('mNoMaterials').checked;
-  if(!Array.isArray(s.productionOutputs)) s.productionOutputs=[];
   s.workflow.production=document.getElementById('mProductionStep').value;
-  if(s.workflow.production==='Finalizado'&&!s.productionOutputs.length&&s.legacyProductionComplete!==true){
-    s.workflow.production='Em produção';
-  }
   s.workflow.review=document.getElementById('mReviewStep').value;
   s.workflow.finalization=document.getElementById('mFinalStep').value;
 
   let metrics=skillWorkflowMetrics(s);
+
   if(!(metrics.planningDone&&metrics.materialsDone)){
     s.workflow.production='Não iniciado';
     s.workflow.review='Não iniciado';
@@ -1215,6 +1193,7 @@ function saveSkill(id){
   closeModal();
   renderSkills();
 }
+
 function newSkill(){document.getElementById('modalContent').innerHTML='<div class="section-head"><h3>Nova habilidade</h3><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div><div class="form-grid"><div class="field span2"><label>Título</label><input id="nTitle"></div><div class="field"><label>Nível</label><select id="nLevel"><option>Básica</option><option>Intermediária</option><option>Média</option><option>Avançada</option></select></div><div class="field"><label>Responsável</label><select id="nOwner">'+data.people.map(p=>'<option>'+esc(p)+'</option>').join('')+'</select></div><div class="field"><label>Duração prevista</label><input id="nDuration" value="8 min"></div><div class="field span2"><label>Objetivo</label><textarea id="nObjective"></textarea></div><div class="field span2"><label>Desenvolvimento</label><textarea id="nDevelopment"></textarea></div><div class="span2"><button class="btn btn-primary" onclick="createSkill()">Criar habilidade</button></div></div>';showModal()}
 function createSkill(){
   let t=document.getElementById('nTitle').value.trim();
