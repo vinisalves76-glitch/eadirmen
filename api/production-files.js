@@ -6,7 +6,7 @@ function getAdminApp() {
 
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
   if (!raw) {
-    const err = new Error('Armazenamento nao habilitado neste ambiente de teste.');
+    const err = new Error('Armazenamento de arquivos indisponivel. Contate o administrador.');
     err.statusCode = 503;
     err.code = 'storage-preview-not-configured';
     throw err;
