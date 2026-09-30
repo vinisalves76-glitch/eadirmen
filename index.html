@@ -481,8 +481,9 @@ async function exitInstructorSimulation(){
 
 function instructorSimulationBanner(){
   if(!instructorSimulationMode) return '';
-  const plans=data.plans.filter(p=>p.person===currentPersonName);
-  const skills=data.skills.filter(s=>s.owner===currentPersonName);
+  const linkedName=currentInstructorDataName();
+  const plans=data.plans.filter(p=>p.person===linkedName);
+  const skills=data.skills.filter(s=>s.owner===linkedName);
   return '<div class="section" style="border:1px solid #bfdbfe;background:#eff6ff">'+
     '<div class="section-head"><div><h3 style="margin:0">Modo de teste • Instrutor</h3><div class="muted">Você está visualizando exatamente os dados atribuídos a <b>'+esc(currentPersonName)+'</b> na simulação sincronizada do ADM.</div></div><button class="btn btn-soft" onclick="exitInstructorSimulation()">Voltar ao ADM</button></div>'+
     '<div class="cards" style="margin-top:12px"><div class="card"><div class="muted">Habilidades atribuídas</div><div class="metric">'+skills.length+'</div></div><div class="card"><div class="muted">Entregas da semana</div><div class="metric">'+plans.length+'</div></div></div>'+
@@ -567,14 +568,69 @@ function go(p){
   if(p==='users')renderUsers();
 }
 function header(t,s){document.getElementById('pageTitle').textContent=t;document.getElementById('pageSub').textContent=s;document.getElementById('today').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'})}
+function normalizePersonName(value){
+  return String(value||'')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]+/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+function resolveInstructorDataName(name=currentPersonName){
+  const target=normalizePersonName(name);
+  if(!target) return name||'';
+
+  const candidates=[...new Set([
+    ...(Array.isArray(data.people)?data.people:[]),
+    ...(Array.isArray(data.skills)?data.skills.map(s=>s.owner):[]),
+    ...(Array.isArray(data.plans)?data.plans.map(p=>p.person):[])
+  ].filter(Boolean))];
+
+  const exact=candidates.find(candidate=>normalizePersonName(candidate)===target);
+  if(exact) return exact;
+
+  const targetFirst=target.split(' ')[0];
+  const sameFirst=candidates.filter(candidate=>{
+    const n=normalizePersonName(candidate);
+    return n && n.split(' ')[0]===targetFirst;
+  });
+
+  if(sameFirst.length===1) return sameFirst[0];
+
+  const contained=candidates.filter(candidate=>{
+    const n=normalizePersonName(candidate);
+    return n && (target.includes(n)||n.includes(target));
+  });
+
+  if(contained.length===1) return contained[0];
+
+  return name||'';
+}
+
+function currentInstructorDataName(){
+  return role==='admin'?currentPersonName:resolveInstructorDataName(currentPersonName);
+}
+
+function instructorDataLinkNotice(){
+  if(role==='admin'||instructorSimulationMode) return '';
+  const linked=currentInstructorDataName();
+  if(!linked||normalizePersonName(linked)===normalizePersonName(currentPersonName)) return '';
+  return '<div class="section" style="border:1px solid #bfdbfe;background:#eff6ff;padding:11px 13px"><b>Dados sincronizados</b><div class="muted" style="margin-top:4px">Seu login <b>'+esc(currentPersonName)+'</b> está vinculado aos registros existentes de <b>'+esc(linked)+'</b> no planejamento ADM.</div></div>';
+}
+
+
 function renderDashboard(){
   header(role==='admin'?'Visão geral do projeto':'Minha semana',role==='admin'?'Acompanhe a produção das microaulas EAD.':'Acompanhe suas habilidades e entregas da semana.');
-  let skills=role==='admin'?data.skills:data.skills.filter(s=>s.owner===currentPersonName);
+  const instructorName=currentInstructorDataName();
+  let skills=role==='admin'?data.skills:data.skills.filter(s=>s.owner===instructorName);
   let done=skills.filter(s=>s.status==='Concluída').length;
   let rev=skills.filter(s=>s.status==='Em revisão').length;
   let prod=skills.filter(s=>s.status==='Em produção').length;
-  let weekly=role==='admin'?data.plans.length:data.plans.filter(p=>p.person===currentPersonName).length;
+  let weekly=role==='admin'?data.plans.length:data.plans.filter(p=>p.person===instructorName).length;
   document.getElementById('content').innerHTML=
+    instructorDataLinkNotice()+
     instructorSimulationBanner()+
     '<div class="cards"><div class="card"><div class="muted">Habilidades</div><div class="metric">'+skills.length+'</div></div><div class="card"><div class="muted">Meta semanal</div><div class="metric">'+weekly+'</div></div><div class="card"><div class="muted">Em produção</div><div class="metric">'+prod+'</div></div><div class="card"><div class="muted">Em revisão</div><div class="metric">'+rev+'</div></div><div class="card"><div class="muted">Concluídas</div><div class="metric">'+done+'</div></div></div>'+
     '<div class="section"><div class="section-head"><h3>'+(role==='admin'?'Andamento das habilidades':'Minhas entregas')+'</h3></div><div class="grid">'+(skills.length?skills.map(skillCard).join(''):'<div class="empty">Nenhuma habilidade atribuída a este instrutor.</div>')+'</div></div>';
@@ -582,15 +638,17 @@ function renderDashboard(){
 function skillCard(s){let c=s.status==='Concluída'?'s-done':s.status==='Em revisão'?'s-rev':s.status==='Em produção'?'s-prod':'s-plan';return '<div class="skill"><div class="skill-top"><b>'+esc(s.title)+'</b><span class="tag">'+esc(s.level)+'</span></div><p class="muted">'+esc(s.owner)+' • '+esc(s.duration)+'</p><span class="status '+c+'">'+esc(s.status)+'</span><div class="progress"><i style="width:'+Number(s.progress||0)+'%"></i></div><div class="muted">'+Number(s.progress||0)+'% concluído</div><div class="actions"><button class="btn btn-soft" onclick="openSkill('+s.id+')">Abrir</button>'+(role==='admin'?'<button class="btn btn-danger" onclick="removeSkill('+s.id+')">Excluir</button>':'')+'</div></div>'}
 function renderSkills(){
   header(role==='admin'?'Habilidades':'Minhas habilidades',role==='admin'?'Crie, edite, ordene e acompanhe todas as habilidades.':'Desenvolva o planejamento das habilidades atribuídas a você.');
-  let skills=role==='admin'?data.skills:data.skills.filter(s=>s.owner===currentPersonName);
+  const instructorName=currentInstructorDataName();
+  let skills=role==='admin'?data.skills:data.skills.filter(s=>s.owner===instructorName);
   document.getElementById('content').innerHTML=
+    instructorDataLinkNotice()+
     instructorSimulationBanner()+
     '<div class="section"><div class="section-head"><h3>Lista de habilidades</h3>'+(role==='admin'?'<button class="btn btn-primary" onclick="newSkill()">+ Nova habilidade</button>':'')+'</div><div class="grid">'+(skills.length?skills.map(skillCard).join(''):'<div class="empty">Nenhuma habilidade atribuída a você.</div>')+'</div></div>';
 }
 function openSkill(id){
   const s=data.skills.find(x=>x.id===id);
   if(!s)return;
-  if(role!=='admin'&&s.owner!==currentPersonName){
+  if(role!=='admin'&&s.owner!==currentInstructorDataName()){
     alert('Esta habilidade não está atribuída a você.');
     return;
   }
@@ -613,7 +671,7 @@ function openSkill(id){
 function saveSkill(id){
   let s=data.skills.find(x=>x.id===id);
   if(!s)return;
-  if(role!=='admin'&&s.owner!==currentPersonName){
+  if(role!=='admin'&&s.owner!==currentInstructorDataName()){
     alert('Você só pode atualizar habilidades atribuídas a você.');
     return;
   }
@@ -635,7 +693,7 @@ function renderWeek(){
   if(role==='admin'){
     document.getElementById('content').innerHTML='<div class="section"><div class="section-head"><h3>Definir meta semanal</h3></div><div class="form-grid"><div class="field"><label>Instrutor</label><select id="planPerson">'+data.people.map(p=>'<option>'+esc(p)+'</option>').join('')+'</select></div><div class="field"><label>Habilidade</label><select id="planSkill">'+data.skills.map(s=>'<option value="'+s.id+'">'+esc(s.title)+'</option>').join('')+'</select></div><div><button class="btn btn-primary" onclick="addPlan()">Adicionar à semana</button></div></div></div>'+planTable();
   }else{
-    document.getElementById('content').innerHTML=instructorSimulationBanner()+planTable(currentPersonName);
+    document.getElementById('content').innerHTML=instructorDataLinkNotice()+instructorSimulationBanner()+planTable(currentInstructorDataName());
   }
 }
 function addPlan(){let person=document.getElementById('planPerson').value,skillId=Number(document.getElementById('planSkill').value);if(!data.plans.some(p=>p.person===person&&p.skillId===skillId))data.plans.push({id:Date.now(),person,skillId,week:'Semana atual'});save();renderWeek()}
