@@ -94,6 +94,15 @@ button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;dis
 .workflow-no-materials{display:flex;align-items:center;gap:8px;border:1px dashed #d0d5dd;border-radius:11px;padding:9px 10px;margin-top:8px;font-size:10px;color:#475467}
 .workflow-no-materials input{width:auto}
 @media(max-width:780px){.workflow-steps{grid-template-columns:1fr 1fr}.workflow-step:last-child{grid-column:1/-1}.workflow-summary{grid-template-columns:1fr}}
+
+.production-upload{border:1px dashed #cbd5e1;background:#f8fafc;border-radius:14px;padding:13px;margin-top:12px}
+.production-upload-grid{display:grid;grid-template-columns:180px minmax(0,1fr) auto;gap:9px;align-items:end}
+.production-output-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.production-output{display:flex;justify-content:space-between;gap:12px;align-items:center;border:1px solid #e4e7ec;background:#fff;border-radius:12px;padding:10px 11px}
+.production-output-main{min-width:0}.production-output-main b{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.production-output-main span{display:block;font-size:9px;color:#667085;margin-top:3px}
+.production-output-actions{display:flex;gap:6px}.production-output-actions a,.production-output-actions button{border:1px solid #d0d5dd;background:#fff;color:#344054;border-radius:9px;padding:6px 8px;font-size:9px;font-weight:800;text-decoration:none}
+.production-upload-status{font-size:10px;margin-top:8px;color:#475467;font-weight:700}.production-upload-status.ok{color:#15803d}.production-upload-status.error{color:#b42318}
+@media(max-width:760px){.production-upload-grid{grid-template-columns:1fr}.production-output{align-items:flex-start;flex-direction:column}}
 </style>
 </head>
 <body>
@@ -129,6 +138,7 @@ button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;dis
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script>
 const firebaseConfig = {
@@ -141,6 +151,7 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const storage = firebase.storage();
 const auth = firebase.auth();
 const secondaryApp = firebase.initializeApp(firebaseConfig,'ead-irmen-user-creator');
 const secondaryAuth = secondaryApp.auth();
@@ -654,6 +665,7 @@ function renderDashboard(){
 function ensureSkillWorkflow(s){
   if(!s) return s;
   if(!Array.isArray(s.materials)) s.materials=[];
+  if(!Array.isArray(s.productionOutputs)) s.productionOutputs=[];
   if(typeof s.noMaterials!=='boolean') s.noMaterials=s.materials.length===0;
 
   if(!s.workflow||typeof s.workflow!=='object'){
@@ -690,8 +702,9 @@ function skillWorkflowMetrics(s){
     materialsDone=s.materials.every(m=>m.status==='Finalizado');
   }
 
-  const productionScore=s.workflow.production==='Finalizado'?1:s.workflow.production==='Em produção'?0.5:0;
-  const productionDone=s.workflow.production==='Finalizado';
+  const productionHasResult=s.productionOutputs.length>0||s.legacyProductionComplete===true;
+  const productionScore=s.workflow.production==='Finalizado'&&productionHasResult?1:s.workflow.production==='Em produção'?0.5:0;
+  const productionDone=s.workflow.production==='Finalizado'&&productionHasResult;
   const reviewScore=s.workflow.review==='Aprovado'?1:s.workflow.review==='Em revisão'?0.5:0;
   const reviewDone=s.workflow.review==='Aprovado';
   const finalScore=s.workflow.finalization==='Finalizado'?1:s.workflow.finalization==='Em finalização'?0.5:0;
@@ -786,10 +799,160 @@ function draftSkillFromForm(){
   draft.duration=document.getElementById('mDuration')?.value||'';
   draft.materials=readSkillMaterialsFromForm();
   draft.noMaterials=!!document.getElementById('mNoMaterials')?.checked;
+  if(!Array.isArray(draft.productionOutputs)) draft.productionOutputs=[];
   draft.workflow.production=document.getElementById('mProductionStep')?.value||'Não iniciado';
   draft.workflow.review=document.getElementById('mReviewStep')?.value||'Não iniciado';
   draft.workflow.finalization=document.getElementById('mFinalStep')?.value||'Não iniciado';
   return draft;
+}
+
+function productionResultAccept(type){
+  if(type==='Slide / PDF') return '.pdf,.ppt,.pptx';
+  if(type==='Foto de peça / componente') return 'image/*';
+  if(type==='Material impresso') return '.pdf,.doc,.docx,image/*';
+  if(type==='Vídeo') return 'video/*';
+  return '*/*';
+}
+function updateProductionFileAccept(){
+  const type=document.getElementById('mOutputType')?.value||'Outro arquivo';
+  const input=document.getElementById('mOutputFile');
+  if(input) input.accept=productionResultAccept(type);
+}
+function workflowFileSize(bytes){
+  const n=Number(bytes)||0;
+  if(n<1024) return n+' B';
+  if(n<1048576) return (n/1024).toFixed(1)+' KB';
+  return (n/1048576).toFixed(1)+' MB';
+}
+function productionOutputHtml(output,skillId){
+  const o=output||{};
+  return '<div class="production-output"><div class="production-output-main"><b>'+esc(o.name||'Arquivo anexado')+'</b><span>'+esc(o.type||'Resultado')+' • '+workflowFileSize(o.size||0)+'</span></div><div class="production-output-actions">'+(o.url?'<a href="'+esc(o.url)+'" target="_blank" rel="noopener">Abrir</a>':'')+'<button type="button" onclick="removeProductionResult('+Number(skillId)+','+Number(o.id)+')">Remover</button></div></div>';
+}
+function renderProductionOutputs(skill){
+  const list=document.getElementById('productionOutputList');
+  if(!list) return;
+  const outputs=Array.isArray(skill?.productionOutputs)?skill.productionOutputs:[];
+  list.innerHTML=outputs.length?outputs.map(o=>productionOutputHtml(o,skill.id)).join(''):'<div class="workflow-note">Nenhum resultado anexado. Para concluir a Produção, anexe o arquivo, foto ou vídeo produzido.</div>';
+}
+function productionUploadMessage(message,type=''){
+  const el=document.getElementById('productionUploadStatus');
+  if(!el) return;
+  el.className='production-upload-status'+(type?' '+type:'');
+  el.textContent=message||'';
+}
+function syncProductionOutputWithMaterials(skill,outputType,url){
+  const map={'Slide / PDF':'Slide','Foto de peça / componente':'Peça / componente','Material impresso':'Material impresso'};
+  const materialType=map[outputType];
+  if(!materialType) return;
+  (skill.materials||[]).forEach(material=>{
+    if(material.type===materialType){material.status='Finalizado';material.reference=url||material.reference||'';}
+  });
+  document.querySelectorAll('#skillMaterialsList .workflow-material').forEach(row=>{
+    if(row.dataset.materialType===materialType){
+      setMaterialRowStatus(row,'Finalizado');
+      const ref=row.querySelector('.material-reference');
+      if(ref&&url) ref.value=url;
+    }
+  });
+}
+function friendlyProductionUploadError(err){
+  const code=err&&err.code?err.code:'';
+  if(code.includes('unauthorized')) return 'Você não tem permissão para anexar arquivos.';
+  if(code.includes('canceled')) return 'Envio cancelado.';
+  if(code.includes('quota-exceeded')) return 'O limite de armazenamento foi atingido.';
+  if(code.includes('retry-limit-exceeded')) return 'A conexão falhou durante o envio. Tente novamente.';
+  return 'Não foi possível anexar o resultado. Tente novamente.';
+}
+function applyWorkflowFormToSkill(skill){
+  skill.objective=document.getElementById('mObjective')?.value.trim()||'';
+  skill.development=document.getElementById('mDevelopment')?.value.trim()||'';
+  skill.duration=document.getElementById('mDuration')?.value.trim()||'';
+  skill.materials=readSkillMaterialsFromForm();
+  skill.noMaterials=!!document.getElementById('mNoMaterials')?.checked;
+  if(role==='admin'&&document.getElementById('mOwner')) skill.owner=document.getElementById('mOwner').value;
+}
+async function uploadProductionResult(skillId){
+  const skill=data.skills.find(x=>Number(x.id)===Number(skillId));
+  if(!skill) return;
+  ensureSkillWorkflow(skill);
+
+  const input=document.getElementById('mOutputFile');
+  const file=input?.files?.[0];
+  const outputType=document.getElementById('mOutputType')?.value||'Outro arquivo';
+  if(!file){productionUploadMessage('Selecione um arquivo antes de anexar.','error');return;}
+  if(file.size>25*1024*1024){productionUploadMessage('O arquivo deve ter no máximo 25 MB.','error');return;}
+
+  applyWorkflowFormToSkill(skill);
+  if(!skillWorkflowMetrics(skill).planningDone){productionUploadMessage('Preencha objetivo, desenvolvimento e duração antes de anexar o resultado.','error');return;}
+
+  const button=document.getElementById('mUploadOutputBtn');
+  if(button){button.disabled=true;button.textContent='Enviando...';}
+  productionUploadMessage('Enviando resultado...');
+
+  try{
+    if(!auth.currentUser) throw new Error('auth-required');
+    const safeName=file.name.replace(/[^a-zA-Z0-9._-]+/g,'_');
+    const storagePath='microaulas/'+skill.id+'/resultados/'+Date.now()+'_'+safeName;
+    const snapshot=await storage.ref().child(storagePath).put(file,{contentType:file.type||'application/octet-stream'});
+    const url=await snapshot.ref.getDownloadURL();
+
+    const output={id:Date.now(),type:outputType,name:file.name,url,storagePath,size:file.size,contentType:file.type||'',uploadedAt:new Date().toISOString(),uploadedBy:currentPersonName||''};
+    skill.productionOutputs.push(output);
+    skill.legacyProductionComplete=false;
+    syncProductionOutputWithMaterials(skill,outputType,url);
+    skill.workflow.production='Finalizado';
+
+    const metrics=skillWorkflowMetrics(skill);
+    skill.status=metrics.status;
+    skill.progress=metrics.progress;
+    await save();
+
+    renderProductionOutputs(skill);
+    const production=document.getElementById('mProductionStep');
+    if(production) production.value='Finalizado';
+    if(input) input.value='';
+    productionUploadMessage('Resultado anexado. Produção marcada como Finalizada.','ok');
+    refreshWorkflowPreview();
+  }catch(err){
+    console.error('Falha ao anexar resultado:',err);
+    productionUploadMessage(friendlyProductionUploadError(err),'error');
+  }finally{
+    if(button){button.disabled=false;button.textContent='Anexar resultado';}
+  }
+}
+async function removeProductionResult(skillId,outputId){
+  const skill=data.skills.find(x=>Number(x.id)===Number(skillId));
+  if(!skill||!Array.isArray(skill.productionOutputs)) return;
+  const output=skill.productionOutputs.find(o=>Number(o.id)===Number(outputId));
+  if(!output||!confirm('Remover este resultado da produção?')) return;
+
+  if(output.storagePath){try{await storage.ref().child(output.storagePath).delete();}catch(err){console.warn(err);}}
+  skill.productionOutputs=skill.productionOutputs.filter(o=>Number(o.id)!==Number(outputId));
+  if(!skill.productionOutputs.length&&skill.legacyProductionComplete!==true){
+    skill.workflow.production='Em produção';
+    skill.workflow.review='Não iniciado';
+    skill.workflow.finalization='Não iniciado';
+  }
+  const metrics=skillWorkflowMetrics(skill);
+  skill.status=metrics.status;
+  skill.progress=metrics.progress;
+  await save();
+
+  renderProductionOutputs(skill);
+  const production=document.getElementById('mProductionStep');
+  if(production) production.value=skill.workflow.production;
+  productionUploadMessage(skill.productionOutputs.length?'Resultado removido.':'Resultado removido. A Produção voltou para Em produção.');
+  refreshWorkflowPreview();
+}
+function productionStepChanged(){
+  const production=document.getElementById('mProductionStep');
+  if(!production) return;
+  const draft=draftSkillFromForm();
+  if(production.value==='Finalizado'&&!draft.productionOutputs.length&&draft.legacyProductionComplete!==true){
+    production.value='Em produção';
+    productionUploadMessage('Para finalizar a Produção, anexe o resultado produzido.','error');
+  }
+  refreshWorkflowPreview();
 }
 
 function refreshWorkflowPreview(){
@@ -816,11 +979,11 @@ function refreshWorkflowPreview(){
   const review=document.getElementById('mReviewStep');
   const finalStep=document.getElementById('mFinalStep');
   if(production) production.disabled=!(m.planningDone&&m.materialsDone);
-  if(review) review.disabled=!m.productionDone;
+  if(review) review.disabled=!(m.productionDone&&m.materialsDone);
   if(finalStep) finalStep.disabled=!m.reviewDone;
 
   if(!(m.planningDone&&m.materialsDone)&&production&&production.value!=='Não iniciado') production.value='Não iniciado';
-  if(!m.productionDone&&review&&review.value!=='Não iniciado') review.value='Não iniciado';
+  if(!(m.productionDone&&m.materialsDone)&&review&&review.value!=='Não iniciado') review.value='Não iniciado';
   if(!m.reviewDone&&finalStep&&finalStep.value!=='Não iniciado') finalStep.value='Não iniciado';
 }
 
@@ -882,8 +1045,13 @@ function openSkill(id){
       '<label class="workflow-no-materials"><input id="mNoMaterials" type="checkbox" '+(s.noMaterials?'checked':'')+' onchange="toggleNoMaterials()"> Esta microaula não precisa de material adicional.</label>'+
     '</div>'+
 
-    '<div class="workflow-block"><div class="workflow-block-head"><div><h4>3. Produção</h4><p>Essa etapa só libera quando planejamento e materiais estiverem concluídos.</p></div></div>'+
-      '<div class="field"><label>Produção da microaula</label><select id="mProductionStep" onchange="refreshWorkflowPreview()"><option>Não iniciado</option><option>Em produção</option><option>Finalizado</option></select></div>'+
+    '<div class="workflow-block"><div class="workflow-block-head"><div><h4>3. Produção</h4><p>Anexe o resultado produzido. Com o arquivo anexado, a Produção é marcada como Finalizada automaticamente.</p></div></div>'+
+      '<div class="field"><label>Produção da microaula</label><select id="mProductionStep" onchange="productionStepChanged()"><option>Não iniciado</option><option>Em produção</option><option>Finalizado</option></select><div class="workflow-note">Para concluir esta etapa é necessário anexar um resultado.</div></div>'+
+      '<div class="production-upload"><div class="production-upload-grid">'+
+        '<div class="field"><label>Tipo de resultado</label><select id="mOutputType" onchange="updateProductionFileAccept()"><option>Slide / PDF</option><option>Foto de peça / componente</option><option>Material impresso</option><option>Vídeo</option><option>Outro arquivo</option></select></div>'+
+        '<div class="field"><label>Arquivo produzido</label><input id="mOutputFile" type="file"></div>'+
+        '<button id="mUploadOutputBtn" type="button" class="btn btn-soft" onclick="uploadProductionResult('+s.id+')">Anexar resultado</button>'+
+      '</div><div class="workflow-note">Slide: PDF, PPT ou PPTX • Peça/componente: foto • Material impresso: PDF, DOC/DOCX ou imagem • Limite: 25 MB.</div><div id="productionUploadStatus" class="production-upload-status"></div><div id="productionOutputList" class="production-output-list"></div></div>'+
     '</div>'+
 
     '<div class="workflow-block"><div class="workflow-block-head"><div><h4>4. Revisão</h4><p>Após finalizar a produção, o conteúdo pode seguir para revisão técnica/didática.</p></div></div>'+
@@ -905,6 +1073,8 @@ function openSkill(id){
   document.getElementById('mFinalStep').value=s.workflow.finalization;
   if(role==='admin') document.getElementById('mOwner').value=s.owner;
   showModal();
+  renderProductionOutputs(s);
+  updateProductionFileAccept();
   refreshWorkflowPreview();
 }
 
@@ -922,7 +1092,11 @@ function saveSkill(id){
   s.duration=document.getElementById('mDuration').value.trim();
   s.materials=readSkillMaterialsFromForm();
   s.noMaterials=!!document.getElementById('mNoMaterials').checked;
+  if(!Array.isArray(s.productionOutputs)) s.productionOutputs=[];
   s.workflow.production=document.getElementById('mProductionStep').value;
+  if(s.workflow.production==='Finalizado'&&!s.productionOutputs.length&&s.legacyProductionComplete!==true){
+    s.workflow.production='Em produção';
+  }
   s.workflow.review=document.getElementById('mReviewStep').value;
   s.workflow.finalization=document.getElementById('mFinalStep').value;
 
@@ -963,6 +1137,8 @@ function createSkill(){
     development:document.getElementById('nDevelopment').value,
     materials:[],
     noMaterials:false,
+    productionOutputs:[],
+    legacyProductionComplete:false,
     workflow:{production:'Não iniciado',review:'Não iniciado',finalization:'Não iniciado'}
   };
   const metrics=skillWorkflowMetrics(skill);
