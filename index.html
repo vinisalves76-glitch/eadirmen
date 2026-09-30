@@ -73,6 +73,36 @@ button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;dis
 .modal{position:fixed;inset:0;background:#0008;display:grid;place-items:center;padding:20px;z-index:30}.modal-box{width:min(720px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:18px;padding:22px}
 @media(max-width:1000px){.cards{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr 1fr}.week{grid-template-columns:1fr 1fr}.agent-shell{grid-template-columns:1fr}.app{grid-template-columns:210px 1fr}}
 @media(max-width:720px){.login{justify-content:center;padding:18px;background-position:center}.login-card{padding:24px}.role-grid,.cards,.grid,.week,.form-grid{grid-template-columns:1fr}.span2{grid-column:auto}.app{display:block}.side{height:auto;position:relative}.profile{position:static;margin-top:20px}.main{padding:18px}.nav{display:flex;overflow:auto}.nav button{white-space:nowrap}.top{flex-direction:column}}
+
+.workflow-summary{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;background:#f8fafc;border:1px solid #e4e7ec;border-radius:16px;padding:14px;margin:12px 0 14px}
+.workflow-summary h4{margin:0 0 4px;font-size:13px}.workflow-summary .metric{font-size:26px;line-height:1;font-weight:900;letter-spacing:-.04em}
+.workflow-progress{height:9px;background:#e9edf2;border-radius:999px;overflow:hidden;margin-top:9px}.workflow-progress i{display:block;height:100%;background:#e31b23;border-radius:999px;transition:.2s}
+.workflow-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin:12px 0 16px}
+.workflow-step{border:1px solid #e4e7ec;background:#fff;border-radius:12px;padding:9px 8px;min-width:0}
+.workflow-step b{display:block;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.workflow-step span{display:block;font-size:9px;color:#98a2b3;margin-top:3px}
+.workflow-step.done{background:#f0fdf4;border-color:#bbf7d0}.workflow-step.done b{color:#166534}
+.workflow-step.current{background:#fff7ed;border-color:#fed7aa}.workflow-step.current b{color:#c2410c}
+.workflow-step.locked{background:#f9fafb;color:#98a2b3}
+.workflow-block{border:1px solid #e4e7ec;border-radius:16px;padding:14px;margin:11px 0;background:#fff}
+.workflow-block-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:12px}.workflow-block-head h4{margin:0;font-size:13px}.workflow-block-head p{margin:3px 0 0;font-size:10px;color:#667085;line-height:1.4}
+.material-tools{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px}.material-tools button{border:1px solid #d0d5dd;background:#fff;border-radius:999px;padding:7px 10px;font-size:10px;font-weight:800;color:#344054}
+.material-tools button:hover{border-color:#98a2b3;background:#f9fafb}
+.workflow-material{border:1px solid #e4e7ec;border-radius:13px;padding:11px;margin-top:9px;background:#fbfcfd}
+.workflow-material-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px}.workflow-material-head b{font-size:11px}.workflow-material-head button{border:0;background:transparent;color:#b42318;font-weight:800;font-size:10px}
+.workflow-readonly{border:1px solid #e4e7ec;background:#f8fafc;border-radius:11px;padding:10px 11px}.workflow-readonly span{display:block;font-size:9px;color:#667085;text-transform:uppercase;font-weight:850}.workflow-readonly b{display:block;margin-top:3px;font-size:13px}
+.workflow-note{font-size:9px;color:#667085;line-height:1.45;margin-top:7px}
+.workflow-no-materials{display:flex;align-items:center;gap:8px;border:1px dashed #d0d5dd;border-radius:11px;padding:9px 10px;margin-top:8px;font-size:10px;color:#475467}
+.workflow-no-materials input{width:auto}
+@media(max-width:780px){.workflow-steps{grid-template-columns:1fr 1fr}.workflow-step:last-child{grid-column:1/-1}.workflow-summary{grid-template-columns:1fr}}
+
+.production-upload{border:1px dashed #cbd5e1;background:#f8fafc;border-radius:14px;padding:13px;margin-top:12px}
+.production-upload-grid{display:grid;grid-template-columns:180px minmax(0,1fr) auto;gap:9px;align-items:end}
+.production-output-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.production-output{display:flex;justify-content:space-between;gap:12px;align-items:center;border:1px solid #e4e7ec;background:#fff;border-radius:12px;padding:10px 11px}
+.production-output-main{min-width:0}.production-output-main b{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.production-output-main span{display:block;font-size:9px;color:#667085;margin-top:3px}
+.production-output-actions{display:flex;gap:6px}.production-output-actions a,.production-output-actions button{border:1px solid #d0d5dd;background:#fff;color:#344054;border-radius:9px;padding:6px 8px;font-size:9px;font-weight:800;text-decoration:none}
+.production-upload-status{font-size:10px;margin-top:8px;color:#475467;font-weight:700}.production-upload-status.ok{color:#15803d}.production-upload-status.error{color:#b42318}
+@media(max-width:760px){.production-upload-grid{grid-template-columns:1fr}.production-output{align-items:flex-start;flex-direction:column}}
 </style>
 </head>
 <body>
@@ -98,7 +128,7 @@ button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;dis
     <div class="profile"><b id="profileName"></b><small id="profileRole"></small><button onclick="logout()">Sair</button></div>
   </aside>
   <main class="main">
-    <div class="top"><div><h2 id="pageTitle"></h2><p id="pageSub"></p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><div class="pill" id="cloudStatus">Conectando ao Firebase...</div><div class="pill" id="today"></div></div></div>
+    <div class="top"><div><h2 id="pageTitle"></h2><p id="pageSub"></p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><div class="pill hidden" id="cloudStatus"></div><div class="pill" id="today"></div></div></div>
     <div id="content"></div>
   </main>
 </div>
@@ -108,6 +138,7 @@ button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;dis
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script>
 const firebaseConfig = {
@@ -120,6 +151,7 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const storage = firebase.storage();
 const auth = firebase.auth();
 const secondaryApp = firebase.initializeApp(firebaseConfig,'ead-irmen-user-creator');
 const secondaryAuth = secondaryApp.auth();
@@ -630,7 +662,442 @@ function renderDashboard(){
     '<div class="cards"><div class="card"><div class="muted">Habilidades</div><div class="metric">'+skills.length+'</div></div><div class="card"><div class="muted">Meta semanal</div><div class="metric">'+weekly+'</div></div><div class="card"><div class="muted">Em produção</div><div class="metric">'+prod+'</div></div><div class="card"><div class="muted">Em revisão</div><div class="metric">'+rev+'</div></div><div class="card"><div class="muted">Concluídas</div><div class="metric">'+done+'</div></div></div>'+
     '<div class="section"><div class="section-head"><h3>'+(role==='admin'?'Andamento das habilidades':'Minhas entregas')+'</h3></div><div class="grid">'+(skills.length?skills.map(skillCard).join(''):'<div class="empty">Nenhuma habilidade atribuída a este instrutor.</div>')+'</div></div>';
 }
-function skillCard(s){let c=s.status==='Concluída'?'s-done':s.status==='Em revisão'?'s-rev':s.status==='Em produção'?'s-prod':'s-plan';return '<div class="skill"><div class="skill-top"><b>'+esc(s.title)+'</b><span class="tag">'+esc(s.level)+'</span></div><p class="muted">'+esc(s.owner)+' • '+esc(s.duration)+'</p><span class="status '+c+'">'+esc(s.status)+'</span><div class="progress"><i style="width:'+Number(s.progress||0)+'%"></i></div><div class="muted">'+Number(s.progress||0)+'% concluído</div><div class="actions"><button class="btn btn-soft" onclick="openSkill('+s.id+')">Abrir</button>'+(role==='admin'?'<button class="btn btn-danger" onclick="removeSkill('+s.id+')">Excluir</button>':'')+'</div></div>'}
+function ensureSkillWorkflow(s){
+  if(!s) return s;
+  if(!Array.isArray(s.materials)) s.materials=[];
+  if(!Array.isArray(s.productionOutputs)) s.productionOutputs=[];
+  if(typeof s.noMaterials!=='boolean') s.noMaterials=s.materials.length===0;
+
+  if(!s.workflow||typeof s.workflow!=='object'){
+    const oldStatus=s.status||'Planejamento';
+    s.workflow={
+      production:oldStatus==='Concluída'||oldStatus==='Em revisão'?'Finalizado':oldStatus==='Em produção'?'Em produção':'Não iniciado',
+      review:oldStatus==='Concluída'?'Aprovado':oldStatus==='Em revisão'?'Em revisão':'Não iniciado',
+      finalization:oldStatus==='Concluída'?'Finalizado':'Não iniciado'
+    };
+  }
+
+  if(!['Não iniciado','Em produção','Finalizado'].includes(s.workflow.production)) s.workflow.production='Não iniciado';
+  if(!['Não iniciado','Em revisão','Aprovado'].includes(s.workflow.review)) s.workflow.review='Não iniciado';
+  if(!['Não iniciado','Em finalização','Finalizado'].includes(s.workflow.finalization)) s.workflow.finalization='Não iniciado';
+  return s;
+}
+
+function skillWorkflowMetrics(s){
+  ensureSkillWorkflow(s);
+
+  const objectiveOk=String(s.objective||'').trim().length>0;
+  const developmentOk=String(s.development||'').trim().length>0;
+  const durationOk=String(s.duration||'').trim().length>0;
+  const planningScore=[objectiveOk,developmentOk,durationOk].filter(Boolean).length/3;
+  const planningDone=objectiveOk&&developmentOk&&durationOk;
+
+  let materialScore=0;
+  let materialsDone=false;
+  if(s.noMaterials){
+    materialScore=1;
+    materialsDone=true;
+  }else if(s.materials.length){
+    materialScore=s.materials.reduce((sum,m)=>sum+(m.status==='Finalizado'?1:m.status==='Em produção'?0.5:0),0)/s.materials.length;
+    materialsDone=s.materials.every(m=>m.status==='Finalizado');
+  }
+
+  const productionHasResult=s.productionOutputs.length>0||s.legacyProductionComplete===true;
+  const productionScore=s.workflow.production==='Finalizado'&&productionHasResult?1:s.workflow.production==='Em produção'?0.5:0;
+  const productionDone=s.workflow.production==='Finalizado'&&productionHasResult;
+  const reviewScore=s.workflow.review==='Aprovado'?1:s.workflow.review==='Em revisão'?0.5:0;
+  const reviewDone=s.workflow.review==='Aprovado';
+  const finalScore=s.workflow.finalization==='Finalizado'?1:s.workflow.finalization==='Em finalização'?0.5:0;
+  const finalDone=s.workflow.finalization==='Finalizado';
+
+  const progress=Math.round((planningScore+materialScore+productionScore+reviewScore+finalScore)*20);
+  let status='Planejamento';
+  if(finalDone) status='Concluída';
+  else if(productionDone||s.workflow.review!=='Não iniciado'||s.workflow.finalization!=='Não iniciado') status='Em revisão';
+  else if(planningDone||s.materials.length||s.noMaterials||s.workflow.production==='Em produção') status='Em produção';
+
+  const done=[planningDone,materialsDone,productionDone,reviewDone,finalDone];
+  const labels=['Planejamento','Materiais','Produção','Revisão','Finalização'];
+  const currentIndex=done.findIndex(v=>!v);
+
+  return {progress,status,planningDone,materialsDone,productionDone,reviewDone,finalDone,done,labels,currentIndex:currentIndex<0?5:currentIndex};
+}
+
+function workflowStepHtml(metrics){
+  return '<div class="workflow-steps">'+metrics.labels.map((label,index)=>{
+    const state=metrics.done[index]?'done':metrics.currentIndex===index?'current':'locked';
+    const text=metrics.done[index]?'Concluído':metrics.currentIndex===index?'Etapa atual':'Aguardando';
+    return '<div class="workflow-step '+state+'" data-workflow-step="'+index+'"><b>'+(index+1)+'. '+label+'</b><span>'+text+'</span></div>';
+  }).join('')+'</div>';
+}
+
+function skillMaterialRowHtml(material){
+  const m=material||{};
+  const type=String(m.type||'Outro');
+  const status=m.status||'Pendente';
+  return '<div class="workflow-material" data-material-type="'+esc(type)+'">'+
+    '<div class="workflow-material-head"><b>'+esc(type)+'</b><button type="button" onclick="removeSkillMaterialRow(this)">Remover</button></div>'+
+    '<div class="form-grid">'+
+      '<div class="field"><label>Descrição / identificação</label><input class="material-description" value="'+esc(m.description||'')+'" placeholder="Ex.: válvula de controle, apostila, apresentação..." oninput="refreshWorkflowPreview()"></div>'+
+      '<div class="field"><label>Status do material</label><select class="material-status" onchange="refreshWorkflowPreview()"><option>Pendente</option><option>Em produção</option><option>Finalizado</option></select></div>'+
+      '<div class="field span2"><label>Link / referência do material pronto</label><input class="material-reference" value="'+esc(m.reference||'')+'" placeholder="Cole um link ou identificação quando o material estiver pronto" oninput="materialReferenceChanged(this)"><div class="workflow-note">Quando um Slide ou Material impresso recebe a referência final, ele é marcado automaticamente como Finalizado.</div></div>'+
+    '</div>'+
+  '</div>';
+}
+
+function setMaterialRowStatus(row,status){
+  const select=row.querySelector('.material-status');
+  if(select) select.value=status;
+}
+
+function addSkillMaterial(type){
+  const noMaterials=document.getElementById('mNoMaterials');
+  if(noMaterials) noMaterials.checked=false;
+  const list=document.getElementById('skillMaterialsList');
+  if(!list) return;
+  const temp=document.createElement('div');
+  temp.innerHTML=skillMaterialRowHtml({type,status:type==='Slide'?'Em produção':'Pendente',description:'',reference:''});
+  const row=temp.firstElementChild;
+  list.appendChild(row);
+  setMaterialRowStatus(row,type==='Slide'?'Em produção':'Pendente');
+  refreshWorkflowPreview();
+}
+
+function removeSkillMaterialRow(button){
+  const row=button.closest('.workflow-material');
+  if(row) row.remove();
+  refreshWorkflowPreview();
+}
+
+function materialReferenceChanged(input){
+  const row=input.closest('.workflow-material');
+  if(!row) return;
+  const type=row.dataset.materialType;
+  if(input.value.trim()&&(type==='Slide'||type==='Material impresso')){
+    setMaterialRowStatus(row,'Finalizado');
+  }
+  refreshWorkflowPreview();
+}
+
+function readSkillMaterialsFromForm(){
+  return [...document.querySelectorAll('#skillMaterialsList .workflow-material')].map((row,index)=>({
+    id:Number(row.dataset.materialId)||Date.now()+index,
+    type:row.dataset.materialType||'Outro',
+    description:row.querySelector('.material-description')?.value.trim()||'',
+    status:row.querySelector('.material-status')?.value||'Pendente',
+    reference:row.querySelector('.material-reference')?.value.trim()||''
+  }));
+}
+
+function draftSkillFromForm(){
+  const id=Number(document.getElementById('mSkillId')?.value||0);
+  const original=data.skills.find(x=>Number(x.id)===id)||{};
+  const draft=JSON.parse(JSON.stringify(original));
+  ensureSkillWorkflow(draft);
+  draft.objective=document.getElementById('mObjective')?.value||'';
+  draft.development=document.getElementById('mDevelopment')?.value||'';
+  draft.duration=document.getElementById('mDuration')?.value||'';
+  draft.materials=readSkillMaterialsFromForm();
+  draft.noMaterials=!!document.getElementById('mNoMaterials')?.checked;
+  if(!Array.isArray(draft.productionOutputs)) draft.productionOutputs=[];
+  draft.workflow.production=document.getElementById('mProductionStep')?.value||'Não iniciado';
+  draft.workflow.review=document.getElementById('mReviewStep')?.value||'Não iniciado';
+  draft.workflow.finalization=document.getElementById('mFinalStep')?.value||'Não iniciado';
+  return draft;
+}
+
+function productionResultAccept(type){
+  if(type==='Slide / PDF') return '.pdf,.ppt,.pptx';
+  if(type==='Foto de peça / componente') return 'image/*';
+  if(type==='Material impresso') return '.pdf,.doc,.docx,image/*';
+  if(type==='Vídeo') return 'video/*';
+  return '*/*';
+}
+function updateProductionFileAccept(){
+  const type=document.getElementById('mOutputType')?.value||'Outro arquivo';
+  const input=document.getElementById('mOutputFile');
+  if(input) input.accept=productionResultAccept(type);
+}
+function workflowFileSize(bytes){
+  const n=Number(bytes)||0;
+  if(n<1024) return n+' B';
+  if(n<1048576) return (n/1024).toFixed(1)+' KB';
+  return (n/1048576).toFixed(1)+' MB';
+}
+function productionOutputHtml(output,skillId){
+  const o=output||{};
+  return '<div class="production-output"><div class="production-output-main"><b>'+esc(o.name||'Arquivo anexado')+'</b><span>'+esc(o.type||'Resultado')+' • '+workflowFileSize(o.size||0)+'</span></div><div class="production-output-actions">'+(o.url?'<a href="'+esc(o.url)+'" target="_blank" rel="noopener">Abrir</a>':'')+'<button type="button" onclick="removeProductionResult('+Number(skillId)+','+Number(o.id)+')">Remover</button></div></div>';
+}
+function renderProductionOutputs(skill){
+  const list=document.getElementById('productionOutputList');
+  if(!list) return;
+  const outputs=Array.isArray(skill?.productionOutputs)?skill.productionOutputs:[];
+  list.innerHTML=outputs.length?outputs.map(o=>productionOutputHtml(o,skill.id)).join(''):'<div class="workflow-note">Nenhum resultado anexado. Para concluir a Produção, anexe o arquivo, foto ou vídeo produzido.</div>';
+}
+function productionUploadMessage(message,type=''){
+  const el=document.getElementById('productionUploadStatus');
+  if(!el) return;
+  el.className='production-upload-status'+(type?' '+type:'');
+  el.textContent=message||'';
+}
+function syncProductionOutputWithMaterials(skill,outputType,url){
+  const map={'Slide / PDF':'Slide','Foto de peça / componente':'Peça / componente','Material impresso':'Material impresso'};
+  const materialType=map[outputType];
+  if(!materialType) return;
+  (skill.materials||[]).forEach(material=>{
+    if(material.type===materialType){material.status='Finalizado';material.reference=url||material.reference||'';}
+  });
+  document.querySelectorAll('#skillMaterialsList .workflow-material').forEach(row=>{
+    if(row.dataset.materialType===materialType){
+      setMaterialRowStatus(row,'Finalizado');
+      const ref=row.querySelector('.material-reference');
+      if(ref&&url) ref.value=url;
+    }
+  });
+}
+function friendlyProductionUploadError(err){
+  const code=err&&err.code?err.code:'';
+  if(code.includes('unauthorized')) return 'Você não tem permissão para anexar arquivos.';
+  if(code.includes('canceled')) return 'Envio cancelado.';
+  if(code.includes('quota-exceeded')) return 'O limite de armazenamento foi atingido.';
+  if(code.includes('retry-limit-exceeded')) return 'A conexão falhou durante o envio. Tente novamente.';
+  return 'Não foi possível anexar o resultado. Tente novamente.';
+}
+function applyWorkflowFormToSkill(skill){
+  skill.objective=document.getElementById('mObjective')?.value.trim()||'';
+  skill.development=document.getElementById('mDevelopment')?.value.trim()||'';
+  skill.duration=document.getElementById('mDuration')?.value.trim()||'';
+  skill.materials=readSkillMaterialsFromForm();
+  skill.noMaterials=!!document.getElementById('mNoMaterials')?.checked;
+  if(role==='admin'&&document.getElementById('mOwner')) skill.owner=document.getElementById('mOwner').value;
+}
+async function fileToBase64Chunk(blob){
+  return await new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(String(reader.result||'').split(',')[1]||'');
+    reader.onerror=()=>reject(reader.error||new Error('Falha ao ler arquivo.'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function apiProductionFile(body){
+  if(!auth.currentUser) throw new Error('auth-required');
+  const token=await auth.currentUser.getIdToken(true);
+  const response=await fetch('/api/production-files',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'Authorization':'Bearer '+token
+    },
+    body:JSON.stringify(body)
+  });
+
+  let result={};
+  try{ result=await response.json(); }catch(_){}
+  if(!response.ok) throw new Error(result.error||'Falha ao processar arquivo.');
+  return result;
+}
+
+async function uploadProductionResult(skillId){
+  const skill=data.skills.find(x=>Number(x.id)===Number(skillId));
+  if(!skill) return;
+  ensureSkillWorkflow(skill);
+
+  const input=document.getElementById('mOutputFile');
+  const file=input?.files?.[0];
+  const outputType=document.getElementById('mOutputType')?.value||'Outro arquivo';
+
+  if(!file){
+    productionUploadMessage('Selecione um arquivo antes de anexar.','error');
+    return;
+  }
+  if(file.size>25*1024*1024){
+    productionUploadMessage('O arquivo deve ter no máximo 25 MB.','error');
+    return;
+  }
+
+  applyWorkflowFormToSkill(skill);
+  if(!skillWorkflowMetrics(skill).planningDone){
+    productionUploadMessage('Preencha objetivo, desenvolvimento e duração antes de anexar o resultado.','error');
+    return;
+  }
+
+  const button=document.getElementById('mUploadOutputBtn');
+  if(button){button.disabled=true;button.textContent='Enviando...';}
+  productionUploadMessage('Preparando arquivo...');
+
+  try{
+    const chunkSize=1.5*1024*1024;
+    const chunkCount=Math.ceil(file.size/chunkSize);
+    const uploadId='upl_'+Date.now()+'_'+Math.random().toString(36).slice(2,10);
+
+    for(let i=0;i<chunkCount;i++){
+      const startByte=i*chunkSize;
+      const endByte=Math.min(file.size,startByte+chunkSize);
+      const blob=file.slice(startByte,endByte);
+      const dataBase64=await fileToBase64Chunk(blob);
+
+      await apiProductionFile({
+        action:'chunk',
+        uploadId,
+        skillId:String(skill.id),
+        chunkIndex:i,
+        chunkCount,
+        dataBase64
+      });
+
+      const pct=Math.round(((i+1)/chunkCount)*90);
+      productionUploadMessage('Enviando resultado... '+pct+'%');
+    }
+
+    productionUploadMessage('Finalizando arquivo... 95%');
+
+    const safeName=file.name.replace(/[^a-zA-Z0-9._-]+/g,'_');
+    const done=await apiProductionFile({
+      action:'complete',
+      uploadId,
+      skillId:String(skill.id),
+      chunkCount,
+      fileName:safeName,
+      originalName:file.name,
+      contentType:file.type||'application/octet-stream'
+    });
+
+    const output={
+      id:Date.now(),
+      type:outputType,
+      name:file.name,
+      url:done.url,
+      storagePath:done.storagePath,
+      size:file.size,
+      contentType:file.type||'',
+      uploadedAt:new Date().toISOString(),
+      uploadedBy:currentPersonName||''
+    };
+
+    skill.productionOutputs.push(output);
+    skill.legacyProductionComplete=false;
+    syncProductionOutputWithMaterials(skill,outputType,done.url);
+    skill.workflow.production='Finalizado';
+
+    const metrics=skillWorkflowMetrics(skill);
+    skill.status=metrics.status;
+    skill.progress=metrics.progress;
+    await save();
+
+    renderProductionOutputs(skill);
+    const production=document.getElementById('mProductionStep');
+    if(production) production.value='Finalizado';
+    if(input) input.value='';
+    productionUploadMessage('Resultado anexado com sucesso. Produção finalizada.','ok');
+    refreshWorkflowPreview();
+  }catch(err){
+    console.error('Falha ao anexar resultado:',err);
+    let message=err&&err.message?err.message:'Não foi possível anexar o resultado.';
+    if(String(message).includes('auth-required')) message='Sua sessão expirou. Entre novamente no sistema.';
+    productionUploadMessage(message,'error');
+  }finally{
+    if(button){button.disabled=false;button.textContent='Anexar resultado';}
+  }
+}
+
+async function removeProductionResult(skillId,outputId){
+  const skill=data.skills.find(x=>Number(x.id)===Number(skillId));
+  if(!skill||!Array.isArray(skill.productionOutputs)) return;
+  const output=skill.productionOutputs.find(o=>Number(o.id)===Number(outputId));
+  if(!output||!confirm('Remover este resultado da produção?')) return;
+
+  if(output.storagePath){
+    try{
+      await apiProductionFile({
+        action:'delete',
+        skillId:String(skill.id),
+        storagePath:output.storagePath
+      });
+    }catch(err){
+      console.warn('Arquivo físico não removido:',err);
+    }
+  }
+
+  skill.productionOutputs=skill.productionOutputs.filter(o=>Number(o.id)!==Number(outputId));
+  if(!skill.productionOutputs.length&&skill.legacyProductionComplete!==true){
+    skill.workflow.production='Em produção';
+    skill.workflow.review='Não iniciado';
+    skill.workflow.finalization='Não iniciado';
+  }
+
+  const metrics=skillWorkflowMetrics(skill);
+  skill.status=metrics.status;
+  skill.progress=metrics.progress;
+  await save();
+
+  renderProductionOutputs(skill);
+  const production=document.getElementById('mProductionStep');
+  if(production) production.value=skill.workflow.production;
+  productionUploadMessage(skill.productionOutputs.length?'Resultado removido.':'Resultado removido. A Produção voltou para Em produção.');
+  refreshWorkflowPreview();
+}
+
+function productionStepChanged(){
+  const production=document.getElementById('mProductionStep');
+  if(!production) return;
+  const draft=draftSkillFromForm();
+  if(production.value==='Finalizado'&&!draft.productionOutputs.length&&draft.legacyProductionComplete!==true){
+    production.value='Em produção';
+    productionUploadMessage('Para finalizar a Produção, anexe o resultado produzido.','error');
+  }
+  refreshWorkflowPreview();
+}
+
+function refreshWorkflowPreview(){
+  const draft=draftSkillFromForm();
+  const m=skillWorkflowMetrics(draft);
+
+  const progress=document.getElementById('mAutoProgress');
+  const progressBar=document.getElementById('mAutoProgressBar');
+  const status=document.getElementById('mAutoStatus');
+  const current=document.getElementById('mCurrentStep');
+  if(progress) progress.textContent=m.progress+'%';
+  if(progressBar) progressBar.style.width=m.progress+'%';
+  if(status) status.textContent=m.status;
+  if(current) current.textContent=m.currentIndex>=5?'Concluída':m.labels[m.currentIndex];
+
+  document.querySelectorAll('[data-workflow-step]').forEach((el,index)=>{
+    el.classList.remove('done','current','locked');
+    el.classList.add(m.done[index]?'done':m.currentIndex===index?'current':'locked');
+    const span=el.querySelector('span');
+    if(span) span.textContent=m.done[index]?'Concluído':m.currentIndex===index?'Etapa atual':'Aguardando';
+  });
+
+  const production=document.getElementById('mProductionStep');
+  const review=document.getElementById('mReviewStep');
+  const finalStep=document.getElementById('mFinalStep');
+  if(production) production.disabled=!(m.planningDone&&m.materialsDone);
+  if(review) review.disabled=!(m.productionDone&&m.materialsDone);
+  if(finalStep) finalStep.disabled=!m.reviewDone;
+
+  if(!(m.planningDone&&m.materialsDone)&&production&&production.value!=='Não iniciado') production.value='Não iniciado';
+  if(!(m.productionDone&&m.materialsDone)&&review&&review.value!=='Não iniciado') review.value='Não iniciado';
+  if(!m.reviewDone&&finalStep&&finalStep.value!=='Não iniciado') finalStep.value='Não iniciado';
+}
+
+function toggleNoMaterials(){
+  const checkbox=document.getElementById('mNoMaterials');
+  const rows=document.querySelectorAll('#skillMaterialsList .workflow-material');
+  if(checkbox?.checked&&rows.length){
+    checkbox.checked=false;
+    alert('Remova os materiais cadastrados antes de marcar "Sem material adicional".');
+  }
+  refreshWorkflowPreview();
+}
+
+function skillCard(s){
+  const m=skillWorkflowMetrics(s);
+  s.status=m.status;
+  s.progress=m.progress;
+  const cls=m.status==='Concluída'?'s-done':m.status==='Em revisão'?'s-rev':m.status==='Em produção'?'s-prod':'s-plan';
+  return '<div class="skill"><div class="skill-top"><b>'+esc(s.title)+'</b><span class="tag">'+esc(s.level)+'</span></div><p class="muted">'+esc(s.owner)+' • '+esc(s.duration)+'</p><span class="status '+cls+'">'+esc(m.status)+'</span><div class="progress"><i style="width:'+m.progress+'%"></i></div><div class="muted">'+m.progress+'% automático • Etapa: '+esc(m.currentIndex>=5?'Concluída':m.labels[m.currentIndex])+'</div><div class="actions"><button class="btn btn-soft" onclick="openSkill('+s.id+')">Abrir</button>'+(role==='admin'?'<button class="btn btn-danger" onclick="removeSkill('+s.id+')">Excluir</button>':'')+'</div></div>';
+}
 function renderSkills(){
   header(role==='admin'?'Habilidades':'Minhas habilidades',role==='admin'?'Crie, edite, ordene e acompanhe todas as habilidades.':'Desenvolva o planejamento das habilidades atribuídas a você.');
   const instructorName=currentInstructorDataName();
@@ -648,21 +1115,63 @@ function openSkill(id){
     return;
   }
 
+  ensureSkillWorkflow(s);
+  const metrics=skillWorkflowMetrics(s);
   const ownerField=role==='admin'
     ? '<div class="field"><label>Responsável</label><select id="mOwner">'+data.people.map(p=>'<option>'+esc(p)+'</option>').join('')+'</select></div>'
-    : '<div class="field"><label>Responsável</label><input value="'+esc(s.owner)+'" disabled><div class="muted" style="margin-top:5px">O responsável é definido pelo ADM.</div></div>';
+    : '<div class="field"><label>Responsável</label><input value="'+esc(s.owner)+'" disabled></div>';
+
+  const materialsHtml=s.materials.map(skillMaterialRowHtml).join('');
 
   document.getElementById('modalContent').innerHTML=
+    '<input type="hidden" id="mSkillId" value="'+s.id+'">'+
     '<div class="section-head"><div><h3>'+esc(s.title)+'</h3><div class="muted">'+esc(s.level)+' • '+esc(s.owner)+'</div></div><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div>'+
-    (instructorSimulationMode?'<div class="section" style="padding:10px 12px;background:#eff6ff;border-color:#bfdbfe"><b>Simulação sincronizada</b><div class="muted">As alterações ficam somente no ambiente de teste do Instrutor.</div></div>':'')+
-    '<div class="form-grid"><div class="field span2"><label>Objetivo da microaula</label><textarea id="mObjective">'+esc(s.objective)+'</textarea></div><div class="field span2"><label>Desenvolvimento / como será feita</label><textarea id="mDevelopment">'+esc(s.development)+'</textarea></div><div class="field"><label>Duração</label><input id="mDuration" value="'+esc(s.duration)+'"></div><div class="field"><label>Status</label><select id="mStatus"><option>Planejamento</option><option>Em produção</option><option>Em revisão</option><option>Concluída</option></select></div><div class="field"><label>Progresso (%)</label><input id="mProgress" type="number" min="0" max="100" value="'+Number(s.progress||0)+'"></div>'+ownerField+'<div class="span2"><button class="btn btn-primary" onclick="saveSkill('+s.id+')">Salvar planejamento</button></div></div>';
+    '<div class="workflow-summary"><div><h4>Andamento automático</h4><div class="muted">O progresso é calculado pelas etapas concluídas. Não precisa mais informar porcentagem manualmente.</div><div class="workflow-progress"><i id="mAutoProgressBar" style="width:'+metrics.progress+'%"></i></div></div><div style="text-align:right"><span class="muted">Progresso</span><div id="mAutoProgress" class="metric">'+metrics.progress+'%</div><div class="muted"><span id="mAutoStatus">'+esc(metrics.status)+'</span> • <span id="mCurrentStep">'+esc(metrics.currentIndex>=5?'Concluída':metrics.labels[metrics.currentIndex])+'</span></div></div></div>'+
+    workflowStepHtml(metrics)+
 
-  document.getElementById('mStatus').value=s.status;
-  if(role==='admin'){
-    document.getElementById('mOwner').value=s.owner;
-  }
+    '<div class="workflow-block"><div class="workflow-block-head"><div><h4>1. Planejamento da microaula</h4><p>Defina o que será ensinado, como será desenvolvido e a duração prevista.</p></div></div>'+
+      '<div class="form-grid"><div class="field span2"><label>Objetivo da microaula</label><textarea id="mObjective" oninput="refreshWorkflowPreview()">'+esc(s.objective)+'</textarea></div><div class="field span2"><label>Desenvolvimento / como será feita</label><textarea id="mDevelopment" oninput="refreshWorkflowPreview()">'+esc(s.development)+'</textarea></div><div class="field"><label>Duração</label><input id="mDuration" value="'+esc(s.duration)+'" oninput="refreshWorkflowPreview()"></div>'+ownerField+'</div>'+
+    '</div>'+
+
+    '<div class="workflow-block"><div class="workflow-block-head"><div><h4>2. Materiais necessários</h4><p>Cadastre o que precisa estar pronto para produzir a microaula.</p></div></div>'+
+      '<div class="material-tools"><button type="button" onclick="addSkillMaterial(\'Peça / componente\')">+ Peça / componente</button><button type="button" onclick="addSkillMaterial(\'Material impresso\')">+ Material impresso</button><button type="button" onclick="addSkillMaterial(\'Slide\')">+ Slide</button><button type="button" onclick="addSkillMaterial(\'Ferramenta / equipamento\')">+ Ferramenta</button><button type="button" onclick="addSkillMaterial(\'Máquina\')">+ Máquina</button><button type="button" onclick="addSkillMaterial(\'Outro\')">+ Outro</button></div>'+
+      '<div id="skillMaterialsList">'+materialsHtml+'</div>'+
+      '<label class="workflow-no-materials"><input id="mNoMaterials" type="checkbox" '+(s.noMaterials?'checked':'')+' onchange="toggleNoMaterials()"> Esta microaula não precisa de material adicional.</label>'+
+    '</div>'+
+
+    '<div class="workflow-block"><div class="workflow-block-head"><div><h4>3. Produção</h4><p>Anexe o resultado produzido. Com o arquivo anexado, a Produção é marcada como Finalizada automaticamente.</p></div></div>'+
+      '<div class="field"><label>Produção da microaula</label><select id="mProductionStep" onchange="productionStepChanged()"><option>Não iniciado</option><option>Em produção</option><option>Finalizado</option></select><div class="workflow-note">Para concluir esta etapa é necessário anexar um resultado.</div></div>'+
+      '<div class="production-upload"><div class="production-upload-grid">'+
+        '<div class="field"><label>Tipo de resultado</label><select id="mOutputType" onchange="updateProductionFileAccept()"><option>Slide / PDF</option><option>Foto de peça / componente</option><option>Material impresso</option><option>Vídeo</option><option>Outro arquivo</option></select></div>'+
+        '<div class="field"><label>Arquivo produzido</label><input id="mOutputFile" type="file"></div>'+
+        '<button id="mUploadOutputBtn" type="button" class="btn btn-soft" onclick="uploadProductionResult('+s.id+')">Anexar resultado</button>'+
+      '</div><div class="workflow-note">Slide: PDF, PPT ou PPTX • Peça/componente: foto • Material impresso: PDF, DOC/DOCX ou imagem • Limite: 25 MB.</div><div id="productionUploadStatus" class="production-upload-status"></div><div id="productionOutputList" class="production-output-list"></div></div>'+
+    '</div>'+
+
+    '<div class="workflow-block"><div class="workflow-block-head"><div><h4>4. Revisão</h4><p>Após finalizar a produção, o conteúdo pode seguir para revisão técnica/didática.</p></div></div>'+
+      '<div class="field"><label>Revisão</label><select id="mReviewStep" onchange="refreshWorkflowPreview()"><option>Não iniciado</option><option>Em revisão</option><option>Aprovado</option></select></div>'+
+    '</div>'+
+
+    '<div class="workflow-block"><div class="workflow-block-head"><div><h4>5. Finalização</h4><p>Última conferência antes de considerar a habilidade concluída.</p></div></div>'+
+      '<div class="field"><label>Finalização</label><select id="mFinalStep" onchange="refreshWorkflowPreview()"><option>Não iniciado</option><option>Em finalização</option><option>Finalizado</option></select></div>'+
+    '</div>'+
+
+    '<div class="actions" style="justify-content:flex-end;margin-top:14px"><button class="btn btn-primary" onclick="saveSkill('+s.id+')">Salvar andamento</button></div>';
+
+  [...document.querySelectorAll('#skillMaterialsList .workflow-material')].forEach((row,index)=>{
+    row.dataset.materialId=s.materials[index]?.id||'';
+    setMaterialRowStatus(row,s.materials[index]?.status||'Pendente');
+  });
+  document.getElementById('mProductionStep').value=s.workflow.production;
+  document.getElementById('mReviewStep').value=s.workflow.review;
+  document.getElementById('mFinalStep').value=s.workflow.finalization;
+  if(role==='admin') document.getElementById('mOwner').value=s.owner;
   showModal();
+  renderProductionOutputs(s);
+  updateProductionFileAccept();
+  refreshWorkflowPreview();
 }
+
 function saveSkill(id){
   let s=data.skills.find(x=>x.id===id);
   if(!s)return;
@@ -670,18 +1179,70 @@ function saveSkill(id){
     alert('Você só pode atualizar habilidades atribuídas a você.');
     return;
   }
-  s.objective=document.getElementById('mObjective').value;
-  s.development=document.getElementById('mDevelopment').value;
-  s.duration=document.getElementById('mDuration').value;
-  s.status=document.getElementById('mStatus').value;
-  s.progress=Math.max(0,Math.min(100,Number(document.getElementById('mProgress').value)||0));
+
+  ensureSkillWorkflow(s);
+  s.objective=document.getElementById('mObjective').value.trim();
+  s.development=document.getElementById('mDevelopment').value.trim();
+  s.duration=document.getElementById('mDuration').value.trim();
+  s.materials=readSkillMaterialsFromForm();
+  s.noMaterials=!!document.getElementById('mNoMaterials').checked;
+  if(!Array.isArray(s.productionOutputs)) s.productionOutputs=[];
+  s.workflow.production=document.getElementById('mProductionStep').value;
+  if(s.workflow.production==='Finalizado'&&!s.productionOutputs.length&&s.legacyProductionComplete!==true){
+    s.workflow.production='Em produção';
+  }
+  s.workflow.review=document.getElementById('mReviewStep').value;
+  s.workflow.finalization=document.getElementById('mFinalStep').value;
+
+  let metrics=skillWorkflowMetrics(s);
+  if(!(metrics.planningDone&&metrics.materialsDone)){
+    s.workflow.production='Não iniciado';
+    s.workflow.review='Não iniciado';
+    s.workflow.finalization='Não iniciado';
+  }else if(!metrics.productionDone){
+    s.workflow.review='Não iniciado';
+    s.workflow.finalization='Não iniciado';
+  }else if(!metrics.reviewDone){
+    s.workflow.finalization='Não iniciado';
+  }
+
+  metrics=skillWorkflowMetrics(s);
+  s.status=metrics.status;
+  s.progress=metrics.progress;
+
   if(role==='admin'&&document.getElementById('mOwner')) s.owner=document.getElementById('mOwner').value;
   save();
   closeModal();
   renderSkills();
 }
 function newSkill(){document.getElementById('modalContent').innerHTML='<div class="section-head"><h3>Nova habilidade</h3><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div><div class="form-grid"><div class="field span2"><label>Título</label><input id="nTitle"></div><div class="field"><label>Nível</label><select id="nLevel"><option>Básica</option><option>Intermediária</option><option>Média</option><option>Avançada</option></select></div><div class="field"><label>Responsável</label><select id="nOwner">'+data.people.map(p=>'<option>'+esc(p)+'</option>').join('')+'</select></div><div class="field"><label>Duração prevista</label><input id="nDuration" value="8 min"></div><div class="field span2"><label>Objetivo</label><textarea id="nObjective"></textarea></div><div class="field span2"><label>Desenvolvimento</label><textarea id="nDevelopment"></textarea></div><div class="span2"><button class="btn btn-primary" onclick="createSkill()">Criar habilidade</button></div></div>';showModal()}
-function createSkill(){let t=document.getElementById('nTitle').value.trim();if(!t)return alert('Informe o título.');data.skills.push({id:Date.now(),title:t,level:document.getElementById('nLevel').value,owner:document.getElementById('nOwner').value,status:'Planejamento',progress:0,duration:document.getElementById('nDuration').value,objective:document.getElementById('nObjective').value,development:document.getElementById('nDevelopment').value});save();closeModal();renderSkills()}
+function createSkill(){
+  let t=document.getElementById('nTitle').value.trim();
+  if(!t)return alert('Informe o título.');
+  const skill={
+    id:Date.now(),
+    title:t,
+    level:document.getElementById('nLevel').value,
+    owner:document.getElementById('nOwner').value,
+    status:'Planejamento',
+    progress:0,
+    duration:document.getElementById('nDuration').value,
+    objective:document.getElementById('nObjective').value,
+    development:document.getElementById('nDevelopment').value,
+    materials:[],
+    noMaterials:false,
+    productionOutputs:[],
+    legacyProductionComplete:false,
+    workflow:{production:'Não iniciado',review:'Não iniciado',finalization:'Não iniciado'}
+  };
+  const metrics=skillWorkflowMetrics(skill);
+  skill.status=metrics.status;
+  skill.progress=metrics.progress;
+  data.skills.push(skill);
+  save();
+  closeModal();
+  renderSkills();
+}
 function removeSkill(id){if(confirm('Excluir esta habilidade?')){data.skills=data.skills.filter(s=>s.id!==id);data.plans=data.plans.filter(p=>p.skillId!==id);save();renderSkills()}}
 function renderWeek(){
   header('Planejamento semanal',role==='admin'?'Defina quais habilidades cada instrutor deve entregar na semana.':'Visualize as habilidades definidas pelo ADM para sua semana.');
