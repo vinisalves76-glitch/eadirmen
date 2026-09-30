@@ -170,7 +170,7 @@ function cacheLocal(){
 async function save(){
   cacheLocal();
   if(instructorSimulationMode){
-    cloudMessage='Simulação local • sincronizada com o ADM de teste';
+    cloudMessage='Sistema atualizado';
     updateCloudBadge();
     return;
   }
@@ -182,11 +182,11 @@ async function save(){
       people:data.people,
       atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()
     });
-    cloudMessage='Firebase sincronizado';
+    cloudMessage='Sistema atualizado';
     updateCloudBadge();
   }catch(err){
     console.error('Erro ao salvar no Firebase:',err);
-    cloudMessage='Firebase sem permissão';
+    cloudMessage='Sincronização indisponível';
     updateCloudBadge();
   }
 }
@@ -215,7 +215,7 @@ async function initCloud(){
       cacheLocal();
     }
     cloudReady=true;
-    cloudMessage='Firebase sincronizado';
+    cloudMessage='Sistema atualizado';
     updateCloudBadge();
 
     if(cloudUnsubscribe) cloudUnsubscribe();
@@ -232,13 +232,13 @@ async function initCloud(){
       if(role) go(currentPage);
     },err=>{
       console.error('Falha na sincronização em tempo real:',err);
-      cloudMessage='Firebase offline';
+      cloudMessage='Modo offline';
       updateCloudBadge();
     });
   }catch(err){
     console.warn('Firestore ainda não disponível; usando armazenamento local.',err);
     cloudReady=false;
-    cloudMessage='Usando dados locais';
+    cloudMessage='Modo offline';
     updateCloudBadge();
   }
 }
@@ -455,7 +455,7 @@ function startInstructorSimulation(person){
 
   document.getElementById('profileName').textContent=person+' • Simulação';
   document.getElementById('profileRole').textContent='Perfil: Instrutor (modo de teste)';
-  cloudMessage='Simulação local • sincronizada com o ADM de teste';
+  cloudMessage='Sistema atualizado';
   updateCloudBadge();
   buildNav();
   go('dashboard');
@@ -613,12 +613,7 @@ function currentInstructorDataName(){
   return role==='admin'?currentPersonName:resolveInstructorDataName(currentPersonName);
 }
 
-function instructorDataLinkNotice(){
-  if(role==='admin'||instructorSimulationMode) return '';
-  const linked=currentInstructorDataName();
-  if(!linked||normalizePersonName(linked)===normalizePersonName(currentPersonName)) return '';
-  return '<div class="section" style="border:1px solid #bfdbfe;background:#eff6ff;padding:11px 13px"><b>Dados sincronizados</b><div class="muted" style="margin-top:4px">Seu login <b>'+esc(currentPersonName)+'</b> está vinculado aos registros existentes de <b>'+esc(linked)+'</b> no planejamento ADM.</div></div>';
-}
+function instructorDataLinkNotice(){ return ''; }
 
 
 function renderDashboard(){
