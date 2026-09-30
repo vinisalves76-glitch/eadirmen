@@ -5,7 +5,12 @@ function getAdminApp() {
   if (admin.apps.length) return admin.app();
 
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
-  if (!raw) throw new Error('FIREBASE_SERVICE_ACCOUNT nao configurada.');
+  if (!raw) {
+    const err = new Error('Armazenamento nao habilitado neste ambiente de teste.');
+    err.statusCode = 503;
+    err.code = 'storage-preview-not-configured';
+    throw err;
+  }
 
   let serviceAccount;
   try {
@@ -180,7 +185,8 @@ module.exports = async function handler(req, res) {
     return res.status(err.statusCode || 500).json({
       error: err.statusCode
         ? err.message
-        : 'Falha interna ao armazenar o arquivo.'
+        : 'Falha interna ao armazenar o arquivo.',
+      code: err.code || 'storage-error'
     });
   }
 };
