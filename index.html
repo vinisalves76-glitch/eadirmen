@@ -197,7 +197,38 @@ button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;dis
 .workflow-note{font-size:9px;color:#667085;line-height:1.45;margin-top:7px}
 .workflow-no-materials{display:flex;align-items:center;gap:8px;border:1px dashed #d0d5dd;border-radius:11px;padding:9px 10px;margin-top:8px;font-size:10px;color:#475467}
 .workflow-no-materials input{width:auto}
-@media(max-width:780px){.workflow-steps{grid-template-columns:1fr 1fr}.workflow-step:last-child{grid-column:1/-1}.workflow-summary{grid-template-columns:1fr}}
+
+.next-action-hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:center;background:linear-gradient(135deg,#111827 0%,#1f2937 60%,#374151 100%);color:#fff;border-radius:18px;padding:20px;margin-bottom:16px;box-shadow:0 14px 30px rgba(15,23,42,.12)}
+.next-action-eyebrow{font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#cbd5e1;margin-bottom:7px}
+.next-action-hero h3{font-size:21px;line-height:1.2;margin:0 0 7px;letter-spacing:-.02em}
+.next-action-hero p{margin:0;color:#d1d5db;font-size:13px;line-height:1.5}
+.next-action-meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+.next-action-chip{display:inline-flex;align-items:center;padding:6px 9px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12);font-size:10px;font-weight:800;color:#f3f4f6}
+.next-action-hero .btn{background:#fff;color:#111827;white-space:nowrap}
+.next-action-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.next-action-card{border:1px solid var(--line);border-radius:14px;padding:14px;background:#fff;display:flex;flex-direction:column;gap:7px}
+.next-action-card .priority{font-size:9px;text-transform:uppercase;letter-spacing:.07em;font-weight:900;color:#667085}
+.next-action-card h4{margin:0;font-size:14px;line-height:1.35}
+.next-action-card p{margin:0;color:#667085;font-size:11px;line-height:1.45}
+.next-action-card .action{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto;padding-top:5px}
+.next-action-card.danger{border-color:#fecaca;background:#fffafa}.next-action-card.danger .priority{color:#b42318}
+.next-action-card.warning{border-color:#fed7aa;background:#fffdf8}.next-action-card.warning .priority{color:#c2410c}
+.next-action-card.info{border-color:#bfdbfe;background:#fbfdff}.next-action-card.info .priority{color:#1d4ed8}
+.next-action-empty{border:1px dashed #cfd5dd;border-radius:14px;padding:18px;text-align:center;color:#667085;background:#fafafa}
+
+.workflow-details{padding:0;overflow:hidden}
+.workflow-details>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;cursor:pointer}
+.workflow-details>summary::-webkit-details-marker{display:none}
+.workflow-details>summary h4{margin:0;font-size:13px}.workflow-details>summary p{margin:3px 0 0;font-size:10px;color:#667085;line-height:1.4}
+.workflow-details-body{padding:0 14px 14px}
+.workflow-stage-state{flex:0 0 auto;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;border-radius:999px;padding:6px 8px;background:#f3f4f6;color:#667085}
+.workflow-details.done>summary{background:#f0fdf4}.workflow-details.done .workflow-stage-state{background:#dcfce7;color:#166534}
+.workflow-details.current>summary{background:#fff7ed}.workflow-details.current{border-color:#fed7aa}.workflow-details.current .workflow-stage-state{background:#ffedd5;color:#c2410c}
+.workflow-details.locked>summary{background:#f9fafb;color:#98a2b3;cursor:not-allowed}.workflow-details.locked .workflow-stage-state{background:#f3f4f6;color:#98a2b3}
+.workflow-savebar{position:sticky;bottom:-1px;z-index:3;display:flex;justify-content:flex-end;margin:14px -2px -2px;padding:12px 2px 2px;background:linear-gradient(to bottom,rgba(255,255,255,0),#fff 30%)}
+
+@media(max-width:900px){.next-action-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:780px){.workflow-steps{grid-template-columns:1fr 1fr}.workflow-step:last-child{grid-column:1/-1}.workflow-summary{grid-template-columns:1fr}.next-action-hero{grid-template-columns:1fr}.next-action-hero .btn{width:100%}.next-action-grid{grid-template-columns:1fr}}
 
 .production-upload{border:1px dashed #cbd5e1;background:#f8fafc;border-radius:14px;padding:13px;margin-top:12px}
 .production-upload-grid{display:grid;grid-template-columns:180px minmax(0,1fr) auto;gap:9px;align-items:end}
@@ -850,20 +881,145 @@ function currentInstructorDataName(){
 function instructorDataLinkNotice(){ return ''; }
 
 
+function instructorNextActionText(metrics){
+  if(!metrics||metrics.currentIndex>=5) return 'Habilidade concluída.';
+  if(metrics.currentIndex===0) return 'Complete o objetivo, o desenvolvimento e a duração da microaula.';
+  if(metrics.currentIndex===1) return 'Prepare os materiais necessários e marque cada item como Finalizado.';
+  if(metrics.currentIndex===2) return 'Produza a microaula e marque a etapa de Produção como Finalizado.';
+  if(metrics.currentIndex===3) return 'Faça a revisão técnica e didática e registre a aprovação.';
+  return 'Faça a conferência final para concluir a habilidade.';
+}
+
+function instructorPrioritySkills(name){
+  const plannedIds=new Set(data.plans.filter(p=>p.person===name).map(p=>Number(p.skillId)));
+  return data.skills
+    .filter(s=>s.owner===name)
+    .map(s=>{
+      const metrics=skillWorkflowMetrics(s);
+      const planned=plannedIds.has(Number(s.id));
+      const score=(planned?10000:0)+(metrics.currentIndex<5?metrics.currentIndex*100:0)+metrics.progress;
+      return {skill:s,metrics,planned,score};
+    })
+    .filter(item=>item.metrics.currentIndex<5)
+    .sort((a,b)=>b.score-a.score||String(a.skill.title).localeCompare(String(b.skill.title),'pt-BR'));
+}
+
+function renderInstructorPriorityCard(item){
+  if(!item) return '<div class="next-action-empty">Nenhuma habilidade pendente. Quando o ADM atribuir uma nova entrega, ela aparecerá aqui.</div>';
+  const s=item.skill,m=item.metrics;
+  return '<div class="next-action-hero">'+
+    '<div>'+
+      '<div class="next-action-eyebrow">Sua prioridade agora</div>'+
+      '<h3>'+esc(s.title)+'</h3>'+
+      '<p>'+esc(instructorNextActionText(m))+'</p>'+
+      '<div class="next-action-meta"><span class="next-action-chip">Etapa: '+esc(m.labels[m.currentIndex])+'</span><span class="next-action-chip">'+m.progress+'% concluído</span>'+(item.planned?'<span class="next-action-chip">Meta da semana</span>':'')+'</div>'+
+    '</div>'+
+    '<div><button class="btn" onclick="openSkill('+s.id+')">Continuar habilidade</button></div>'+
+  '</div>';
+}
+
+function fleetPriorityScore(m){
+  const statusScore=m.status==='Crítico'?100:m.status==='Atenção'?70:m.status==='Em visita'?45:10;
+  const trainingScore=m.prioridadeTreinamento==='Crítica'?45:m.prioridadeTreinamento==='Alta'?30:m.prioridadeTreinamento==='Média'?15:0;
+  let ageScore=0;
+  const parsed=Date.parse(String(m.ultimaAtualizacao||'')+'T00:00:00');
+  if(Number.isFinite(parsed)){
+    const days=Math.max(0,Math.floor((Date.now()-parsed)/86400000));
+    ageScore=Math.min(25,days);
+  }
+  return statusScore+trainingScore+ageScore;
+}
+
+function fleetPriorityReason(m){
+  if(m.status==='Crítico') return 'Equipamento em estado crítico';
+  if(m.prioridadeTreinamento==='Crítica') return 'Necessidade de treinamento crítica';
+  if(m.status==='Atenção') return 'Equipamento requer atenção';
+  if(m.prioridadeTreinamento==='Alta') return 'Treinamento com prioridade alta';
+  if(m.status==='Em visita') return 'Acompanhamento em andamento';
+  return 'Acompanhamento programado';
+}
+
+function fleetPriorityClassName(m){
+  if(m.status==='Crítico'||m.prioridadeTreinamento==='Crítica') return 'danger';
+  if(m.status==='Atenção'||m.prioridadeTreinamento==='Alta') return 'warning';
+  return 'info';
+}
+
+function fleetPriorityItems(){
+  return fleetPrototype.slice().sort((a,b)=>fleetPriorityScore(b)-fleetPriorityScore(a));
+}
+
+function workflowPanelToggle(event,panel){
+  if(panel&&panel.classList.contains('locked')){
+    event.preventDefault();
+    return false;
+  }
+  return true;
+}
+
+function workflowPanelHtml(index,title,description,body,metrics){
+  const done=!!metrics.done[index];
+  const current=metrics.currentIndex===index;
+  const locked=!done&&!current;
+  const cls=done?'done':current?'current':'locked';
+  const state=done?'Concluído':current?'Etapa atual':'Aguardando';
+  const shouldOpen=current||(metrics.currentIndex>=5&&index===4);
+  return '<details class="workflow-block workflow-details '+cls+'" data-workflow-panel="'+index+'" '+(shouldOpen?'open':'')+'>'+
+    '<summary onclick="return workflowPanelToggle(event,this.parentElement)"><div><h4>'+(index+1)+'. '+title+'</h4><p>'+description+'</p></div><span class="workflow-stage-state">'+state+'</span></summary>'+
+    '<div class="workflow-details-body">'+body+'</div>'+
+  '</details>';
+}
+
+function syncWorkflowPanels(metrics){
+  document.querySelectorAll('[data-workflow-panel]').forEach((panel,index)=>{
+    const done=!!metrics.done[index];
+    const current=metrics.currentIndex===index;
+    const locked=!done&&!current;
+    panel.classList.remove('done','current','locked');
+    panel.classList.add(done?'done':current?'current':'locked');
+    const badge=panel.querySelector('.workflow-stage-state');
+    if(badge) badge.textContent=done?'Concluído':current?'Etapa atual':'Aguardando';
+    if(current) panel.open=true;
+    else if(locked||done) panel.open=false;
+    if(metrics.currentIndex>=5&&index===4) panel.open=true;
+  });
+}
+
 function renderDashboard(){
-  header(role==='admin'?'Visão geral do projeto':'Minha semana',role==='admin'?'Acompanhe a produção das microaulas EAD.':'Acompanhe suas habilidades e entregas da semana.');
   const instructorName=currentInstructorDataName();
-  let skills=role==='admin'?data.skills:data.skills.filter(s=>s.owner===instructorName);
-  let done=skills.filter(s=>s.status==='Concluída').length;
-  let rev=skills.filter(s=>s.status==='Em revisão').length;
-  let prod=skills.filter(s=>s.status==='Em produção').length;
-  let weekly=role==='admin'?data.plans.length:data.plans.filter(p=>p.person===instructorName).length;
+
+  if(role==='admin'){
+    header('Visão geral do projeto','Acompanhe a produção das microaulas EAD.');
+    const skills=data.skills;
+    const done=skills.filter(s=>s.status==='Concluída').length;
+    const rev=skills.filter(s=>s.status==='Em revisão').length;
+    const prod=skills.filter(s=>s.status==='Em produção').length;
+    const weekly=data.plans.length;
+    document.getElementById('content').innerHTML=
+      '<div class="cards"><div class="card"><div class="muted">Habilidades</div><div class="metric">'+skills.length+'</div></div><div class="card"><div class="muted">Meta semanal</div><div class="metric">'+weekly+'</div></div><div class="card"><div class="muted">Em produção</div><div class="metric">'+prod+'</div></div><div class="card"><div class="muted">Em revisão</div><div class="metric">'+rev+'</div></div><div class="card"><div class="muted">Concluídas</div><div class="metric">'+done+'</div></div></div>'+
+      '<div class="section"><div class="section-head"><h3>Andamento das habilidades</h3></div><div class="grid">'+(skills.length?skills.map(skillCard).join(''):'<div class="empty">Nenhuma habilidade cadastrada.</div>')+'</div></div>';
+    return;
+  }
+
+  header('Minha semana','Veja primeiro o que precisa da sua atenção e continue exatamente de onde parou.');
+  const skills=data.skills.filter(s=>s.owner===instructorName);
+  const priority=instructorPrioritySkills(instructorName);
+  const top=priority[0]||null;
+  const remaining=priority.slice(1,4);
+  const done=skills.filter(s=>skillWorkflowMetrics(s).currentIndex>=5).length;
+  const weeklyIds=new Set(data.plans.filter(p=>p.person===instructorName).map(p=>Number(p.skillId)));
+  const weekly=skills.filter(s=>weeklyIds.has(Number(s.id)));
+
   document.getElementById('content').innerHTML=
     instructorDataLinkNotice()+
     instructorSimulationBanner()+
-    '<div class="cards"><div class="card"><div class="muted">Habilidades</div><div class="metric">'+skills.length+'</div></div><div class="card"><div class="muted">Meta semanal</div><div class="metric">'+weekly+'</div></div><div class="card"><div class="muted">Em produção</div><div class="metric">'+prod+'</div></div><div class="card"><div class="muted">Em revisão</div><div class="metric">'+rev+'</div></div><div class="card"><div class="muted">Concluídas</div><div class="metric">'+done+'</div></div></div>'+
-    '<div class="section"><div class="section-head"><h3>'+(role==='admin'?'Andamento das habilidades':'Minhas entregas')+'</h3></div><div class="grid">'+(skills.length?skills.map(skillCard).join(''):'<div class="empty">Nenhuma habilidade atribuída a este instrutor.</div>')+'</div></div>';
+    renderInstructorPriorityCard(top)+
+    '<div class="cards"><div class="card"><div class="muted">Entregas da semana</div><div class="metric">'+weekly.length+'</div></div><div class="card"><div class="muted">Em andamento</div><div class="metric">'+priority.length+'</div></div><div class="card"><div class="muted">Concluídas</div><div class="metric">'+done+'</div></div><div class="card"><div class="muted">Progresso da prioridade</div><div class="metric">'+(top?top.metrics.progress:100)+'%</div></div></div>'+
+    '<div class="section"><div class="section-head"><div><h3>Próximas entregas</h3><div class="muted">Depois da prioridade principal, estas são as próximas habilidades na fila.</div></div><button class="btn btn-soft" onclick="go(\'skills\')">Ver todas</button></div>'+
+      (remaining.length?'<div class="next-action-grid">'+remaining.map(item=>'<div class="next-action-card info"><div class="priority">'+(item.planned?'Meta da semana':'Fila de trabalho')+'</div><h4>'+esc(item.skill.title)+'</h4><p>Etapa atual: <b>'+esc(item.metrics.labels[item.metrics.currentIndex])+'</b> • '+item.metrics.progress+'%</p><p>'+esc(instructorNextActionText(item.metrics))+'</p><div class="action"><span class="muted">'+esc(item.skill.duration||'')+'</span><button class="btn btn-soft" onclick="openSkill('+item.skill.id+')">Abrir</button></div></div>').join('')+'</div>':'<div class="next-action-empty">Sem outras entregas pendentes neste momento.</div>')+
+    '</div>';
 }
+
 function ensureSkillWorkflow(s){
   if(!s) return s;
   if(!Array.isArray(s.materials)) s.materials=[];
@@ -1271,6 +1427,8 @@ function refreshWorkflowPreview(){
   if(!(m.planningDone&&m.materialsDone)&&production&&production.value!=='Não iniciado') production.value='Não iniciado';
   if(!(m.productionDone&&m.materialsDone)&&review&&review.value!=='Não iniciado') review.value='Não iniciado';
   if(!m.reviewDone&&finalStep&&finalStep.value!=='Não iniciado') finalStep.value='Não iniciado';
+
+  syncWorkflowPanels(m);
 }
 
 function toggleNoMaterials(){
@@ -1315,35 +1473,27 @@ function openSkill(id){
 
   const materialsHtml=s.materials.map(skillMaterialRowHtml).join('');
 
+  const planningBody='<div class="form-grid"><div class="field span2"><label>Objetivo da microaula</label><textarea id="mObjective" oninput="refreshWorkflowPreview()">'+esc(s.objective)+'</textarea></div><div class="field span2"><label>Desenvolvimento / como será feita</label><textarea id="mDevelopment" oninput="refreshWorkflowPreview()">'+esc(s.development)+'</textarea></div><div class="field"><label>Duração</label><input id="mDuration" value="'+esc(s.duration)+'" oninput="refreshWorkflowPreview()"></div>'+ownerField+'</div>';
+
+  const materialsBody='<div class="material-tools"><button type="button" onclick="addSkillMaterial(\'Peça / componente\')">+ Peça / componente</button><button type="button" onclick="addSkillMaterial(\'Material impresso\')">+ Material impresso</button><button type="button" onclick="addSkillMaterial(\'Slide\')">+ Slide</button><button type="button" onclick="addSkillMaterial(\'Ferramenta / equipamento\')">+ Ferramenta</button><button type="button" onclick="addSkillMaterial(\'Máquina\')">+ Máquina</button><button type="button" onclick="addSkillMaterial(\'Outro\')">+ Outro</button></div><div id="skillMaterialsList">'+materialsHtml+'</div><label class="workflow-no-materials"><input id="mNoMaterials" type="checkbox" '+(s.noMaterials?'checked':'')+' onchange="toggleNoMaterials()"> Esta microaula não precisa de material adicional.</label>';
+
+  const productionBody='<div class="field"><label>Produção da microaula</label><select id="mProductionStep" onchange="productionStepChanged()"><option>Não iniciado</option><option>Em produção</option><option>Finalizado</option></select><div class="workflow-note">Quando a microaula estiver pronta, marque <b>Finalizado</b>. Não é necessário anexar arquivos ou fotos.</div></div>';
+
+  const reviewBody='<div class="field"><label>Revisão</label><select id="mReviewStep" onchange="refreshWorkflowPreview()"><option>Não iniciado</option><option>Em revisão</option><option>Aprovado</option></select></div>';
+
+  const finalBody='<div class="field"><label>Finalização</label><select id="mFinalStep" onchange="refreshWorkflowPreview()"><option>Não iniciado</option><option>Em finalização</option><option>Finalizado</option></select></div>';
+
   document.getElementById('modalContent').innerHTML=
     '<input type="hidden" id="mSkillId" value="'+s.id+'">'+
     '<div class="section-head"><div><h3>'+esc(s.title)+'</h3><div class="muted">'+esc(s.level)+' • '+esc(s.owner)+'</div></div><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div>'+
-    '<div class="workflow-summary"><div><h4>Andamento automático</h4><div class="muted">O progresso é calculado conforme cada etapa é concluída.</div><div class="workflow-progress"><i id="mAutoProgressBar" style="width:'+metrics.progress+'%"></i></div></div><div style="text-align:right"><span class="muted">Progresso</span><div id="mAutoProgress" class="metric">'+metrics.progress+'%</div><div class="muted"><span id="mAutoStatus">'+esc(metrics.status)+'</span> • <span id="mCurrentStep">'+esc(metrics.currentIndex>=5?'Concluída':metrics.labels[metrics.currentIndex])+'</span></div></div></div>'+
+    '<div class="workflow-summary"><div><h4>Andamento automático</h4><div class="muted">Trabalhe apenas na etapa atual. Ao concluir, a próxima etapa será aberta automaticamente.</div><div class="workflow-progress"><i id="mAutoProgressBar" style="width:'+metrics.progress+'%"></i></div></div><div style="text-align:right"><span class="muted">Progresso</span><div id="mAutoProgress" class="metric">'+metrics.progress+'%</div><div class="muted"><span id="mAutoStatus">'+esc(metrics.status)+'</span> • <span id="mCurrentStep">'+esc(metrics.currentIndex>=5?'Concluída':metrics.labels[metrics.currentIndex])+'</span></div></div></div>'+
     workflowStepHtml(metrics)+
-
-    '<div class="workflow-block"><div class="workflow-block-head"><div><h4>1. Planejamento da microaula</h4><p>Defina o objetivo, como a microaula será desenvolvida e a duração prevista.</p></div></div>'+
-      '<div class="form-grid"><div class="field span2"><label>Objetivo da microaula</label><textarea id="mObjective" oninput="refreshWorkflowPreview()">'+esc(s.objective)+'</textarea></div><div class="field span2"><label>Desenvolvimento / como será feita</label><textarea id="mDevelopment" oninput="refreshWorkflowPreview()">'+esc(s.development)+'</textarea></div><div class="field"><label>Duração</label><input id="mDuration" value="'+esc(s.duration)+'" oninput="refreshWorkflowPreview()"></div>'+ownerField+'</div>'+
-    '</div>'+
-
-    '<div class="workflow-block"><div class="workflow-block-head"><div><h4>2. Materiais necessários</h4><p>Informe o que precisa ser preparado. Quando terminar cada item, apenas altere o status para Finalizado.</p></div></div>'+
-      '<div class="material-tools"><button type="button" onclick="addSkillMaterial(\'Peça / componente\')">+ Peça / componente</button><button type="button" onclick="addSkillMaterial(\'Material impresso\')">+ Material impresso</button><button type="button" onclick="addSkillMaterial(\'Slide\')">+ Slide</button><button type="button" onclick="addSkillMaterial(\'Ferramenta / equipamento\')">+ Ferramenta</button><button type="button" onclick="addSkillMaterial(\'Máquina\')">+ Máquina</button><button type="button" onclick="addSkillMaterial(\'Outro\')">+ Outro</button></div>'+
-      '<div id="skillMaterialsList">'+materialsHtml+'</div>'+
-      '<label class="workflow-no-materials"><input id="mNoMaterials" type="checkbox" '+(s.noMaterials?'checked':'')+' onchange="toggleNoMaterials()"> Esta microaula não precisa de material adicional.</label>'+
-    '</div>'+
-
-    '<div class="workflow-block"><div class="workflow-block-head"><div><h4>3. Produção</h4><p>Quando a microaula estiver produzida, altere o status para Finalizado. Não é necessário anexar arquivos ou fotos.</p></div></div>'+
-      '<div class="field"><label>Produção da microaula</label><select id="mProductionStep" onchange="productionStepChanged()"><option>Não iniciado</option><option>Em produção</option><option>Finalizado</option></select></div>'+
-    '</div>'+
-
-    '<div class="workflow-block"><div class="workflow-block-head"><div><h4>4. Revisão</h4><p>Depois da produção, registre a revisão técnica/didática.</p></div></div>'+
-      '<div class="field"><label>Revisão</label><select id="mReviewStep" onchange="refreshWorkflowPreview()"><option>Não iniciado</option><option>Em revisão</option><option>Aprovado</option></select></div>'+
-    '</div>'+
-
-    '<div class="workflow-block"><div class="workflow-block-head"><div><h4>5. Finalização</h4><p>Última conferência antes de considerar a habilidade concluída.</p></div></div>'+
-      '<div class="field"><label>Finalização</label><select id="mFinalStep" onchange="refreshWorkflowPreview()"><option>Não iniciado</option><option>Em finalização</option><option>Finalizado</option></select></div>'+
-    '</div>'+
-
-    '<div class="actions" style="justify-content:flex-end;margin-top:14px"><button class="btn btn-primary" onclick="saveSkill('+s.id+')">Salvar andamento</button></div>';
+    workflowPanelHtml(0,'Planejamento da microaula','Defina objetivo, desenvolvimento e duração.',planningBody,metrics)+
+    workflowPanelHtml(1,'Materiais necessários','Prepare somente o que será usado na microaula.',materialsBody,metrics)+
+    workflowPanelHtml(2,'Produção','Produza a microaula e confirme quando estiver pronta.',productionBody,metrics)+
+    workflowPanelHtml(3,'Revisão','Registre a revisão técnica e didática.',reviewBody,metrics)+
+    workflowPanelHtml(4,'Finalização','Faça a última conferência antes da conclusão.',finalBody,metrics)+
+    '<div class="workflow-savebar"><button class="btn btn-primary" onclick="saveSkill('+s.id+')">Salvar andamento</button></div>';
 
   [...document.querySelectorAll('#skillMaterialsList .workflow-material')].forEach((row,index)=>{
     row.dataset.materialId=s.materials[index]?.id||'';
@@ -2617,20 +2767,23 @@ function renderFleetTable(){
 }
 
 function renderFleet(){
-  header('Consultor de Treinamento • Acompanhamento de Frotas','Centralize máquinas acompanhadas, necessidades de capacitação, ações e relatórios.');
+  header('Consultor de Treinamento • Acompanhamento de Frotas','Veja primeiro o que precisa de ação e depois aprofunde os dados da frota.');
 
   const normal=fleetPrototype.filter(x=>x.status==='Operação normal').length;
   const attention=fleetPrototype.filter(x=>x.status==='Atenção').length;
   const critical=fleetPrototype.filter(x=>x.status==='Crítico').length;
   const training=fleetPrototype.filter(x=>x.prioridadeTreinamento==='Alta'||x.prioridadeTreinamento==='Crítica').length;
   const clients=[...new Set(fleetPrototype.map(x=>x.cliente).filter(Boolean))].sort();
-  const urgent=fleetPrototype
-    .filter(x=>x.status==='Crítico'||x.status==='Atenção'||x.prioridadeTreinamento==='Crítica')
-    .slice()
-    .sort((a,b)=>(a.status==='Crítico'?-1:0)-(b.status==='Crítico'?-1:0))
-    .slice(0,5);
+  const priorities=fleetPriorityItems();
+  const top=priorities[0]||null;
+  const next=priorities.slice(1,4);
+
+  const focus=top
+    ? '<div class="next-action-hero"><div><div class="next-action-eyebrow">Prioridade de acompanhamento</div><h3>'+esc(top.codigo)+' • '+esc(top.modelo)+' — '+esc(top.cliente)+'</h3><p>'+esc(top.proximaAcao||'Revisar o acompanhamento e definir a próxima ação.')+'</p><div class="next-action-meta"><span class="next-action-chip">'+esc(fleetPriorityReason(top))+'</span><span class="next-action-chip">'+esc(top.local||'')+'</span><span class="next-action-chip">Atualizado em '+fleetDate(top.ultimaAtualizacao)+'</span></div></div><div><button class="btn" onclick="openFleetMachine('+top.id+')">Abrir equipamento</button></div></div>'
+    : '<div class="next-action-empty">Nenhuma máquina cadastrada para acompanhamento.</div>';
 
   document.getElementById('content').innerHTML=
+    focus+
     '<div class="fleet-toolbar">'+
       '<div class="fleet-toolbar-left"><span class="fleet-demo">PROTÓTIPO • dados demonstrativos</span><span class="muted">Seu acesso: '+esc(role==='admin'?'ADM':role==='consultant'?'Consultor de Treinamento':'Instrutor • somente leitura')+'</span></div>'+
       '<div class="fleet-toolbar-right">'+
@@ -2648,20 +2801,9 @@ function renderFleet(){
       '<div class="fleet-kpi"><div class="muted">Treinamento prioritário</div><div class="value">'+training+'</div><div class="hint">Prioridade alta ou crítica</div></div>'+
     '</div>'+
 
-    '<div class="fleet-overview">'+
-      '<div class="fleet-panel">'+
-        '<h3>Prioridades de acompanhamento</h3>'+
-        '<div class="fleet-action-list">'+
-          (urgent.length?urgent.map(m=>'<div class="fleet-action"><b>'+esc(m.codigo)+' • '+esc(m.modelo)+' — '+esc(m.cliente)+'</b><small>'+esc(m.proximaAcao||'Sem próxima ação cadastrada')+'</small></div>').join(''):'<div class="muted">Nenhuma prioridade aberta.</div>')+
-        '</div>'+
-      '</div>'+
-      '<div class="fleet-panel">'+
-        '<h3>Visão do Consultor</h3>'+
-        '<div class="agent-stat"><span>Clientes acompanhados</span><b>'+clients.length+'</b></div>'+
-        '<div class="agent-stat"><span>Estado crítico</span><b>'+fleetPrototype.filter(x=>x.status==='Crítico').length+'</b></div>'+
-        '<div class="agent-stat"><span>Visitas em andamento</span><b>'+fleetPrototype.filter(x=>x.status==='Em visita').length+'</b></div>'+
-        '<div class="agent-stat"><span>Registros de acompanhamento</span><b>'+fleetPrototype.reduce((n,x)=>n+(Array.isArray(x.historico)?x.historico.length:0),0)+'</b></div>'+
-      '</div>'+
+    '<div class="section">'+
+      '<div class="section-head"><div><h3>Próximas ações</h3><div class="muted">Fila organizada pela criticidade da máquina, prioridade de treinamento e tempo desde a última atualização.</div></div></div>'+
+      (next.length?'<div class="next-action-grid">'+next.map(m=>'<div class="next-action-card '+fleetPriorityClassName(m)+'"><div class="priority">'+esc(fleetPriorityReason(m))+'</div><h4>'+esc(m.codigo)+' • '+esc(m.modelo)+'</h4><p>'+esc(m.cliente)+' • '+esc(m.local)+'</p><p><b>Próxima ação:</b> '+esc(m.proximaAcao||'Definir próxima ação')+'</p><div class="action"><span class="muted">'+fleetDate(m.ultimaAtualizacao)+'</span><button class="btn btn-soft" onclick="openFleetMachine('+m.id+')">Abrir</button></div></div>').join('')+'</div>':'<div class="next-action-empty">Sem outras ações pendentes.</div>')+
     '</div>'+
 
     '<div class="section">'+
