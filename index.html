@@ -216,6 +216,35 @@ button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;dis
 .next-action-card.info{border-color:#bfdbfe;background:#fbfdff}.next-action-card.info .priority{color:#1d4ed8}
 .next-action-empty{border:1px dashed #cfd5dd;border-radius:14px;padding:18px;text-align:center;color:#667085;background:#fafafa}
 
+.consultant-priority-shell{display:flex;flex-direction:column;gap:12px}
+.consultant-priority-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.consultant-priority-filters{display:flex;gap:7px;flex-wrap:wrap}
+.consultant-priority-filter{border:1px solid #d0d5dd;background:#fff;color:#475467;border-radius:999px;padding:7px 10px;font-size:10px;font-weight:850;cursor:pointer}
+.consultant-priority-filter.active{background:#111827;color:#fff;border-color:#111827}
+.consultant-queue{display:flex;flex-direction:column;gap:10px}
+.consultant-queue-row{display:grid;grid-template-columns:44px minmax(190px,.9fr) minmax(210px,1fr) minmax(230px,1.2fr) 125px auto;gap:14px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:13px 14px;background:#fff}
+.consultant-queue-row.danger{border-color:#fecaca;background:#fffafa}
+.consultant-queue-row.warning{border-color:#fed7aa;background:#fffdf8}
+.consultant-queue-row.info{border-color:#bfdbfe;background:#fbfdff}
+.consultant-rank{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:#f3f4f6;color:#344054;font-weight:900;font-size:12px}
+.consultant-queue-row.danger .consultant-rank{background:#fee2e2;color:#b42318}
+.consultant-queue-row.warning .consultant-rank{background:#ffedd5;color:#c2410c}
+.consultant-queue-row.info .consultant-rank{background:#dbeafe;color:#1d4ed8}
+.consultant-machine b{display:block;font-size:13px}.consultant-machine span,.consultant-priority-reason span,.consultant-priority-action span,.consultant-priority-date span{display:block;color:#667085;font-size:10px;margin-top:3px;line-height:1.35}
+.consultant-priority-reason b,.consultant-priority-action b,.consultant-priority-date b{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:#344054;margin-bottom:4px}
+.consultant-priority-action strong{display:block;font-size:12px;line-height:1.4;color:#111827}
+.consultant-priority-date strong{display:block;font-size:11px;color:#344054}
+.consultant-priority-badge{display:inline-flex;padding:5px 8px;border-radius:999px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;margin-top:5px;background:#f3f4f6;color:#475467}
+.consultant-priority-badge.danger{background:#fee2e2;color:#b42318}.consultant-priority-badge.warning{background:#ffedd5;color:#c2410c}.consultant-priority-badge.info{background:#dbeafe;color:#1d4ed8}
+.consultant-fleet-details{margin-top:20px;border:1px solid var(--line);border-radius:16px;background:#fff;overflow:hidden}
+.consultant-fleet-details>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 20px;cursor:pointer;font-weight:850}
+.consultant-fleet-details>summary::-webkit-details-marker{display:none}
+.consultant-fleet-details>summary span{font-size:11px;color:#667085;font-weight:600}
+.consultant-fleet-details-body{padding:0 20px 20px}
+.consultant-focus-label{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+@media(max-width:1180px){.consultant-queue-row{grid-template-columns:44px 1fr 1fr}.consultant-priority-action{grid-column:2/-1}.consultant-priority-date{grid-column:2}.consultant-queue-row>.btn{grid-column:3;justify-self:end}}
+@media(max-width:760px){.consultant-queue-row{grid-template-columns:38px 1fr}.consultant-priority-reason,.consultant-priority-action,.consultant-priority-date,.consultant-queue-row>.btn{grid-column:2}.consultant-queue-row>.btn{width:100%;justify-self:stretch}.consultant-priority-toolbar{align-items:flex-start;flex-direction:column}.consultant-priority-filters{width:100%}.consultant-priority-filter{flex:1}}
+
 .workflow-details{padding:0;overflow:hidden}
 .workflow-details>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;cursor:pointer}
 .workflow-details>summary::-webkit-details-marker{display:none}
@@ -378,6 +407,7 @@ const fleetDemoPropulsao=['Mecânico','Mecânico','Elétrico','Híbrido','Mecân
 const fleetDemoEconomy={2:{horimetroInicioEconomia:1700,consumoEletricoKwhHora:36,tarifaEnergia:0.82,consumoDieselReferenciaLHora:15,precoDiesel:6.20},5:{horimetroInicioEconomia:400,consumoEletricoKwhHora:22,tarifaEnergia:0.82,consumoDieselReferenciaLHora:9,precoDiesel:6.20}};
 fleetPrototype=fleetPrototype.map((m,index)=>{const tipo=m.tipoPropulsao||fleetDemoPropulsao[index%fleetDemoPropulsao.length];return{...(tipo==='Elétrico'?(fleetDemoEconomy[index]||{}):{}),...m,tipoPropulsao:tipo,soc:Number.isFinite(Number(m.soc))?Math.max(0,Math.min(100,Number(m.soc))):fleetDemoSoc[index%fleetDemoSoc.length]};});
 let fleetFilters={busca:'',status:'Todos',cliente:'Todos'};
+let fleetPriorityView='Todas';
 let fleetDashboardFilters={cliente:'Todos',tipo:'Todos',status:'Todos'};
 let fleetDashboardCharts=[];
 let fleetShiftRecords=[];
@@ -960,6 +990,62 @@ function fleetPriorityClassName(m){
 
 function fleetPriorityItems(){
   return fleetPrototype.slice().sort((a,b)=>fleetPriorityScore(b)-fleetPriorityScore(a));
+}
+
+function fleetDaysSinceUpdate(m){
+  const parsed=Date.parse(String(m?.ultimaAtualizacao||'')+'T00:00:00');
+  if(!Number.isFinite(parsed)) return null;
+  return Math.max(0,Math.floor((Date.now()-parsed)/86400000));
+}
+
+function fleetPriorityLevel(m){
+  if(m.status==='Crítico'||m.prioridadeTreinamento==='Crítica') return 'Crítica';
+  if(m.status==='Atenção'||m.prioridadeTreinamento==='Alta') return 'Alta';
+  if(m.status==='Em visita'||m.prioridadeTreinamento==='Média') return 'Média';
+  return 'Rotina';
+}
+
+function fleetPriorityType(m){
+  if(m.status==='Crítico'||m.prioridadeTreinamento==='Crítica') return 'Críticas';
+  if(m.prioridadeTreinamento==='Alta'||m.prioridadeTreinamento==='Crítica') return 'Treinamento';
+  return 'Acompanhamento';
+}
+
+function fleetActionQueue(){
+  const actionable=fleetPriorityItems().filter(m=>
+    m.status!=='Operação normal' ||
+    m.prioridadeTreinamento==='Alta' ||
+    m.prioridadeTreinamento==='Crítica'
+  );
+  return actionable.length?actionable:fleetPriorityItems().slice(0,3);
+}
+
+function fleetFilteredPriorityQueue(){
+  const queue=fleetActionQueue();
+  if(fleetPriorityView==='Todas') return queue;
+  if(fleetPriorityView==='Críticas') return queue.filter(m=>fleetPriorityLevel(m)==='Crítica');
+  if(fleetPriorityView==='Treinamento') return queue.filter(m=>m.prioridadeTreinamento==='Alta'||m.prioridadeTreinamento==='Crítica');
+  if(fleetPriorityView==='Acompanhamento') return queue.filter(m=>m.status==='Atenção'||m.status==='Em visita');
+  return queue;
+}
+
+function setFleetPriorityView(value){
+  fleetPriorityView=value;
+  renderFleet();
+}
+
+function fleetPriorityQueueRow(m,index){
+  const cls=fleetPriorityClassName(m);
+  const days=fleetDaysSinceUpdate(m);
+  const age=days===null?'Data não informada':days===0?'Atualizado hoje':days===1?'Atualizado há 1 dia':'Atualizado há '+days+' dias';
+  return '<div class="consultant-queue-row '+cls+'">'+
+    '<div class="consultant-rank">'+(index+1)+'</div>'+
+    '<div class="consultant-machine"><b>'+esc(m.codigo)+' • '+esc(m.modelo)+'</b><span>'+esc(m.cliente)+' • '+esc(m.local)+'</span><span>Consultor: '+esc(m.consultor||'Não definido')+'</span></div>'+
+    '<div class="consultant-priority-reason"><b>Por que está aqui</b><span>'+esc(fleetPriorityReason(m))+'</span><span class="consultant-priority-badge '+cls+'">'+esc(fleetPriorityLevel(m))+'</span></div>'+
+    '<div class="consultant-priority-action"><b>Próxima ação</b><strong>'+esc(m.proximaAcao||'Definir próxima ação')+'</strong><span>'+esc(m.necessidadeTreinamento||'Sem necessidade de treinamento registrada')+'</span></div>'+
+    '<div class="consultant-priority-date"><b>Atualização</b><strong>'+fleetDate(m.ultimaAtualizacao)+'</strong><span>'+age+'</span></div>'+
+    '<button class="btn btn-soft" onclick="openFleetMachine('+m.id+')">Trabalhar agora</button>'+
+  '</div>';
 }
 
 function workflowPanelToggle(event,panel){
@@ -2781,43 +2867,59 @@ function renderFleetTable(){
 }
 
 function renderFleet(){
-  header('Consultor de Treinamento • Acompanhamento de Frotas','Veja primeiro o que precisa de ação e depois aprofunde os dados da frota.');
+  const firstName=currentUserFirstName();
+  if(role==='consultant'){
+    header(greetingByTime()+', '+firstName+' 👋','Estas são as prioridades do seu acompanhamento. Resolva primeiro o que exige ação e consulte a frota completa somente quando precisar.');
+  }else{
+    header('Acompanhamento de Frotas','Priorize ações, acompanhe necessidades e consulte os detalhes da frota.');
+  }
 
   const normal=fleetPrototype.filter(x=>x.status==='Operação normal').length;
   const attention=fleetPrototype.filter(x=>x.status==='Atenção').length;
   const critical=fleetPrototype.filter(x=>x.status==='Crítico').length;
   const training=fleetPrototype.filter(x=>x.prioridadeTreinamento==='Alta'||x.prioridadeTreinamento==='Crítica').length;
   const clients=[...new Set(fleetPrototype.map(x=>x.cliente).filter(Boolean))].sort();
-  const priorities=fleetPriorityItems();
-  const top=priorities[0]||null;
-  const next=priorities.slice(1,4);
+  const queue=fleetActionQueue();
+  const filteredQueue=fleetFilteredPriorityQueue();
+  const top=queue[0]||null;
+  const criticalQueue=queue.filter(m=>fleetPriorityLevel(m)==='Crítica').length;
+  const followUpQueue=queue.filter(m=>m.status==='Atenção'||m.status==='Em visita').length;
+  const trainingQueue=queue.filter(m=>m.prioridadeTreinamento==='Alta'||m.prioridadeTreinamento==='Crítica').length;
 
   const focus=top
-    ? '<div class="next-action-hero"><div><div class="next-action-eyebrow">Prioridade de acompanhamento</div><h3>'+esc(top.codigo)+' • '+esc(top.modelo)+' — '+esc(top.cliente)+'</h3><p>'+esc(top.proximaAcao||'Revisar o acompanhamento e definir a próxima ação.')+'</p><div class="next-action-meta"><span class="next-action-chip">'+esc(fleetPriorityReason(top))+'</span><span class="next-action-chip">'+esc(top.local||'')+'</span><span class="next-action-chip">Atualizado em '+fleetDate(top.ultimaAtualizacao)+'</span></div></div><div><button class="btn" onclick="openFleetMachine('+top.id+')">Abrir equipamento</button></div></div>'
-    : '<div class="next-action-empty">Nenhuma máquina cadastrada para acompanhamento.</div>';
+    ? '<div class="next-action-hero"><div><div class="next-action-eyebrow">Ação mais importante agora</div><h3>'+esc(top.codigo)+' • '+esc(top.modelo)+' — '+esc(top.cliente)+'</h3><p>'+esc(top.proximaAcao||'Revisar o acompanhamento e definir a próxima ação.')+'</p><div class="next-action-meta"><span class="next-action-chip">'+esc(fleetPriorityReason(top))+'</span><span class="next-action-chip">Prioridade '+esc(fleetPriorityLevel(top))+'</span><span class="next-action-chip">'+esc(top.local||'')+'</span><span class="next-action-chip">Atualizado em '+fleetDate(top.ultimaAtualizacao)+'</span></div></div><div><button class="btn" onclick="openFleetMachine('+top.id+')">Trabalhar nesta ação</button></div></div>'
+    : '<div class="next-action-empty">Nenhuma ação prioritária aberta no momento.</div>';
 
   document.getElementById('content').innerHTML=
     focus+
+
     '<div class="fleet-toolbar">'+
       '<div class="fleet-toolbar-left"><span class="fleet-demo">PROTÓTIPO • dados demonstrativos</span><span class="muted">Seu acesso: '+esc(role==='admin'?'ADM':role==='consultant'?'Consultor de Treinamento':'Instrutor • somente leitura')+'</span></div>'+
       '<div class="fleet-toolbar-right">'+
-        '<button class="btn btn-soft" onclick="downloadFleetCsv()">Exportar CSV</button>'+
-        '<button class="btn btn-soft" onclick="openFleetDashboard()">Dashboard geral</button>'+
-        '<button class="btn btn-soft" onclick="openFleetReport()">Gerar relatório</button>'+
+        '<button class="btn btn-soft" onclick="openFleetDashboard()">Dashboard</button>'+
+        '<button class="btn btn-soft" onclick="openFleetReport()">Relatório</button>'+
         (fleetCanEdit()?'<button class="btn btn-primary" onclick="newFleetMachine()">+ Nova máquina</button>':'')+
       '</div>'+
     '</div>'+
 
     '<div class="fleet-cards">'+
-      '<div class="fleet-kpi"><div class="muted">Máquinas acompanhadas</div><div class="value">'+fleetPrototype.length+'</div><div class="hint">Base central de acompanhamento</div></div>'+
-      '<div class="fleet-kpi"><div class="muted">Operação normal</div><div class="value">'+normal+'</div><div class="hint">Sem ação crítica imediata</div></div>'+
-      '<div class="fleet-kpi"><div class="muted">Em atenção / crítico</div><div class="value">'+(attention+critical)+'</div><div class="hint">'+critical+' equipamento(s) crítico(s)</div></div>'+
-      '<div class="fleet-kpi"><div class="muted">Treinamento prioritário</div><div class="value">'+training+'</div><div class="hint">Prioridade alta ou crítica</div></div>'+
+      '<div class="fleet-kpi"><div class="muted">Ações prioritárias</div><div class="value">'+queue.length+'</div><div class="hint">Itens que exigem acompanhamento</div></div>'+
+      '<div class="fleet-kpi"><div class="muted">Críticas</div><div class="value">'+criticalQueue+'</div><div class="hint">Resolver primeiro</div></div>'+
+      '<div class="fleet-kpi"><div class="muted">Treinamento prioritário</div><div class="value">'+trainingQueue+'</div><div class="hint">Alta ou crítica</div></div>'+
+      '<div class="fleet-kpi"><div class="muted">Acompanhamento</div><div class="value">'+followUpQueue+'</div><div class="hint">Atenção ou visita em andamento</div></div>'+
     '</div>'+
 
-    '<div class="section">'+
-      '<div class="section-head"><div><h3>Próximas ações</h3><div class="muted">Fila organizada pela criticidade da máquina, prioridade de treinamento e tempo desde a última atualização.</div></div></div>'+
-      (next.length?'<div class="next-action-grid">'+next.map(m=>'<div class="next-action-card '+fleetPriorityClassName(m)+'"><div class="priority">'+esc(fleetPriorityReason(m))+'</div><h4>'+esc(m.codigo)+' • '+esc(m.modelo)+'</h4><p>'+esc(m.cliente)+' • '+esc(m.local)+'</p><p><b>Próxima ação:</b> '+esc(m.proximaAcao||'Definir próxima ação')+'</p><div class="action"><span class="muted">'+fleetDate(m.ultimaAtualizacao)+'</span><button class="btn btn-soft" onclick="openFleetMachine('+m.id+')">Abrir</button></div></div>').join('')+'</div>':'<div class="next-action-empty">Sem outras ações pendentes.</div>')+
+    '<div class="section consultant-priority-shell">'+
+      '<div class="consultant-priority-toolbar">'+
+        '<div><h3>Minha fila de prioridades</h3><div class="muted">Máquina → condição → motivo → próxima ação. A lista é organizada automaticamente pela criticidade, necessidade de treinamento e tempo sem atualização.</div></div>'+
+        '<div class="consultant-priority-filters">'+
+          '<button class="consultant-priority-filter '+(fleetPriorityView==='Todas'?'active':'')+'" onclick="setFleetPriorityView(\'Todas\')">Todas ('+queue.length+')</button>'+
+          '<button class="consultant-priority-filter '+(fleetPriorityView==='Críticas'?'active':'')+'" onclick="setFleetPriorityView(\'Críticas\')">Críticas ('+criticalQueue+')</button>'+
+          '<button class="consultant-priority-filter '+(fleetPriorityView==='Treinamento'?'active':'')+'" onclick="setFleetPriorityView(\'Treinamento\')">Treinamento ('+trainingQueue+')</button>'+
+          '<button class="consultant-priority-filter '+(fleetPriorityView==='Acompanhamento'?'active':'')+'" onclick="setFleetPriorityView(\'Acompanhamento\')">Acompanhamento ('+followUpQueue+')</button>'+
+        '</div>'+
+      '</div>'+
+      (filteredQueue.length?'<div class="consultant-queue">'+filteredQueue.map(fleetPriorityQueueRow).join('')+'</div>':'<div class="next-action-empty">Nenhum item neste filtro.</div>')+
     '</div>'+
 
     '<div class="section">'+
@@ -2825,15 +2927,18 @@ function renderFleet(){
       '<div id="fleetShiftSyncPanel"><div class="muted">Preparando sincronização...</div></div>'+
     '</div>'+
 
-    '<div class="section">'+
-      '<div class="section-head"><div><h3>Máquinas em acompanhamento</h3><div id="fleetResultCount" class="muted"></div></div>'+(fleetCanEdit()?'<button class="btn btn-soft" onclick="fleetResetPrototype()">Restaurar demonstração</button>':'')+'</div>'+
-      '<div class="fleet-filters">'+
-        '<input value="'+esc(fleetFilters.busca)+'" placeholder="Buscar por código, modelo, série, cliente, local..." oninput="setFleetFilter(\'busca\',this.value)">'+
-        '<select onchange="setFleetFilter(\'status\',this.value)"><option>Todos</option><option>Operação normal</option><option>Atenção</option><option>Crítico</option><option>Em visita</option></select>'+
-        '<select onchange="setFleetFilter(\'cliente\',this.value)"><option>Todos</option>'+clients.map(x=>'<option>'+esc(x)+'</option>').join('')+'</select>'+
+    '<details class="consultant-fleet-details">'+
+      '<summary><div>Consultar frota completa <span>Use esta área quando precisar localizar uma máquina específica ou analisar toda a base.</span></div><span>'+fleetPrototype.length+' máquina(s)</span></summary>'+
+      '<div class="consultant-fleet-details-body">'+
+        '<div class="section-head"><div><h3>Máquinas em acompanhamento</h3><div id="fleetResultCount" class="muted"></div></div><div class="actions"><button class="btn btn-soft" onclick="downloadFleetCsv()">Exportar CSV</button>'+(fleetCanEdit()?'<button class="btn btn-soft" onclick="fleetResetPrototype()">Restaurar demonstração</button>':'')+'</div></div>'+
+        '<div class="fleet-filters">'+
+          '<input value="'+esc(fleetFilters.busca)+'" placeholder="Buscar por código, modelo, série, cliente, local..." oninput="setFleetFilter(\'busca\',this.value)">'+
+          '<select onchange="setFleetFilter(\'status\',this.value)"><option>Todos</option><option>Operação normal</option><option>Atenção</option><option>Crítico</option><option>Em visita</option></select>'+
+          '<select onchange="setFleetFilter(\'cliente\',this.value)"><option>Todos</option>'+clients.map(x=>'<option>'+esc(x)+'</option>').join('')+'</select>'+
+        '</div>'+
+        '<div class="table-wrap fleet-table"><table><thead><tr><th>Equipamento</th><th>Cliente / local</th><th>Horímetro</th><th>SOC</th><th>Status</th><th>Necessidade de treinamento</th><th>Próxima ação</th><th>Ações</th></tr></thead><tbody id="fleetTableBody"></tbody></table></div>'+
       '</div>'+
-      '<div class="table-wrap fleet-table"><table><thead><tr><th>Equipamento</th><th>Cliente / local</th><th>Horímetro</th><th>SOC</th><th>Status</th><th>Necessidade de treinamento</th><th>Próxima ação</th><th>Ações</th></tr></thead><tbody id="fleetTableBody"></tbody></table></div>'+
-    '</div>';
+    '</details>';
 
   const statusSelect=document.querySelector('.fleet-filters select:nth-of-type(1)');
   const clientSelect=document.querySelector('.fleet-filters select:nth-of-type(2)');
