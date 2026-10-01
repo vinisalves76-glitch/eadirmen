@@ -878,6 +878,19 @@ function currentInstructorDataName(){
   return role==='admin'?currentPersonName:resolveInstructorDataName(currentPersonName);
 }
 
+function currentUserFirstName(){
+  const source=String(currentUserProfile?.nome||currentPersonName||'').trim();
+  if(!source) return 'Instrutor';
+  return source.split(/\s+/)[0];
+}
+
+function greetingByTime(){
+  const hour=new Date().getHours();
+  if(hour>=5&&hour<12) return 'Bom dia';
+  if(hour>=12&&hour<18) return 'Boa tarde';
+  return 'Boa noite';
+}
+
 function instructorDataLinkNotice(){ return ''; }
 
 
@@ -1001,7 +1014,8 @@ function renderDashboard(){
     return;
   }
 
-  header('Minha semana','Veja primeiro o que precisa da sua atenção e continue exatamente de onde parou.');
+  const firstName=currentUserFirstName();
+  header(greetingByTime()+', '+firstName+' 👋','Vamos programar sua semana. Veja primeiro o que precisa da sua atenção e continue exatamente de onde parou.');
   const skills=data.skills.filter(s=>s.owner===instructorName);
   const priority=instructorPrioritySkills(instructorName);
   const top=priority[0]||null;
