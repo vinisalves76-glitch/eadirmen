@@ -405,7 +405,25 @@ let fleetPrototype=JSON.parse(localStorage.getItem('ead-irmen-fleet-prototype')|
 const fleetDemoSoc=[78,64,32,91,48,86];
 const fleetDemoPropulsao=['Mecânico','Mecânico','Elétrico','Híbrido','Mecânico','Elétrico'];
 const fleetDemoEconomy={2:{horimetroInicioEconomia:1700,consumoEletricoKwhHora:36,tarifaEnergia:0.82,consumoDieselReferenciaLHora:15,precoDiesel:6.20},5:{horimetroInicioEconomia:400,consumoEletricoKwhHora:22,tarifaEnergia:0.82,consumoDieselReferenciaLHora:9,precoDiesel:6.20}};
-fleetPrototype=fleetPrototype.map((m,index)=>{const tipo=m.tipoPropulsao||fleetDemoPropulsao[index%fleetDemoPropulsao.length];return{...(tipo==='Elétrico'?(fleetDemoEconomy[index]||{}):{}),...m,tipoPropulsao:tipo,soc:Number.isFinite(Number(m.soc))?Math.max(0,Math.min(100,Number(m.soc))):fleetDemoSoc[index%fleetDemoSoc.length]};});
+fleetPrototype=fleetPrototype.map((m,index)=>{
+  const tipo=m.tipoPropulsao||fleetDemoPropulsao[index%fleetDemoPropulsao.length];
+  const historico=Array.isArray(m.historico)?m.historico.map(h=>({
+    ...h,
+    classificacaoNecessidade:h.classificacaoNecessidade||'A definir',
+    evidenciaObservada:h.evidenciaObservada||'',
+    analiseTecnica:h.analiseTecnica||h.descricao||''
+  })):[];
+  return {
+    ...(tipo==='Elétrico'?(fleetDemoEconomy[index]||{}):{}),
+    ...m,
+    tipoPropulsao:tipo,
+    soc:Number.isFinite(Number(m.soc))?Math.max(0,Math.min(100,Number(m.soc))):fleetDemoSoc[index%fleetDemoSoc.length],
+    classificacaoNecessidade:m.classificacaoNecessidade||'A definir',
+    evidenciaObservada:m.evidenciaObservada||'',
+    analiseTecnica:m.analiseTecnica||'',
+    historico
+  };
+});
 let fleetFilters={busca:'',status:'Todos',cliente:'Todos'};
 let fleetPriorityView='Todas';
 let fleetDashboardFilters={cliente:'Todos',tipo:'Todos',status:'Todos'};
@@ -963,7 +981,7 @@ function renderInstructorPriorityCard(item){
 
 function fleetPriorityScore(m){
   const statusScore=m.status==='Crítico'?100:m.status==='Atenção'?70:m.status==='Em visita'?45:10;
-  const trainingScore=m.prioridadeTreinamento==='Crítica'?45:m.prioridadeTreinamento==='Alta'?30:m.prioridadeTreinamento==='Média'?15:0;
+  const trainingScore=fleetIsTrainingNeed(m)?(m.prioridadeTreinamento==='Crítica'?45:m.prioridadeTreinamento==='Alta'?30:m.prioridadeTreinamento==='Média'?15:0):0;
   let ageScore=0;
   const parsed=Date.parse(String(m.ultimaAtualizacao||'')+'T00:00:00');
   if(Number.isFinite(parsed)){
@@ -975,11 +993,12 @@ function fleetPriorityScore(m){
 
 function fleetPriorityReason(m){
   if(m.status==='Crítico') return 'Equipamento em estado crítico';
-  if(m.prioridadeTreinamento==='Crítica') return 'Necessidade de treinamento crítica';
+  if(fleetIsTrainingNeed(m)&&m.prioridadeTreinamento==='Crítica') return 'Treinamento classificado como crítico';
   if(m.status==='Atenção') return 'Equipamento requer atenção';
-  if(m.prioridadeTreinamento==='Alta') return 'Treinamento com prioridade alta';
+  if(fleetIsTrainingNeed(m)&&m.prioridadeTreinamento==='Alta') return 'Treinamento classificado com prioridade alta';
   if(m.status==='Em visita') return 'Acompanhamento em andamento';
-  return 'Acompanhamento programado';
+  if((m.classificacaoNecessidade||'A definir')!=='A definir') return 'Necessidade classificada como '+m.classificacaoNecessidade;
+  return 'Classificação da necessidade pendente';
 }
 
 function fleetPriorityClassName(m){
@@ -999,23 +1018,23 @@ function fleetDaysSinceUpdate(m){
 }
 
 function fleetPriorityLevel(m){
-  if(m.status==='Crítico'||m.prioridadeTreinamento==='Crítica') return 'Crítica';
-  if(m.status==='Atenção'||m.prioridadeTreinamento==='Alta') return 'Alta';
-  if(m.status==='Em visita'||m.prioridadeTreinamento==='Média') return 'Média';
+  if(m.status==='Crítico'||(fleetIsTrainingNeed(m)&&m.prioridadeTreinamento==='Crítica')) return 'Crítica';
+  if(m.status==='Atenção'||(fleetIsTrainingNeed(m)&&m.prioridadeTreinamento==='Alta')) return 'Alta';
+  if(m.status==='Em visita'||(fleetIsTrainingNeed(m)&&m.prioridadeTreinamento==='Média')) return 'Média';
   return 'Rotina';
 }
 
 function fleetPriorityType(m){
-  if(m.status==='Crítico'||m.prioridadeTreinamento==='Crítica') return 'Críticas';
-  if(m.prioridadeTreinamento==='Alta'||m.prioridadeTreinamento==='Crítica') return 'Treinamento';
+  if(m.status==='Crítico'||(fleetIsTrainingNeed(m)&&m.prioridadeTreinamento==='Crítica')) return 'Críticas';
+  if(fleetIsTrainingNeed(m)&&(m.prioridadeTreinamento==='Alta'||m.prioridadeTreinamento==='Crítica')) return 'Treinamento';
   return 'Acompanhamento';
 }
 
 function fleetActionQueue(){
   const actionable=fleetPriorityItems().filter(m=>
     m.status!=='Operação normal' ||
-    m.prioridadeTreinamento==='Alta' ||
-    m.prioridadeTreinamento==='Crítica'
+    (m.classificacaoNecessidade||'A definir')!=='A definir' ||
+    (fleetIsTrainingNeed(m)&&(m.prioridadeTreinamento==='Alta'||m.prioridadeTreinamento==='Crítica'))
   );
   return actionable.length?actionable:fleetPriorityItems().slice(0,3);
 }
@@ -1024,7 +1043,7 @@ function fleetFilteredPriorityQueue(){
   const queue=fleetActionQueue();
   if(fleetPriorityView==='Todas') return queue;
   if(fleetPriorityView==='Críticas') return queue.filter(m=>fleetPriorityLevel(m)==='Crítica');
-  if(fleetPriorityView==='Treinamento') return queue.filter(m=>m.prioridadeTreinamento==='Alta'||m.prioridadeTreinamento==='Crítica');
+  if(fleetPriorityView==='Treinamento') return queue.filter(m=>fleetIsTrainingNeed(m)&&(m.prioridadeTreinamento==='Alta'||m.prioridadeTreinamento==='Crítica'));
   if(fleetPriorityView==='Acompanhamento') return queue.filter(m=>m.status==='Atenção'||m.status==='Em visita');
   return queue;
 }
@@ -1041,8 +1060,8 @@ function fleetPriorityQueueRow(m,index){
   return '<div class="consultant-queue-row '+cls+'">'+
     '<div class="consultant-rank">'+(index+1)+'</div>'+
     '<div class="consultant-machine"><b>'+esc(m.codigo)+' • '+esc(m.modelo)+'</b><span>'+esc(m.cliente)+' • '+esc(m.local)+'</span><span>Consultor: '+esc(m.consultor||'Não definido')+'</span></div>'+
-    '<div class="consultant-priority-reason"><b>Por que está aqui</b><span>'+esc(fleetPriorityReason(m))+'</span><span class="consultant-priority-badge '+cls+'">'+esc(fleetPriorityLevel(m))+'</span></div>'+
-    '<div class="consultant-priority-action"><b>Próxima ação</b><strong>'+esc(m.proximaAcao||'Definir próxima ação')+'</strong><span>'+esc(m.necessidadeTreinamento||'Sem necessidade de treinamento registrada')+'</span></div>'+
+    '<div class="consultant-priority-reason"><b>Classificação</b>'+fleetNeedClassBadge(m.classificacaoNecessidade||'A definir')+'<span>'+esc(fleetPriorityReason(m))+'</span></div>'+
+    '<div class="consultant-priority-action"><b>Evidência observada</b><strong>'+esc(m.evidenciaObservada||'Ainda não registrada')+'</strong><span><b style="display:inline;font-size:9px">Próxima ação:</b> '+esc(m.proximaAcao||'Definir próxima ação')+'</span></div>'+
     '<div class="consultant-priority-date"><b>Atualização</b><strong>'+fleetDate(m.ultimaAtualizacao)+'</strong><span>'+age+'</span></div>'+
     '<button class="btn btn-soft" onclick="openFleetMachine('+m.id+')">Trabalhar agora</button>'+
   '</div>';
@@ -2683,6 +2702,31 @@ function fleetPriorityBadge(priority){
   return '<span class="fleet-priority '+fleetPriorityClass(priority)+'">'+esc(priority||'Baixa')+'</span>';
 }
 
+function fleetNeedClasses(){
+  return ['A definir','Operação','Manutenção','Segurança','Aplicação','Diagnóstico','Treinamento','Produto'];
+}
+
+function fleetNeedClassOptions(selected){
+  return fleetNeedClasses().map(value=>'<option '+(value===selected?'selected':'')+'>'+value+'</option>').join('');
+}
+
+function fleetNeedClassBadge(value){
+  const cls=value==='Treinamento'?'blue':value==='Segurança'?'red':value==='A definir'?'amber':'green';
+  return '<span class="fleet-mini-badge '+cls+'">'+esc(value||'A definir')+'</span>';
+}
+
+function fleetIsTrainingNeed(m){
+  return String(m?.classificacaoNecessidade||'A definir')==='Treinamento';
+}
+
+function toggleFleetTrainingFields(prefix){
+  const select=document.getElementById(prefix+'Classificacao');
+  const wrap=document.getElementById(prefix+'TrainingFields');
+  if(!select||!wrap)return;
+  const training=select.value==='Treinamento';
+  wrap.style.display=training?'block':'none';
+}
+
 function fleetDate(value){
   if(!value) return '—';
   const parts=String(value).split('-');
@@ -2858,7 +2902,7 @@ function renderFleetTable(){
         '<td>'+Number(m.horimetro||0).toLocaleString('pt-BR')+' h</td>'+
         '<td>'+(fleetHasBattery(m)?'<b>'+Math.max(0,Math.min(100,Number(m.soc||0)))+'%</b><div class="machine-sub">SOC da bateria</div>':'—')+'</td>'+
         '<td>'+fleetStatusBadge(m.status)+'</td>'+
-        '<td><div>'+esc(m.necessidadeTreinamento||'—')+'</div><div style="margin-top:5px">'+fleetPriorityBadge(m.prioridadeTreinamento)+'</div></td>'+
+        '<td><div>'+fleetNeedClassBadge(m.classificacaoNecessidade||'A definir')+'</div><div class="machine-sub" style="margin-top:5px">'+esc(m.evidenciaObservada||'Evidência não registrada')+'</div>'+(fleetIsTrainingNeed(m)?'<div style="margin-top:5px">'+fleetPriorityBadge(m.prioridadeTreinamento)+'</div>':'')+'</td>'+
         '<td><div>'+esc(m.proximaAcao||'—')+'</div><div class="machine-sub">Atualizado em '+fleetDate(m.ultimaAtualizacao)+'</div></td>'+
         '<td><div class="actions"><button class="btn btn-soft" onclick="openFleetMachine('+m.id+')">'+(fleetCanEdit()?'Abrir / editar':'Visualizar')+'</button><button class="btn btn-soft" onclick="openFleetMachineReport('+m.id+')">Abrir relatório</button></div></td>'+
       '</tr>'
@@ -2877,14 +2921,14 @@ function renderFleet(){
   const normal=fleetPrototype.filter(x=>x.status==='Operação normal').length;
   const attention=fleetPrototype.filter(x=>x.status==='Atenção').length;
   const critical=fleetPrototype.filter(x=>x.status==='Crítico').length;
-  const training=fleetPrototype.filter(x=>x.prioridadeTreinamento==='Alta'||x.prioridadeTreinamento==='Crítica').length;
+  const training=fleetPrototype.filter(x=>fleetIsTrainingNeed(x)&&(x.prioridadeTreinamento==='Alta'||x.prioridadeTreinamento==='Crítica')).length;
   const clients=[...new Set(fleetPrototype.map(x=>x.cliente).filter(Boolean))].sort();
   const queue=fleetActionQueue();
   const filteredQueue=fleetFilteredPriorityQueue();
   const top=queue[0]||null;
   const criticalQueue=queue.filter(m=>fleetPriorityLevel(m)==='Crítica').length;
   const followUpQueue=queue.filter(m=>m.status==='Atenção'||m.status==='Em visita').length;
-  const trainingQueue=queue.filter(m=>m.prioridadeTreinamento==='Alta'||m.prioridadeTreinamento==='Crítica').length;
+  const trainingQueue=queue.filter(m=>fleetIsTrainingNeed(m)&&(m.prioridadeTreinamento==='Alta'||m.prioridadeTreinamento==='Crítica')).length;
 
   const focus=top
     ? '<div class="next-action-hero"><div><div class="next-action-eyebrow">Ação mais importante agora</div><h3>'+esc(top.codigo)+' • '+esc(top.modelo)+' — '+esc(top.cliente)+'</h3><p>'+esc(top.proximaAcao||'Revisar o acompanhamento e definir a próxima ação.')+'</p><div class="next-action-meta"><span class="next-action-chip">'+esc(fleetPriorityReason(top))+'</span><span class="next-action-chip">Prioridade '+esc(fleetPriorityLevel(top))+'</span><span class="next-action-chip">'+esc(top.local||'')+'</span><span class="next-action-chip">Atualizado em '+fleetDate(top.ultimaAtualizacao)+'</span></div></div><div><button class="btn" onclick="openFleetMachine('+top.id+')">Trabalhar nesta ação</button></div></div>'
@@ -2905,13 +2949,13 @@ function renderFleet(){
     '<div class="fleet-cards">'+
       '<div class="fleet-kpi"><div class="muted">Ações prioritárias</div><div class="value">'+queue.length+'</div><div class="hint">Itens que exigem acompanhamento</div></div>'+
       '<div class="fleet-kpi"><div class="muted">Críticas</div><div class="value">'+criticalQueue+'</div><div class="hint">Resolver primeiro</div></div>'+
-      '<div class="fleet-kpi"><div class="muted">Treinamento prioritário</div><div class="value">'+trainingQueue+'</div><div class="hint">Alta ou crítica</div></div>'+
+      '<div class="fleet-kpi"><div class="muted">Treinamento prioritário</div><div class="value">'+trainingQueue+'</div><div class="hint">Somente necessidades classificadas como treinamento</div></div>'+
       '<div class="fleet-kpi"><div class="muted">Acompanhamento</div><div class="value">'+followUpQueue+'</div><div class="hint">Atenção ou visita em andamento</div></div>'+
     '</div>'+
 
     '<div class="section consultant-priority-shell">'+
       '<div class="consultant-priority-toolbar">'+
-        '<div><h3>Minha fila de prioridades</h3><div class="muted">Máquina → condição → motivo → próxima ação. A lista é organizada automaticamente pela criticidade, necessidade de treinamento e tempo sem atualização.</div></div>'+
+        '<div><h3>Minha fila de prioridades</h3><div class="muted">Máquina → evidência → classificação → próxima ação. A fila não presume que uma ocorrência seja problema de treinamento.</div></div>'+
         '<div class="consultant-priority-filters">'+
           '<button class="consultant-priority-filter '+(fleetPriorityView==='Todas'?'active':'')+'" onclick="setFleetPriorityView(\'Todas\')">Todas ('+queue.length+')</button>'+
           '<button class="consultant-priority-filter '+(fleetPriorityView==='Críticas'?'active':'')+'" onclick="setFleetPriorityView(\'Críticas\')">Críticas ('+criticalQueue+')</button>'+
@@ -2936,7 +2980,7 @@ function renderFleet(){
           '<select onchange="setFleetFilter(\'status\',this.value)"><option>Todos</option><option>Operação normal</option><option>Atenção</option><option>Crítico</option><option>Em visita</option></select>'+
           '<select onchange="setFleetFilter(\'cliente\',this.value)"><option>Todos</option>'+clients.map(x=>'<option>'+esc(x)+'</option>').join('')+'</select>'+
         '</div>'+
-        '<div class="table-wrap fleet-table"><table><thead><tr><th>Equipamento</th><th>Cliente / local</th><th>Horímetro</th><th>SOC</th><th>Status</th><th>Necessidade de treinamento</th><th>Próxima ação</th><th>Ações</th></tr></thead><tbody id="fleetTableBody"></tbody></table></div>'+
+        '<div class="table-wrap fleet-table"><table><thead><tr><th>Equipamento</th><th>Cliente / local</th><th>Horímetro</th><th>SOC</th><th>Status</th><th>Classificação / evidência</th><th>Próxima ação</th><th>Ações</th></tr></thead><tbody id="fleetTableBody"></tbody></table></div>'+
       '</div>'+
     '</details>';
 
@@ -3124,7 +3168,7 @@ function openFleetMachine(id){
   (!editable?'<div class="fleet-readonly">Perfil Instrutor: este módulo está em modo somente visualização.</div>':'')+
   '<div class="fleet-detail-grid"><div class="fleet-detail-item"><span>Número de série</span><b>'+esc(m.serie)+'</b></div><div class="fleet-detail-item"><span>Tipo de máquina</span><b>'+esc(m.tipoPropulsao||'Mecânico')+'</b></div><div class="fleet-detail-item"><span>Horímetro</span><b>'+Number(m.horimetro||0).toLocaleString('pt-BR')+' h</b></div>'+(fleetHasBattery(m)?'<div class="fleet-detail-item"><span>SOC da bateria</span><b>'+Number(m.soc||0)+'%</b></div>':'')+'<div class="fleet-detail-item"><span>Status</span>'+fleetStatusBadge(m.status)+'</div><div class="fleet-detail-item"><span>Consultor responsável</span><b>'+esc(m.consultor||'—')+'</b></div></div>'+
   (m.tipoPropulsao==='Elétrico'&&e?'<div class="fleet-panel" style="margin-top:14px"><h3>Economia estimada</h3><div class="fleet-report-grid"><div class="fleet-report-card"><span class="muted">Diesel equivalente</span><b>'+fleetMoney(e.custoDieselHora)+'/h</b></div><div class="fleet-report-card"><span class="muted">Elétrico</span><b>'+fleetMoney(e.custoEletricoHora)+'/h</b></div><div class="fleet-report-card"><span class="muted">Economia acumulada</span><b>'+fleetMoney(e.economiaTotal)+'</b></div></div></div>':'')+
-  '<div class="fleet-note"><b>Necessidade de treinamento</b><div class="muted" style="margin-top:5px">'+esc(m.necessidadeTreinamento||'Sem necessidade registrada')+'</div></div><div class="fleet-note"><b>Próxima ação</b><div class="muted" style="margin-top:5px">'+esc(m.proximaAcao||'Sem próxima ação registrada')+'</div></div><div class="fleet-note"><b>Observações</b><div class="muted" style="margin-top:5px">'+esc(m.observacoes||'Sem observações')+'</div></div>'+
+  '<div class="fleet-note"><b>Classificação da necessidade</b><div style="margin-top:7px">'+fleetNeedClassBadge(m.classificacaoNecessidade||'A definir')+'</div></div><div class="fleet-note"><b>Evidência observada</b><div class="muted" style="margin-top:5px">'+esc(m.evidenciaObservada||'Evidência ainda não registrada')+'</div></div><div class="fleet-note"><b>Análise / conclusão técnica</b><div class="muted" style="margin-top:5px">'+esc(m.analiseTecnica||'Análise ainda não registrada')+'</div></div>'+(fleetIsTrainingNeed(m)?'<div class="fleet-note"><b>Necessidade de treinamento</b><div class="muted" style="margin-top:5px">'+esc(m.necessidadeTreinamento||'Treinamento ainda não detalhado')+'</div><div style="margin-top:7px">'+fleetPriorityBadge(m.prioridadeTreinamento)+'</div></div>':'')+'<div class="fleet-note"><b>Próxima ação</b><div class="muted" style="margin-top:5px">'+esc(m.proximaAcao||'Sem próxima ação registrada')+'</div></div><div class="fleet-note"><b>Observações</b><div class="muted" style="margin-top:5px">'+esc(m.observacoes||'Sem observações')+'</div></div>'+
   '<div class="actions" style="margin-top:14px">'+(editable?'<button class="btn btn-primary" onclick="editFleetMachine('+m.id+')">Editar cadastro</button><button class="btn btn-soft" onclick="newFleetEvent('+m.id+')">+ Registrar acompanhamento</button>'+(m.tipoPropulsao==='Elétrico'?'<button class="btn btn-soft" onclick="openFleetCostUpdate('+m.id+')">Atualizar custos</button>':''):'')+'<button class="btn btn-soft" onclick="openFleetMachineReport('+m.id+')">Abrir relatório</button></div>'+
   '<div style="margin-top:20px"><h3>Registros enviados pelo app do cliente</h3><div class="fleet-timeline">'+
     (fleetMachineShiftRecords(m.codigo).length?fleetMachineShiftRecords(m.codigo).slice(0,12).map(fleetShiftCard).join(''):'<div class="muted">Nenhum turno sincronizado para esta máquina.</div>')+
@@ -3134,31 +3178,104 @@ function openFleetMachine(id){
 }
 
 function fleetMachineForm(m){
-  const isEdit=!!m,x=m||{codigo:'',modelo:'',serie:'',cliente:'',local:'',horimetro:'',tipoPropulsao:'Mecânico',soc:100,status:'Operação normal',consultor:currentPersonName||'',ultimaAtualizacao:new Date().toISOString().slice(0,10),proximaAcao:'',necessidadeTreinamento:'',prioridadeTreinamento:'Média',observacoes:'',horimetroInicioEconomia:'',consumoEletricoKwhHora:'',tarifaEnergia:'',consumoDieselReferenciaLHora:'',precoDiesel:''};
-  return '<div class="section-head"><div><h3>'+(isEdit?'Editar máquina':'Nova máquina em acompanhamento')+'</h3><div class="muted">Cadastre o equipamento e selecione o tipo de propulsão.</div></div><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div><div class="form-grid">'+
+  const isEdit=!!m,x=m||{codigo:'',modelo:'',serie:'',cliente:'',local:'',horimetro:'',tipoPropulsao:'Mecânico',soc:100,status:'Operação normal',consultor:currentPersonName||'',ultimaAtualizacao:new Date().toISOString().slice(0,10),proximaAcao:'',classificacaoNecessidade:'A definir',evidenciaObservada:'',analiseTecnica:'',necessidadeTreinamento:'',prioridadeTreinamento:'Baixa',observacoes:'',horimetroInicioEconomia:'',consumoEletricoKwhHora:'',tarifaEnergia:'',consumoDieselReferenciaLHora:'',precoDiesel:''};
+  return '<div class="section-head"><div><h3>'+(isEdit?'Editar máquina':'Nova máquina em acompanhamento')+'</h3><div class="muted">Cadastre o equipamento sem transformar automaticamente uma ocorrência em necessidade de treinamento.</div></div><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div><div class="form-grid">'+
   '<div class="field"><label>Código / identificação interna</label><input id="fmCodigo" value="'+esc(x.codigo)+'"></div><div class="field"><label>Modelo</label><input id="fmModelo" value="'+esc(x.modelo)+'"></div><div class="field"><label>Número de série</label><input id="fmSerie" value="'+esc(x.serie)+'"></div><div class="field"><label>Tipo de máquina</label><select id="fmPropulsao" onchange="toggleFleetEnergyFields()"><option>Mecânico</option><option>Híbrido</option><option>Elétrico</option></select></div>'+
   '<div class="field"><label>Horímetro atual (h)</label><input id="fmHorimetro" type="number" min="0" step="0.1" value="'+esc(x.horimetro)+'"></div><div id="fleetSocField" class="field"><label>SOC da bateria (%)</label><input id="fmSoc" type="number" min="0" max="100" value="'+esc(x.soc??100)+'"></div><div class="field"><label>Cliente</label><input id="fmCliente" value="'+esc(x.cliente)+'"></div><div class="field"><label>Local / unidade</label><input id="fmLocal" value="'+esc(x.local)+'"></div>'+
-  '<div class="field"><label>Status</label><select id="fmStatus"><option>Operação normal</option><option>Atenção</option><option>Crítico</option><option>Em visita</option></select></div><div class="field"><label>Consultor responsável</label><input id="fmConsultor" value="'+esc(x.consultor)+'"></div><div class="field"><label>Prioridade de treinamento</label><select id="fmPrioridade"><option>Baixa</option><option>Média</option><option>Alta</option><option>Crítica</option></select></div><div class="field"><label>Última atualização</label><input id="fmAtualizacao" type="date" value="'+esc(x.ultimaAtualizacao)+'"></div>'+
+  '<div class="field"><label>Status da máquina</label><select id="fmStatus"><option>Operação normal</option><option>Atenção</option><option>Crítico</option><option>Em visita</option></select></div><div class="field"><label>Consultor responsável</label><input id="fmConsultor" value="'+esc(x.consultor)+'"></div><div class="field"><label>Última atualização</label><input id="fmAtualizacao" type="date" value="'+esc(x.ultimaAtualizacao)+'"></div><div class="field"><label>Classificação da necessidade</label><select id="fmClassificacao" onchange="toggleFleetTrainingFields(\'fm\')">'+fleetNeedClassOptions(x.classificacaoNecessidade||'A definir')+'</select></div>'+
+  '<div class="field span2"><label>Evidência observada</label><textarea id="fmEvidencia" placeholder="Ex.: operador informou perda de força durante o movimento de elevação.">'+esc(x.evidenciaObservada||'')+'</textarea><div class="workflow-note">Registre o fato observado ou relatado. Evite conclusões sem teste ou confirmação.</div></div>'+
+  '<div class="field span2"><label>Análise / conclusão técnica</label><textarea id="fmAnalise" placeholder="Hipótese ou conclusão após análise e testes.">'+esc(x.analiseTecnica||'')+'</textarea></div>'+
+  '<div id="fmTrainingFields" class="span2"><div class="fleet-panel"><h3>Treinamento</h3><div class="form-grid"><div class="field"><label>Prioridade do treinamento</label><select id="fmPrioridade"><option>Baixa</option><option>Média</option><option>Alta</option><option>Crítica</option></select></div><div class="field span2"><label>Necessidade de treinamento</label><textarea id="fmTreinamento">'+esc(x.necessidadeTreinamento||'')+'</textarea></div></div></div></div>'+
   '<div id="fleetElectricFields" class="span2"><div class="fleet-panel"><h3>Comparativo diesel x elétrico</h3><div class="form-grid"><div class="field"><label>Horímetro no início do acompanhamento</label><input id="fmHorimetroInicio" type="number" min="0" value="'+esc(x.horimetroInicioEconomia??'')+'"></div><div class="field"><label>Consumo elétrico médio (kWh/h)</label><input id="fmConsumoEletrico" type="number" min="0" step="0.01" value="'+esc(x.consumoEletricoKwhHora??'')+'"></div><div class="field"><label>Tarifa de energia (R$/kWh)</label><input id="fmTarifaEnergia" type="number" min="0" step="0.01" value="'+esc(fleetCurrentCost(x)?.tarifaEnergia??x.tarifaEnergia??'')+'" '+(isEdit?'readonly':'')+'></div><div class="field"><label>Consumo diesel de referência (L/h)</label><input id="fmDieselReferencia" type="number" min="0" step="0.01" value="'+esc(x.consumoDieselReferenciaLHora??'')+'"></div><div class="field"><label>Preço do diesel (R$/L)</label><input id="fmPrecoDiesel" type="number" min="0" step="0.01" value="'+esc(fleetCurrentCost(x)?.precoDiesel??x.precoDiesel??'')+'" '+(isEdit?'readonly':'')+'></div></div><div class="fleet-readonly">'+(isEdit?'Para alterar energia ou diesel, use <b>Atualizar custos</b>. O sistema preserva os valores anteriores e inicia uma nova vigência.':'Use dados reais da operação do cliente. O cálculo é estimativo e não é uma especificação técnica automática da máquina.')+'</div></div></div>'+
-  '<div class="field span2"><label>Necessidade de treinamento</label><textarea id="fmTreinamento">'+esc(x.necessidadeTreinamento)+'</textarea></div><div class="field span2"><label>Próxima ação</label><textarea id="fmAcao">'+esc(x.proximaAcao)+'</textarea></div><div class="field span2"><label>Observações</label><textarea id="fmObs">'+esc(x.observacoes)+'</textarea></div><div class="span2"><button class="btn btn-primary" onclick="saveFleetMachine('+(isEdit?x.id:'null')+')">'+(isEdit?'Salvar alterações':'Adicionar ao acompanhamento')+'</button></div></div>';
+  '<div class="field span2"><label>Próxima ação</label><textarea id="fmAcao">'+esc(x.proximaAcao)+'</textarea></div><div class="field span2"><label>Observações gerais</label><textarea id="fmObs">'+esc(x.observacoes)+'</textarea></div><div class="span2"><button class="btn btn-primary" onclick="saveFleetMachine('+(isEdit?x.id:'null')+')">'+(isEdit?'Salvar alterações':'Adicionar ao acompanhamento')+'</button></div></div>';
 }
+
 function toggleFleetEnergyFields(){const type=document.getElementById('fmPropulsao')?.value||'Mecânico',el=document.getElementById('fleetElectricFields'),soc=document.getElementById('fleetSocField');if(el)el.style.display=type==='Elétrico'?'block':'none';if(soc)soc.style.display=(type==='Elétrico'||type==='Híbrido')?'block':'none'}
-function newFleetMachine(){if(!fleetCanEdit())return;document.getElementById('modalContent').innerHTML=fleetMachineForm(null);showModal();document.getElementById('fmStatus').value='Operação normal';document.getElementById('fmPrioridade').value='Média';document.getElementById('fmPropulsao').value='Mecânico';toggleFleetEnergyFields()}
-function editFleetMachine(id){if(!fleetCanEdit())return;const m=fleetPrototype.find(x=>Number(x.id)===Number(id));if(!m)return;document.getElementById('modalContent').innerHTML=fleetMachineForm(m);showModal();document.getElementById('fmStatus').value=m.status;document.getElementById('fmPrioridade').value=m.prioridadeTreinamento||'Média';document.getElementById('fmPropulsao').value=m.tipoPropulsao||'Mecânico';toggleFleetEnergyFields()}
+function newFleetMachine(){if(!fleetCanEdit())return;document.getElementById('modalContent').innerHTML=fleetMachineForm(null);showModal();document.getElementById('fmStatus').value='Operação normal';document.getElementById('fmPrioridade').value='Baixa';document.getElementById('fmPropulsao').value='Mecânico';toggleFleetEnergyFields();toggleFleetTrainingFields('fm')}
+function editFleetMachine(id){if(!fleetCanEdit())return;const m=fleetPrototype.find(x=>Number(x.id)===Number(id));if(!m)return;document.getElementById('modalContent').innerHTML=fleetMachineForm(m);showModal();document.getElementById('fmStatus').value=m.status;document.getElementById('fmPrioridade').value=m.prioridadeTreinamento||'Baixa';document.getElementById('fmPropulsao').value=m.tipoPropulsao||'Mecânico';toggleFleetEnergyFields();toggleFleetTrainingFields('fm')}
 function saveFleetMachine(id){
   if(!fleetCanEdit())return;const codigo=document.getElementById('fmCodigo').value.trim(),modelo=document.getElementById('fmModelo').value.trim(),serie=document.getElementById('fmSerie').value.trim(),cliente=document.getElementById('fmCliente').value.trim(),tipo=document.getElementById('fmPropulsao').value;if(!codigo||!modelo||!serie||!cliente)return alert('Preencha código, modelo, número de série e cliente.');
   if(tipo==='Elétrico'){const vals=[Number(document.getElementById('fmConsumoEletrico').value),Number(document.getElementById('fmTarifaEnergia').value),Number(document.getElementById('fmDieselReferencia').value),Number(document.getElementById('fmPrecoDiesel').value)];if(vals.some(v=>!(v>0)))return alert('Para máquina elétrica, preencha consumo elétrico, tarifa de energia, consumo diesel de referência e preço do diesel.')}
   let m=id!==null?fleetPrototype.find(x=>Number(x.id)===Number(id)):null;if(!m){m={id:Date.now(),historico:[]};fleetPrototype.push(m)}
-  m.codigo=codigo;m.modelo=modelo;m.serie=serie;m.cliente=cliente;m.tipoPropulsao=tipo;m.local=document.getElementById('fmLocal').value.trim();m.horimetro=Math.max(0,Number(document.getElementById('fmHorimetro').value)||0);m.soc=fleetHasBattery(m)?Math.max(0,Math.min(100,Number(document.getElementById('fmSoc').value)||0)):null;m.status=document.getElementById('fmStatus').value;m.consultor=document.getElementById('fmConsultor').value.trim();m.prioridadeTreinamento=document.getElementById('fmPrioridade').value;m.ultimaAtualizacao=document.getElementById('fmAtualizacao').value||new Date().toISOString().slice(0,10);m.necessidadeTreinamento=document.getElementById('fmTreinamento').value.trim();m.proximaAcao=document.getElementById('fmAcao').value.trim();m.observacoes=document.getElementById('fmObs').value.trim();
+  m.codigo=codigo;m.modelo=modelo;m.serie=serie;m.cliente=cliente;m.tipoPropulsao=tipo;m.local=document.getElementById('fmLocal').value.trim();m.horimetro=Math.max(0,Number(document.getElementById('fmHorimetro').value)||0);m.soc=fleetHasBattery(m)?Math.max(0,Math.min(100,Number(document.getElementById('fmSoc').value)||0)):null;m.status=document.getElementById('fmStatus').value;m.consultor=document.getElementById('fmConsultor').value.trim();m.ultimaAtualizacao=document.getElementById('fmAtualizacao').value||new Date().toISOString().slice(0,10);m.classificacaoNecessidade=document.getElementById('fmClassificacao').value;m.evidenciaObservada=document.getElementById('fmEvidencia').value.trim();m.analiseTecnica=document.getElementById('fmAnalise').value.trim();m.prioridadeTreinamento=fleetIsTrainingNeed(m)?document.getElementById('fmPrioridade').value:'Baixa';m.necessidadeTreinamento=fleetIsTrainingNeed(m)?document.getElementById('fmTreinamento').value.trim():'';m.proximaAcao=document.getElementById('fmAcao').value.trim();m.observacoes=document.getElementById('fmObs').value.trim();
   if(tipo==='Elétrico'){const start=document.getElementById('fmHorimetroInicio').value===''?m.horimetro:Math.max(0,Number(document.getElementById('fmHorimetroInicio').value)||0),energia=Number(document.getElementById('fmTarifaEnergia').value),diesel=Number(document.getElementById('fmPrecoDiesel').value);m.horimetroInicioEconomia=start;m.consumoEletricoKwhHora=Number(document.getElementById('fmConsumoEletrico').value);m.consumoDieselReferenciaLHora=Number(document.getElementById('fmDieselReferencia').value);if(!Array.isArray(m.historicoCustos)||!m.historicoCustos.length){m.historicoCustos=[{id:Date.now(),dataInicio:m.ultimaAtualizacao||new Date().toISOString().slice(0,10),horimetroInicio:start,tarifaEnergia:energia,precoDiesel:diesel,responsavel:currentPersonName||'Cadastro inicial'}];m.tarifaEnergia=energia;m.precoDiesel=diesel}}else{m.horimetroInicioEconomia=null;m.consumoEletricoKwhHora=null;m.tarifaEnergia=null;m.consumoDieselReferenciaLHora=null;m.precoDiesel=null;m.historicoCustos=[]}
   if(!Array.isArray(m.historico))m.historico=[];fleetSavePrototype();closeModal();renderFleet()
 }
 function newFleetEvent(id){
-  if(!fleetCanEdit())return;const m=fleetPrototype.find(x=>Number(x.id)===Number(id));if(!m)return;const battery=fleetHasBattery(m)?'<div class="field"><label>SOC da bateria (%)</label><input id="feSoc" type="number" min="0" max="100" value="'+Math.max(0,Math.min(100,Number(m.soc||0)))+'"></div>':'';
-  document.getElementById('modalContent').innerHTML='<div class="section-head"><div><h3>Registrar acompanhamento</h3><div class="muted">'+esc(m.codigo)+' • '+esc(m.modelo)+' • '+esc(m.cliente)+'</div></div><button class="btn btn-soft" onclick="openFleetMachine('+m.id+')">Voltar</button></div><div class="form-grid"><div class="field"><label>Data</label><input id="feData" type="date" value="'+new Date().toISOString().slice(0,10)+'"></div><div class="field"><label>Tipo de registro</label><select id="feTipo"><option>Acompanhamento</option><option>Visita técnica</option><option>Treinamento</option><option>Falha recorrente</option><option>Reunião com cliente</option></select></div><div class="field"><label>Novo horímetro</label><input id="feHorimetro" type="number" min="0" placeholder="'+Number(m.horimetro||0)+'"></div>'+battery+'<div class="field"><label>Status após acompanhamento</label><select id="feStatus"><option>Operação normal</option><option>Atenção</option><option>Crítico</option><option>Em visita</option></select></div><div class="field span2"><label>Descrição / evidências observadas</label><textarea id="feDescricao"></textarea></div><div class="field span2"><label>Necessidade de treinamento atualizada</label><textarea id="feTreinamento">'+esc(m.necessidadeTreinamento||'')+'</textarea></div><div class="field span2"><label>Próxima ação</label><textarea id="feAcao">'+esc(m.proximaAcao||'')+'</textarea></div><div class="span2"><button class="btn btn-primary" onclick="saveFleetEvent('+m.id+')">Registrar acompanhamento</button></div></div>';showModal();document.getElementById('feStatus').value=m.status
+  if(!fleetCanEdit())return;
+  const m=fleetPrototype.find(x=>Number(x.id)===Number(id));if(!m)return;
+  const battery=fleetHasBattery(m)?'<div class="field"><label>SOC da bateria (%)</label><input id="feSoc" type="number" min="0" max="100" value="'+Math.max(0,Math.min(100,Number(m.soc||0)))+'"></div>':'';
+
+  document.getElementById('modalContent').innerHTML=
+    '<div class="section-head"><div><h3>Registrar acompanhamento</h3><div class="muted">'+esc(m.codigo)+' • '+esc(m.modelo)+' • '+esc(m.cliente)+'</div></div><button class="btn btn-soft" onclick="openFleetMachine('+m.id+')">Voltar</button></div>'+
+    '<div class="fleet-readonly">Primeiro registre a <b>evidência</b>. Depois classifique a necessidade. Uma ocorrência de máquina não será tratada automaticamente como falta de treinamento.</div>'+
+    '<div class="form-grid" style="margin-top:14px">'+
+      '<div class="field"><label>Data</label><input id="feData" type="date" value="'+new Date().toISOString().slice(0,10)+'"></div>'+
+      '<div class="field"><label>Tipo de registro</label><select id="feTipo"><option>Acompanhamento</option><option>Visita técnica</option><option>Treinamento</option><option>Falha recorrente</option><option>Reunião com cliente</option></select></div>'+
+      '<div class="field"><label>Novo horímetro</label><input id="feHorimetro" type="number" min="0" placeholder="'+Number(m.horimetro||0)+'"></div>'+
+      battery+
+      '<div class="field"><label>Status após acompanhamento</label><select id="feStatus"><option>Operação normal</option><option>Atenção</option><option>Crítico</option><option>Em visita</option></select></div>'+
+      '<div class="field"><label>Classificação da necessidade</label><select id="feClassificacao" onchange="toggleFleetTrainingFields(\'fe\')">'+fleetNeedClassOptions(m.classificacaoNecessidade||'A definir')+'</select></div>'+
+      '<div class="field span2"><label>Evidência observada *</label><textarea id="feEvidencia" placeholder="Ex.: operador relatou perda de força ao elevar a lança após 40 minutos de operação."></textarea><div class="workflow-note">Use fatos observados, medições ou relatos. Não escreva uma conclusão como se fosse evidência.</div></div>'+
+      '<div class="field span2"><label>Análise / conclusão técnica</label><textarea id="feAnalise" placeholder="Ex.: causa ainda não confirmada; necessário medir pressão e verificar códigos antes de concluir."></textarea></div>'+
+      '<div id="feTrainingFields" class="span2"><div class="fleet-panel"><h3>Treinamento</h3><div class="form-grid"><div class="field"><label>Prioridade</label><select id="fePrioridade"><option>Baixa</option><option>Média</option><option>Alta</option><option>Crítica</option></select></div><div class="field span2"><label>Necessidade de treinamento</label><textarea id="feTreinamento">'+esc(m.necessidadeTreinamento||'')+'</textarea></div></div></div></div>'+
+      '<div class="field span2"><label>Próxima ação</label><textarea id="feAcao">'+esc(m.proximaAcao||'')+'</textarea></div>'+
+      '<div class="span2"><button class="btn btn-primary" onclick="saveFleetEvent('+m.id+')">Registrar acompanhamento</button></div>'+
+    '</div>';
+
+  showModal();
+  document.getElementById('feStatus').value=m.status;
+  document.getElementById('fePrioridade').value=m.prioridadeTreinamento||'Baixa';
+  toggleFleetTrainingFields('fe');
 }
+
 function saveFleetEvent(id){
-  if(!fleetCanEdit())return;const m=fleetPrototype.find(x=>Number(x.id)===Number(id));if(!m)return;const desc=document.getElementById('feDescricao').value.trim();if(!desc)return alert('Descreva o acompanhamento realizado.');const date=document.getElementById('feData').value||new Date().toISOString().slice(0,10),hours=Number(document.getElementById('feHorimetro').value);if(hours>0)m.horimetro=hours;const soc=document.getElementById('feSoc');if(soc)m.soc=Math.max(0,Math.min(100,Number(soc.value)||0));if(!Array.isArray(m.historico))m.historico=[];m.historico.push({id:Date.now(),data:date,tipo:document.getElementById('feTipo').value,descricao:desc,responsavel:currentPersonName||'Consultor de Treinamento',horimetro:m.horimetro,...(soc?{soc:m.soc}:{})});m.status=document.getElementById('feStatus').value;m.necessidadeTreinamento=document.getElementById('feTreinamento').value.trim();m.proximaAcao=document.getElementById('feAcao').value.trim();m.ultimaAtualizacao=date;fleetSavePrototype();openFleetMachine(m.id)
+  if(!fleetCanEdit())return;
+  const m=fleetPrototype.find(x=>Number(x.id)===Number(id));if(!m)return;
+
+  const evidencia=document.getElementById('feEvidencia').value.trim();
+  if(!evidencia)return alert('Registre a evidência observada antes de salvar.');
+
+  const classificacao=document.getElementById('feClassificacao').value||'A definir';
+  const analise=document.getElementById('feAnalise').value.trim();
+  const date=document.getElementById('feData').value||new Date().toISOString().slice(0,10);
+  const hours=Number(document.getElementById('feHorimetro').value);
+  if(hours>0)m.horimetro=hours;
+
+  const soc=document.getElementById('feSoc');
+  if(soc)m.soc=Math.max(0,Math.min(100,Number(soc.value)||0));
+
+  const treinamento=classificacao==='Treinamento'?document.getElementById('feTreinamento').value.trim():'';
+  const prioridade=classificacao==='Treinamento'?document.getElementById('fePrioridade').value:'Baixa';
+
+  if(!Array.isArray(m.historico))m.historico=[];
+  m.historico.push({
+    id:Date.now(),
+    data:date,
+    tipo:document.getElementById('feTipo').value,
+    classificacaoNecessidade:classificacao,
+    evidenciaObservada:evidencia,
+    analiseTecnica:analise,
+    descricao:analise||evidencia,
+    necessidadeTreinamento:treinamento,
+    prioridadeTreinamento:prioridade,
+    proximaAcao:document.getElementById('feAcao').value.trim(),
+    responsavel:currentPersonName||'Consultor de Treinamento',
+    horimetro:m.horimetro,
+    ...(soc?{soc:m.soc}:{})
+  });
+
+  m.status=document.getElementById('feStatus').value;
+  m.classificacaoNecessidade=classificacao;
+  m.evidenciaObservada=evidencia;
+  m.analiseTecnica=analise;
+  m.necessidadeTreinamento=treinamento;
+  m.prioridadeTreinamento=prioridade;
+  m.proximaAcao=document.getElementById('feAcao').value.trim();
+  m.ultimaAtualizacao=date;
+
+  fleetSavePrototype();
+  openFleetMachine(m.id);
 }
 
 function openFleetMachineReport(id){
@@ -3182,12 +3299,12 @@ function openFleetMachineReport(id){
     economy+
     fleetCostHistoryHtml(m)+
     (fleetCanEdit()&&m.tipoPropulsao==='Elétrico'?'<div class="actions" style="margin:12px 0"><button class="btn btn-soft" onclick="openFleetCostUpdate('+m.id+')">Atualizar custos do cliente</button></div>':'')+
-    '<div class="fleet-detail-grid"><div class="fleet-detail-item"><span>Consultor responsável</span><b>'+esc(m.consultor||'—')+'</b></div><div class="fleet-detail-item"><span>Última atualização</span><b>'+fleetDate(m.ultimaAtualizacao)+'</b></div><div class="fleet-detail-item"><span>Prioridade de treinamento</span>'+fleetPriorityBadge(m.prioridadeTreinamento)+'</div></div>'+
-    '<div class="fleet-note"><b>Necessidade de treinamento</b><div class="muted" style="margin-top:5px">'+esc(m.necessidadeTreinamento||'Sem necessidade registrada')+'</div></div>'+
+    '<div class="fleet-detail-grid"><div class="fleet-detail-item"><span>Consultor responsável</span><b>'+esc(m.consultor||'—')+'</b></div><div class="fleet-detail-item"><span>Última atualização</span><b>'+fleetDate(m.ultimaAtualizacao)+'</b></div><div class="fleet-detail-item"><span>Classificação</span>'+fleetNeedClassBadge(m.classificacaoNecessidade||'A definir')+'</div></div>'+
+    '<div class="fleet-note"><b>Evidência observada</b><div class="muted" style="margin-top:5px">'+esc(m.evidenciaObservada||'Evidência ainda não registrada')+'</div></div><div class="fleet-note"><b>Análise / conclusão técnica</b><div class="muted" style="margin-top:5px">'+esc(m.analiseTecnica||'Análise ainda não registrada')+'</div></div>'+(fleetIsTrainingNeed(m)?'<div class="fleet-note"><b>Necessidade de treinamento</b><div class="muted" style="margin-top:5px">'+esc(m.necessidadeTreinamento||'Treinamento ainda não detalhado')+'</div><div style="margin-top:7px">'+fleetPriorityBadge(m.prioridadeTreinamento)+'</div></div>':'')+
     '<div class="fleet-note"><b>Próxima ação</b><div class="muted" style="margin-top:5px">'+esc(m.proximaAcao||'Sem próxima ação registrada')+'</div></div>'+
     '<div class="fleet-note"><b>Observações</b><div class="muted" style="margin-top:5px">'+esc(m.observacoes||'Sem observações')+'</div></div>'+
     '<div style="margin-top:20px"><h3>Histórico completo da máquina</h3><div class="fleet-timeline">'+
-      (history.length?history.map(h=>'<div class="fleet-event"><div class="date">'+fleetDate(h.data)+' • '+esc(h.responsavel||'')+'</div><div class="event-title">'+esc(h.tipo||'Acompanhamento')+'</div><div class="event-text">'+esc(h.descricao||'')+'</div><div class="machine-sub" style="margin-top:5px">'+(h.horimetro!==undefined?'Horímetro: '+Number(h.horimetro).toLocaleString('pt-BR')+' h':'Horímetro não registrado')+(h.soc!==undefined?' • SOC: '+Number(h.soc)+'%':'')+'</div></div>').join(''):'<div class="muted">Nenhum acompanhamento registrado.</div>')+
+      (history.length?history.map(h=>'<div class="fleet-event"><div class="date">'+fleetDate(h.data)+' • '+esc(h.responsavel||'')+'</div><div class="event-title">'+esc(h.tipo||'Acompanhamento')+' • '+esc(h.classificacaoNecessidade||'A definir')+'</div><div class="event-text"><b>Evidência:</b> '+esc(h.evidenciaObservada||'Não separada nos registros antigos')+'</div><div class="event-text" style="margin-top:5px"><b>Análise:</b> '+esc(h.analiseTecnica||h.descricao||'—')+'</div><div class="machine-sub" style="margin-top:5px">'+(h.horimetro!==undefined?'Horímetro: '+Number(h.horimetro).toLocaleString('pt-BR')+' h':'Horímetro não registrado')+(h.soc!==undefined?' • SOC: '+Number(h.soc)+'%':'')+'</div></div>').join(''):'<div class="muted">Nenhum acompanhamento registrado.</div>')+
     '</div></div>'+
     '<div class="actions" style="margin-top:16px"><button class="btn btn-primary" onclick="printFleetMachineReport('+m.id+')">Imprimir / Salvar PDF</button><button class="btn btn-soft" onclick="openFleetMachine('+m.id+')">Voltar para máquina</button></div>';
   showModal();
@@ -3196,7 +3313,7 @@ function openFleetMachineReport(id){
 function printFleetMachineReport(id){
   const m=fleetPrototype.find(x=>Number(x.id)===Number(id));if(!m)return;
   const e=fleetEconomy(m),history=(m.historico||[]).slice().sort((a,b)=>String(b.data).localeCompare(String(a.data)));
-  const historyRows=history.map(h=>'<tr><td>'+fleetDate(h.data)+'</td><td>'+esc(h.tipo||'Acompanhamento')+'</td><td>'+esc(h.responsavel||'')+'</td><td>'+esc(h.descricao||'')+'</td><td>'+(h.horimetro!==undefined?Number(h.horimetro).toLocaleString('pt-BR')+' h':'—')+'</td><td>'+(h.soc!==undefined?Number(h.soc)+'%':'—')+'</td></tr>').join('');
+  const historyRows=history.map(h=>'<tr><td>'+fleetDate(h.data)+'</td><td>'+esc(h.tipo||'Acompanhamento')+'</td><td>'+esc(h.classificacaoNecessidade||'A definir')+'</td><td>'+esc(h.evidenciaObservada||'—')+'</td><td>'+esc(h.analiseTecnica||h.descricao||'—')+'</td><td>'+esc(h.responsavel||'')+'</td><td>'+(h.horimetro!==undefined?Number(h.horimetro).toLocaleString('pt-BR')+' h':'—')+'</td><td>'+(h.soc!==undefined?Number(h.soc)+'%':'—')+'</td></tr>').join('');
   const economy=m.tipoPropulsao==='Elétrico'
     ? (e
       ? '<h2>Comparativo diesel x elétrico</h2><div class="cards"><div class="card"><small>Diesel equivalente</small><b>'+fleetMoney(e.custoDieselHora)+'/h</b></div><div class="card"><small>Elétrico</small><b>'+fleetMoney(e.custoEletricoHora)+'/h</b></div><div class="card"><small>Economia por hora</small><b>'+fleetMoney(e.economiaHora)+'/h</b></div><div class="card"><small>Economia acumulada</small><b>'+fleetMoney(e.economiaTotal)+'</b></div><div class="card"><small>Redução estimada</small><b>'+e.percentual.toFixed(1)+'%</b></div></div><div class="box"><b>Base de cálculo:</b> '+Number(m.consumoEletricoKwhHora).toLocaleString('pt-BR')+' kWh/h × '+fleetMoney(m.tarifaEnergia)+'/kWh versus '+Number(m.consumoDieselReferenciaLHora).toLocaleString('pt-BR')+' L/h × '+fleetMoney(m.precoDiesel)+'/L.</div>'
@@ -3204,7 +3321,7 @@ function printFleetMachineReport(id){
     : '';
 
   const w=window.open('','_blank');if(!w)return alert('O navegador bloqueou a janela de impressão.');
-  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Relatório '+esc(m.codigo)+'</title><style>body{font-family:Arial,sans-serif;padding:28px;color:#111}h1{font-size:22px}h2{font-size:16px;margin-top:24px}.meta{color:#555}.cards{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.card,.box{border:1px solid #ddd;border-radius:8px;padding:10px}.card small{display:block;color:#666}.card b{font-size:17px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #ddd;padding:7px;text-align:left;vertical-align:top}th{background:#f3f4f6}</style></head><body><h1>Relatório de Acompanhamento da Máquina</h1><div class="meta">'+esc(m.codigo)+' • '+esc(m.modelo)+' • '+esc(m.tipoPropulsao||'Mecânico')+' • Série '+esc(m.serie)+' • '+esc(m.cliente)+' • '+esc(m.local)+'</div><div class="cards"><div class="card"><small>Horímetro</small><b>'+Number(m.horimetro||0).toLocaleString('pt-BR')+' h</b></div>'+(fleetHasBattery(m)?'<div class="card"><small>SOC</small><b>'+Number(m.soc||0)+'%</b></div>':'')+'<div class="card"><small>Estado</small><b>'+esc(m.status)+'</b></div></div>'+economy+'<div class="box"><b>Necessidade de treinamento:</b><br>'+esc(m.necessidadeTreinamento||'—')+'</div><div class="box"><b>Próxima ação:</b><br>'+esc(m.proximaAcao||'—')+'</div><div class="box"><b>Observações:</b><br>'+esc(m.observacoes||'—')+'</div><h2>Histórico completo</h2><table><thead><tr><th>Data</th><th>Tipo</th><th>Responsável</th><th>Registro</th><th>Horímetro</th><th>SOC</th></tr></thead><tbody>'+historyRows+'</tbody></table><p style="font-size:10px;color:#666">Para máquinas elétricas, a economia é uma estimativa baseada nos parâmetros cadastrados da operação.</p></body></html>');
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Relatório '+esc(m.codigo)+'</title><style>body{font-family:Arial,sans-serif;padding:28px;color:#111}h1{font-size:22px}h2{font-size:16px;margin-top:24px}.meta{color:#555}.cards{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.card,.box{border:1px solid #ddd;border-radius:8px;padding:10px}.card small{display:block;color:#666}.card b{font-size:17px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #ddd;padding:7px;text-align:left;vertical-align:top}th{background:#f3f4f6}</style></head><body><h1>Relatório de Acompanhamento da Máquina</h1><div class="meta">'+esc(m.codigo)+' • '+esc(m.modelo)+' • '+esc(m.tipoPropulsao||'Mecânico')+' • Série '+esc(m.serie)+' • '+esc(m.cliente)+' • '+esc(m.local)+'</div><div class="cards"><div class="card"><small>Horímetro</small><b>'+Number(m.horimetro||0).toLocaleString('pt-BR')+' h</b></div>'+(fleetHasBattery(m)?'<div class="card"><small>SOC</small><b>'+Number(m.soc||0)+'%</b></div>':'')+'<div class="card"><small>Estado</small><b>'+esc(m.status)+'</b></div></div>'+economy+'<div class="box"><b>Classificação da necessidade:</b><br>'+esc(m.classificacaoNecessidade||'A definir')+'</div><div class="box"><b>Evidência observada:</b><br>'+esc(m.evidenciaObservada||'—')+'</div><div class="box"><b>Análise / conclusão técnica:</b><br>'+esc(m.analiseTecnica||'—')+'</div>'+(fleetIsTrainingNeed(m)?'<div class="box"><b>Necessidade de treinamento:</b><br>'+esc(m.necessidadeTreinamento||'—')+'</div>':'')+'<div class="box"><b>Próxima ação:</b><br>'+esc(m.proximaAcao||'—')+'</div><div class="box"><b>Observações:</b><br>'+esc(m.observacoes||'—')+'</div><h2>Histórico completo</h2><table><thead><tr><th>Data</th><th>Tipo</th><th>Classificação</th><th>Evidência</th><th>Análise</th><th>Responsável</th><th>Horímetro</th><th>SOC</th></tr></thead><tbody>'+historyRows+'</tbody></table><p style="font-size:10px;color:#666">Para máquinas elétricas, a economia é uma estimativa baseada nos parâmetros cadastrados da operação.</p></body></html>');
   w.document.close();w.focus();setTimeout(()=>w.print(),250);
 }
 
