@@ -4009,7 +4009,9 @@ function fleetCheckUrl(m){
     cycles:m.ciclosDisponiveis?'1':'0',
     load:m.cargaDisponivel?'1':'0',
     energy:m.energiaDisponivel?'1':'0',
-    fuel:m.combustivelDisponivel?'1':'0'
+    fuel:m.combustivelDisponivel?'1':'0',
+    client:m.cliente||'',
+    location:m.local||''
   });
   return base+'?'+params.toString();
 }
