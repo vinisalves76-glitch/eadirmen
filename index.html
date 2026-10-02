@@ -1183,12 +1183,8 @@ function fleetIntelligenceMetrics(){
   const machines=fleetPrototype||[];
   const demands=trainingDemands();
   const stale=machines.filter(m=>{const d=fleetDaysSinceUpdate(m);return d!==null&&d>=7;}).length;
-  const overdue=machines.filter(m=>{
-    const text=String(m.proximaAcao||'').trim();
-    if(!text) return false;
-    const d=fleetDaysSinceUpdate(m);
-    return d!==null&&d>=7;
-  }).length;
+  const actionAge=fleetActionAgeSummary();
+  const overdue=actionAge.overdue;
 
   const recurringByMachine=[];
   machines.forEach(m=>{
@@ -1255,13 +1251,15 @@ function renderFleetIntelligencePanel(){
     '<div class="section-head"><div><h3>Inteligência de Frota</h3><div class="muted">Indicadores para decidir onde atuar, não apenas para descrever a frota.</div></div></div>'+
     '<div class="cards">'+
       '<div class="card"><div class="muted">Máquinas sem atualização ≥ 7 dias</div><div class="metric">'+m.stale+'</div></div>'+
-      '<div class="card"><div class="muted">Ações potencialmente atrasadas</div><div class="metric">'+m.overdue+'</div></div>'+
+      '<div class="card"><div class="muted">🔴 Ações atrasadas</div><div class="metric">'+m.overdue+'</div></div>'+
+      '<div class="card"><div class="muted">🟡 Vencem em até 7 dias</div><div class="metric">'+fleetActionAgeSummary().week+'</div></div>'+
+      '<div class="card"><div class="muted">🟢 Dentro do prazo</div><div class="metric">'+fleetActionAgeSummary().ok+'</div></div>'+
       '<div class="card"><div class="muted">Ocorrências recorrentes</div><div class="metric">'+m.recurring+'</div></div>'+
       '<div class="card"><div class="muted">Necessidades de treinamento abertas</div><div class="metric">'+m.openTraining+'</div></div>'+
       '<div class="card"><div class="muted">Treinamentos aplicados com recorrência</div><div class="metric">'+m.appliedRecurring+'</div></div>'+
     '</div>'+
     '<div class="fleet-overview" style="margin-top:14px"><div class="fleet-panel"><h3>Maior concentração por cliente</h3><div class="metric">'+(m.topClient?esc(m.topClient[0]):'—')+'</div><div class="muted">'+(m.topClient?m.topClient[1]+' necessidade(s) aberta(s)':'Sem demandas abertas')+'</div></div><div class="fleet-panel"><h3>Modelo com maior recorrência registrada</h3><div class="metric">'+(m.topModel?esc(m.topModel[0]):'—')+'</div><div class="muted">'+(m.topModel?m.topModel[1]+' registro(s) recorrente(s)':'Sem recorrência suficiente')+'</div></div></div>'+
-    '<div class="fleet-readonly">“Ação atrasada” usa ausência de atualização por 7 dias como sinal operacional provisório porque o sistema ainda não possui data de vencimento estruturada para cada ação. O próximo passo natural é adicionar prazo e responsável à ação.</div>'+
+    '<div class="fleet-readonly">A idade da ação agora usa o <b>prazo estruturado</b>. Ações sem prazo aparecem separadamente e não são tratadas como atrasadas.</div>'+
   '</div>';
 }
 
@@ -3493,14 +3491,15 @@ function renderFleetTable(){
         '<td>'+(fleetHasBattery(m)?'<b>'+Math.max(0,Math.min(100,Number(m.soc||0)))+'%</b><div class="machine-sub">SOC da bateria</div>':'—')+'</td>'+
         '<td>'+fleetStatusBadge(m.status)+'</td>'+
         '<td><div>'+fleetNeedClassBadge(m.classificacaoNecessidade||'A definir')+'</div><div class="machine-sub" style="margin-top:5px">'+esc(m.evidenciaObservada||'Evidência não registrada')+'</div>'+(fleetIsTrainingNeed(m)?'<div style="margin-top:5px">'+fleetPriorityBadge(m.prioridadeTreinamento)+'</div>':'')+'</td>'+
-        '<td><div>'+esc(m.proximaAcao||'—')+'</div><div class="machine-sub">Atualizado em '+fleetDate(m.ultimaAtualizacao)+'</div></td>'+
+        '<td><div>'+esc(m.proximaAcao||'—')+'</div><div style="margin-top:6px">'+fleetActionAgeBadge(m)+'</div><div class="machine-sub">Atualizado em '+fleetDate(m.ultimaAtualizacao)+'</div></td>'+
         '<td><div class="actions"><button class="btn btn-soft" onclick="openFleetMachine('+m.id+')">'+(fleetCanEdit()?'Abrir / editar':'Visualizar')+'</button><button class="btn btn-soft" onclick="openFleetQr('+m.id+')">QR Code / Fleet Check</button><button class="btn btn-soft" onclick="openFleetMachineReport('+m.id+')">Abrir relatório</button></div></td>'+
       '</tr>'
     ).join('')
     : '<tr><td colspan="8" class="empty">Nenhuma máquina encontrada com estes filtros.</td></tr>';
 }
 
-function renderFleet(){
+async function renderFleet(){
+  if(!fleetDataLoaded&&!fleetDataLoading) await loadFleetData();
   const firstName=currentUserFirstName();
   if(role==='consultant'){
     header(greetingByTime()+', '+firstName+' 👋','Estas são as prioridades do seu acompanhamento. Resolva primeiro o que exige ação e consulte a frota completa somente quando precisar.');
@@ -3528,10 +3527,11 @@ function renderFleet(){
     focus+
 
     '<div class="fleet-toolbar">'+
-      '<div class="fleet-toolbar-left"><span class="fleet-demo">PROTÓTIPO • dados demonstrativos</span><span class="muted">Seu acesso: '+esc(role==='admin'?'ADM':role==='consultant'?'Consultor de Treinamento':'Instrutor • somente leitura')+'</span></div>'+
+      '<div class="fleet-toolbar-left"><span class="fleet-demo">'+(fleetUsingCloud?'FIRESTORE • base compartilhada':'PREVIEW • dados ainda não migrados')+'</span><span class="muted">Seu acesso: '+esc(role==='admin'?'ADM':role==='consultant'?'Consultor de Treinamento':'Instrutor • somente leitura')+'</span></div>'+
       '<div class="fleet-toolbar-right">'+
         '<button class="btn btn-soft" onclick="openFleetDashboard()">Dashboard</button>'+
         '<button class="btn btn-soft" onclick="openFleetReport()">Relatório</button>'+
+        (fleetCanEdit()&&!fleetUsingCloud?'<button class="btn btn-soft" onclick="migrateFleetPrototypeToCloud()">Migrar base para Firestore</button>':'')+
         (fleetCanEdit()?'<button class="btn btn-primary" onclick="newFleetMachine()">+ Nova máquina</button>':'')+
       '</div>'+
     '</div>'+
@@ -3761,12 +3761,12 @@ function openFleetMachine(id){
   (!editable?'<div class="fleet-readonly">Perfil Instrutor: este módulo está em modo somente visualização.</div>':'')+
   '<div class="fleet-detail-grid"><div class="fleet-detail-item"><span>Número de série</span><b>'+esc(m.serie)+'</b></div><div class="fleet-detail-item"><span>Família</span><b>'+esc(fleetFamily(m))+'</b></div><div class="fleet-detail-item"><span>Fonte de energia</span><b>'+esc(m.tipoPropulsao||'Mecânico')+'</b></div><div class="fleet-detail-item"><span>Horímetro</span><b>'+Number(m.horimetro||0).toLocaleString('pt-BR')+' h</b></div>'+(fleetHasBattery(m)?'<div class="fleet-detail-item"><span>SOC da bateria</span><b>'+Number(m.soc||0)+'%</b></div>':'')+'<div class="fleet-detail-item"><span>Status</span>'+fleetStatusBadge(m.status)+'</div><div class="fleet-detail-item"><span>Consultor responsável</span><b>'+esc(m.consultor||'—')+'</b></div></div>'+
   (m.tipoPropulsao==='Elétrico'&&e?'<div class="fleet-panel" style="margin-top:14px"><h3>Economia estimada</h3><div class="fleet-report-grid"><div class="fleet-report-card"><span class="muted">Diesel equivalente</span><b>'+fleetMoney(e.custoDieselHora)+'/h</b></div><div class="fleet-report-card"><span class="muted">Elétrico</span><b>'+fleetMoney(e.custoEletricoHora)+'/h</b></div><div class="fleet-report-card"><span class="muted">Economia acumulada</span><b>'+fleetMoney(e.economiaTotal)+'</b></div></div></div>':'')+
-  '<div class="fleet-note"><b>Classificação da necessidade</b><div style="margin-top:7px">'+fleetNeedClassBadge(m.classificacaoNecessidade||'A definir')+'</div></div><div class="fleet-note"><b>Evidência observada</b><div class="muted" style="margin-top:5px">'+esc(m.evidenciaObservada||'Evidência ainda não registrada')+'</div></div><div class="fleet-note"><b>Análise / conclusão técnica</b><div class="muted" style="margin-top:5px">'+esc(m.analiseTecnica||'Análise ainda não registrada')+'</div></div>'+(fleetIsTrainingNeed(m)?'<div class="fleet-note"><b>Necessidade de treinamento</b><div class="muted" style="margin-top:5px">'+esc(m.necessidadeTreinamento||'Treinamento ainda não detalhado')+'</div><div style="margin-top:7px">'+fleetPriorityBadge(m.prioridadeTreinamento)+'</div></div>':'')+'<div class="fleet-note"><b>Próxima ação</b><div class="muted" style="margin-top:5px">'+esc(m.proximaAcao||'Sem próxima ação registrada')+'</div></div><div class="fleet-note"><b>Observações</b><div class="muted" style="margin-top:5px">'+esc(m.observacoes||'Sem observações')+'</div></div>'+
+  '<div class="fleet-note"><b>Classificação da necessidade</b><div style="margin-top:7px">'+fleetNeedClassBadge(m.classificacaoNecessidade||'A definir')+'</div></div><div class="fleet-note"><b>Evidência observada</b><div class="muted" style="margin-top:5px">'+esc(m.evidenciaObservada||'Evidência ainda não registrada')+'</div></div><div class="fleet-note"><b>Análise / conclusão técnica</b><div class="muted" style="margin-top:5px">'+esc(m.analiseTecnica||'Análise ainda não registrada')+'</div></div>'+(fleetIsTrainingNeed(m)?'<div class="fleet-note"><b>Necessidade de treinamento</b><div class="muted" style="margin-top:5px">'+esc(m.necessidadeTreinamento||'Treinamento ainda não detalhado')+'</div><div style="margin-top:7px">'+fleetPriorityBadge(m.prioridadeTreinamento)+'</div></div>':'')+'<div class="fleet-note"><b>Próxima ação</b><div class="muted" style="margin-top:5px">'+esc(m.proximaAcao||'Sem próxima ação registrada')+'</div><div style="margin-top:7px">'+fleetActionAgeBadge(m)+'</div></div><div class="fleet-note"><b>Rastreabilidade do cadastro</b><div style="margin-top:5px">'+fleetTraceHtml(m.audit||m.rastreabilidade||null)+'</div></div><div class="fleet-note"><b>Observações</b><div class="muted" style="margin-top:5px">'+esc(m.observacoes||'Sem observações')+'</div></div>'+
   '<div class="actions" style="margin-top:14px">'+(editable?'<button class="btn btn-primary" onclick="editFleetMachine('+m.id+')">Editar cadastro</button><button class="btn btn-soft" onclick="newFleetEvent('+m.id+')">+ Registrar acompanhamento</button>'+(m.tipoPropulsao==='Elétrico'?'<button class="btn btn-soft" onclick="openFleetCostUpdate('+m.id+')">Atualizar custos</button>':''):'')+'<button class="btn btn-soft" onclick="openFleetQr('+m.id+')">QR Code / Fleet Check</button><button class="btn btn-soft" onclick="openFleetMachineReport('+m.id+')">Abrir relatório</button></div>'+
   '<div style="margin-top:20px"><h3>Registros enviados pelo app do cliente</h3><div class="fleet-timeline">'+
     (fleetMachineShiftRecords(m.codigo).length?fleetMachineShiftRecords(m.codigo).slice(0,12).map(fleetShiftCard).join(''):'<div class="muted">Nenhum turno sincronizado para esta máquina.</div>')+
   '</div></div>'+
-  '<div style="margin-top:20px"><h3>Histórico de acompanhamento</h3><div class="fleet-timeline">'+(history.length?history.map(h=>'<div class="fleet-event"><div class="date">'+fleetDate(h.data)+' • '+esc(h.responsavel||'')+'</div><div class="event-title">'+esc(h.tipo||'Acompanhamento')+'</div><div class="event-text">'+esc(h.descricao||'')+'</div></div>').join(''):'<div class="muted">Nenhum acompanhamento registrado.</div>')+'</div></div>';
+  '<div style="margin-top:20px"><h3>Histórico de acompanhamento</h3><div class="fleet-timeline">'+(history.length?history.map(h=>'<div class="fleet-event"><div class="date">'+fleetDate(h.data)+' • '+esc(h.responsavel||'')+'</div><div class="event-title">'+esc(h.tipo||'Acompanhamento')+'</div><div class="event-text">'+esc(h.descricao||'')+'</div><div style="margin-top:6px">'+fleetTraceHtml(h.rastreabilidade||null)+'</div></div>').join(''):'<div class="muted">Nenhum acompanhamento registrado.</div>')+'</div></div>';
   showModal();
 }
 
@@ -3797,7 +3797,7 @@ function toggleFleetMachineProfileFields(){
 }
 function newFleetMachine(){if(!fleetCanEdit())return;document.getElementById('modalContent').innerHTML=fleetMachineForm(null);showModal();document.getElementById('fmStatus').value='Operação normal';document.getElementById('fmPrioridade').value='Baixa';document.getElementById('fmPropulsao').value='Mecânico';document.getElementById('fmFamilia').value='Outro';toggleFleetMachineProfileFields();toggleFleetTrainingFields('fm')}
 function editFleetMachine(id){if(!fleetCanEdit())return;const m=fleetPrototype.find(x=>Number(x.id)===Number(id));if(!m)return;document.getElementById('modalContent').innerHTML=fleetMachineForm(m);showModal();document.getElementById('fmStatus').value=m.status;document.getElementById('fmPrioridade').value=m.prioridadeTreinamento||'Baixa';document.getElementById('fmPropulsao').value=m.tipoPropulsao||'Mecânico';document.getElementById('fmFamilia').value=fleetFamily(m);toggleFleetMachineProfileFields();toggleFleetTrainingFields('fm')}
-function saveFleetMachine(id){
+async function saveFleetMachine(id){
   if(!fleetCanEdit())return;
   const codigo=document.getElementById('fmCodigo').value.trim(),modelo=document.getElementById('fmModelo').value.trim(),serie=document.getElementById('fmSerie').value.trim(),cliente=document.getElementById('fmCliente').value.trim(),tipo=document.getElementById('fmPropulsao').value,familia=document.getElementById('fmFamilia').value;
   if(!codigo||!modelo||!serie||!cliente)return alert('Preencha código, modelo, número de série e cliente.');
@@ -3810,7 +3810,45 @@ function saveFleetMachine(id){
     m.horimetroInicioEconomia=start;m.consumoEletricoKwhHora=consumoEletrico>0?consumoEletrico:null;m.consumoDieselReferenciaLHora=dieselRef>0?dieselRef:null;
     if(energia>0&&diesel>0&&!Array.isArray(m.historicoCustos)||energia>0&&diesel>0&&!m.historicoCustos.length){m.historicoCustos=[{id:Date.now(),dataInicio:m.ultimaAtualizacao||new Date().toISOString().slice(0,10),horimetroInicio:start,tarifaEnergia:energia,precoDiesel:diesel,responsavel:currentPersonName||'Cadastro inicial'}];m.tarifaEnergia=energia;m.precoDiesel=diesel}
   }else{m.horimetroInicioEconomia=null;m.consumoEletricoKwhHora=null;m.tarifaEnergia=null;m.consumoDieselReferenciaLHora=null;m.precoDiesel=null;m.historicoCustos=[]}
-  if(!Array.isArray(m.historico))m.historico=[];fleetSavePrototype();closeModal();renderFleet()
+  if(!Array.isArray(m.historico))m.historico=[];
+  m.prazoAcao=document.getElementById('fmPrazo')?.value||'';
+
+  try{
+    const saved=await fleetDataApi({action:'upsert-machine',origin:role==='admin'?'ADM':'Consultor',machine:m});
+    if(saved.machine){
+      Object.assign(m,saved.machine);
+      fleetUsingCloud=true;
+    }
+
+    if(m.proximaAcao){
+      const action=await fleetDataApi({
+        action:'upsert-action',
+        actionId:m.actionId||null,
+        machineCode:m.codigo,
+        machineName:m.modelo,
+        client:m.cliente,
+        text:m.proximaAcao,
+        dueDate:m.prazoAcao||null,
+        responsible:m.consultor||currentPersonName,
+        origin:role==='admin'?'ADM':'Consultor'
+      });
+      if(action.fleetAction){
+        m.actionId=action.fleetAction.id;
+        m.actionStatus=action.fleetAction.status;
+        m.prazoAcao=action.fleetAction.dueDate||'';
+        fleetCloudActions=fleetCloudActions.filter(a=>String(a.id||a.docId)!==String(action.fleetAction.id));
+        fleetCloudActions.unshift(action.fleetAction);
+      }
+    }
+
+    closeModal();
+    fleetDataLoaded=false;
+    await loadFleetData(true);
+    renderFleet();
+  }catch(err){
+    console.error('Falha ao salvar máquina no Firestore:',err);
+    alert(err.message||'Não foi possível salvar a máquina.');
+  }
 }
 
 function newFleetEvent(id){
@@ -3886,9 +3924,62 @@ async function saveFleetEvent(id){
   m.necessidadeTreinamento=treinamento;
   m.prioridadeTreinamento=prioridade;
   m.proximaAcao=document.getElementById('feAcao').value.trim();
+  m.prazoAcao=document.getElementById('fePrazo')?.value||'';
   m.ultimaAtualizacao=date;
 
-  fleetSavePrototype();
+  try{
+    const cloudEvent=await fleetDataApi({
+      action:'add-event',
+      origin:role==='admin'?'ADM':'Consultor',
+      machineCode:m.codigo,
+      machineName:m.modelo,
+      client:m.cliente,
+      id:fleetEvent.id,
+      date:fleetEvent.data,
+      type:fleetEvent.tipo,
+      classificacaoNecessidade:fleetEvent.classificacaoNecessidade,
+      evidenciaObservada:fleetEvent.evidenciaObservada,
+      analiseTecnica:fleetEvent.analiseTecnica,
+      necessidadeTreinamento:fleetEvent.necessidadeTreinamento,
+      prioridadeTreinamento:fleetEvent.prioridadeTreinamento,
+      proximaAcao:fleetEvent.proximaAcao,
+      responsavel:fleetEvent.responsavel,
+      horimetro:fleetEvent.horimetro,
+      soc:fleetEvent.soc
+    });
+    if(cloudEvent.event){
+      fleetCloudEvents.unshift(cloudEvent.event);
+      fleetEvent.rastreabilidade=cloudEvent.event.audit||null;
+      fleetEvent.origem=cloudEvent.event.source||'Consultor';
+    }
+
+    const machineSaved=await fleetDataApi({action:'upsert-machine',origin:role==='admin'?'ADM':'Consultor',machine:m});
+    if(machineSaved.machine)Object.assign(m,machineSaved.machine);
+
+    if(m.proximaAcao){
+      const action=await fleetDataApi({
+        action:'upsert-action',
+        actionId:m.actionId||null,
+        machineCode:m.codigo,
+        machineName:m.modelo,
+        client:m.cliente,
+        text:m.proximaAcao,
+        dueDate:m.prazoAcao||null,
+        responsible:m.consultor||currentPersonName,
+        origin:role==='admin'?'ADM':'Consultor'
+      });
+      if(action.fleetAction){
+        m.actionId=action.fleetAction.id;
+        m.prazoAcao=action.fleetAction.dueDate||'';
+        fleetCloudActions=fleetCloudActions.filter(a=>String(a.id||a.docId)!==String(action.fleetAction.id));
+        fleetCloudActions.unshift(action.fleetAction);
+      }
+    }
+    fleetUsingCloud=true;
+  }catch(err){
+    console.error('Falha ao sincronizar acompanhamento no Firestore:',err);
+    return alert(err.message||'Não foi possível salvar o acompanhamento na base compartilhada.');
+  }
 
   if(classificacao==='Treinamento'&&treinamento){
     try{
