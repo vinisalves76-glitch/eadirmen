@@ -32,17 +32,45 @@ function numberValue(value, field) {
   return n;
 }
 
+function optionalNumberValue(value, field) {
+  if (value === undefined || value === null || value === '') return null;
+  return numberValue(value, field);
+}
+
+function booleanValue(value, fallback = false) {
+  if (value === undefined || value === null || value === '') return fallback;
+  if (typeof value === 'boolean') return value;
+  return ['1', 'true', 'sim', 'yes'].includes(String(value).trim().toLowerCase());
+}
+
 function validateShift(body) {
   const machineCode = clean(body.machineCode, 40).toUpperCase();
   const machineName = clean(body.machineName, 120);
+  const machineFamily = clean(body.machineFamily || 'Caminhão', 40);
+  const powerSource = clean(body.powerSource || 'Mecânico', 30);
   const operator = clean(body.operator, 100);
   const shift = clean(body.shift, 50);
   const date = clean(body.date, 20);
   const team = clean(body.team, 80);
+  const application = clean(body.application, 160);
+  const operationalCondition = clean(body.operationalCondition, 160);
   const notes = clean(body.notes, 800);
+
+  const allowedFamilies = ['Caminhão', 'Escavadeira', 'Carregadeira', 'Outro'];
+  const allowedPowerSources = ['Mecânico', 'Híbrido', 'Elétrico'];
 
   if (!machineCode || !/^[A-Z0-9_-]+$/.test(machineCode)) {
     const err = new Error('Codigo da maquina invalido.');
+    err.statusCode = 400;
+    throw err;
+  }
+  if (!allowedFamilies.includes(machineFamily)) {
+    const err = new Error('Familia de equipamento invalida.');
+    err.statusCode = 400;
+    throw err;
+  }
+  if (!allowedPowerSources.includes(powerSource)) {
+    const err = new Error('Fonte de energia invalida.');
     err.statusCode = 400;
     throw err;
   }
@@ -57,46 +85,136 @@ function validateShift(body) {
     throw err;
   }
 
-  const kmStart = numberValue(body.kmStart, 'Km inicial');
-  const kmEnd = numberValue(body.kmEnd, 'Km final');
-  const socStart = numberValue(body.socStart, 'SOC inicial');
-  const socEnd = numberValue(body.socEnd, 'SOC final');
-  const loadedCycles = numberValue(body.loadedCycles, 'Ciclos carregados');
+  const hasKm = machineFamily === 'Caminhão';
+  const hasApplication = machineFamily === 'Escavadeira' || machineFamily === 'Carregadeira';
+  const hasOperationalCondition = machineFamily === 'Escavadeira' || machineFamily === 'Carregadeira';
+  const hasSoc = powerSource === 'Elétrico' || powerSource === 'Híbrido';
+  const cyclesAvailable = booleanValue(body.cyclesAvailable, machineFamily === 'Caminhão' || machineFamily === 'Carregadeira');
+  const loadAvailable = booleanValue(body.loadAvailable, machineFamily === 'Caminhão');
+  const energyDataAvailable = booleanValue(body.energyDataAvailable, false);
+  const fuelDataAvailable = booleanValue(body.fuelDataAvailable, false);
 
-  if (kmStart < 0 || kmEnd < kmStart) {
-    const err = new Error('Quilometragem invalida.');
-    err.statusCode = 400;
-    throw err;
-  }
-  if (socStart < 0 || socStart > 100 || socEnd < 0 || socEnd > 100) {
-    const err = new Error('SOC deve estar entre 0 e 100.');
-    err.statusCode = 400;
-    throw err;
-  }
-  if (loadedCycles < 0 || !Number.isInteger(loadedCycles)) {
-    const err = new Error('Ciclos carregados devem ser um numero inteiro.');
+  const hourmeterStart = numberValue(body.hourmeterStart, 'Horimetro inicial');
+  const hourmeterEnd = numberValue(body.hourmeterEnd, 'Horimetro final');
+  if (hourmeterStart < 0 || hourmeterEnd < hourmeterStart) {
+    const err = new Error('Horimetro invalido.');
     err.statusCode = 400;
     throw err;
   }
 
-  const distanceKm = Number((kmEnd - kmStart).toFixed(2));
-  const socVariation = Number((socStart - socEnd).toFixed(2));
-  const kmPerCycle = loadedCycles > 0 ? Number((distanceKm / loadedCycles).toFixed(3)) : 0;
+  let kmStart = null;
+  let kmEnd = null;
+  let distanceKm = null;
+  if (hasKm) {
+    kmStart = numberValue(body.kmStart, 'Km inicial');
+    kmEnd = numberValue(body.kmEnd, 'Km final');
+    if (kmStart < 0 || kmEnd < kmStart) {
+      const err = new Error('Quilometragem invalida.');
+      err.statusCode = 400;
+      throw err;
+    }
+    distanceKm = Number((kmEnd - kmStart).toFixed(2));
+  }
+
+  let socStart = null;
+  let socEnd = null;
+  let socVariation = null;
+  if (hasSoc) {
+    socStart = numberValue(body.socStart, 'SOC inicial');
+    socEnd = numberValue(body.socEnd, 'SOC final');
+    if (socStart < 0 || socStart > 100 || socEnd < 0 || socEnd > 100) {
+      const err = new Error('SOC deve estar entre 0 e 100.');
+      err.statusCode = 400;
+      throw err;
+    }
+    socVariation = Number((socStart - socEnd).toFixed(2));
+  }
+
+  let loadedCycles = null;
+  if (cyclesAvailable) {
+    loadedCycles = numberValue(body.loadedCycles, 'Ciclos');
+    if (loadedCycles < 0 || !Number.isInteger(loadedCycles)) {
+      const err = new Error('Ciclos devem ser um numero inteiro.');
+      err.statusCode = 400;
+      throw err;
+    }
+  }
+
+  if (hasApplication && !application) {
+    const err = new Error('Informe a aplicacao da maquina neste turno.');
+    err.statusCode = 400;
+    throw err;
+  }
+  if (hasOperationalCondition && !operationalCondition) {
+    const err = new Error('Informe a condicao operacional da maquina.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const payloadTons = loadAvailable ? optionalNumberValue(body.payloadTons, 'Carga transportada') : null;
+  if (payloadTons !== null && payloadTons < 0) {
+    const err = new Error('Carga transportada invalida.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const energyConsumedKwh = energyDataAvailable ? optionalNumberValue(body.energyConsumedKwh, 'Energia consumida') : null;
+  if (energyConsumedKwh !== null && energyConsumedKwh < 0) {
+    const err = new Error('Energia consumida invalida.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const fuelConsumedLiters = fuelDataAvailable ? optionalNumberValue(body.fuelConsumedLiters, 'Combustivel consumido') : null;
+  if (fuelConsumedLiters !== null && fuelConsumedLiters < 0) {
+    const err = new Error('Combustivel consumido invalido.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const chargeTimeMinutes = hasSoc && energyDataAvailable ? optionalNumberValue(body.chargeTimeMinutes, 'Tempo de carga') : null;
+  if (chargeTimeMinutes !== null && chargeTimeMinutes < 0) {
+    const err = new Error('Tempo de carga invalido.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const hourmeterDelta = Number((hourmeterEnd - hourmeterStart).toFixed(2));
+  const kmPerCycle = distanceKm !== null && loadedCycles > 0
+    ? Number((distanceKm / loadedCycles).toFixed(3))
+    : null;
 
   return {
     machineCode,
     machineName,
+    machineFamily,
+    powerSource,
     operator,
     shift,
     date,
     team,
+    hourmeterStart,
+    hourmeterEnd,
+    hourmeterDelta,
+    hasKm,
     kmStart,
     kmEnd,
     distanceKm,
+    hasSoc,
     socStart,
     socEnd,
     socVariation,
+    cyclesAvailable,
     loadedCycles,
+    loadAvailable,
+    payloadTons,
+    application: hasApplication ? application : '',
+    operationalCondition: hasOperationalCondition ? operationalCondition : '',
+    energyDataAvailable,
+    energyConsumedKwh,
+    chargeTimeMinutes,
+    fuelDataAvailable,
+    fuelConsumedLiters,
     kmPerCycle,
     notes
   };
