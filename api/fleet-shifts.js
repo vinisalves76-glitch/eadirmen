@@ -18,6 +18,11 @@ function getAdminApp() {
   });
 }
 
+function shiftsCollection() {
+  const preview = String(process.env.VERCEL_ENV || '').toLowerCase() !== 'production';
+  return preview ? 'preview_shiftRecords' : 'shiftRecords';
+}
+
 function clean(value, max = 180) {
   return String(value ?? '').trim().slice(0, max);
 }
@@ -46,6 +51,8 @@ function booleanValue(value, fallback = false) {
 function validateShift(body) {
   const machineCode = clean(body.machineCode, 40).toUpperCase();
   const machineName = clean(body.machineName, 120);
+  const client = clean(body.client, 180);
+  const location = clean(body.location, 180);
   const machineFamily = clean(body.machineFamily || 'Caminhão', 40);
   const powerSource = clean(body.powerSource || 'Mecânico', 30);
   const operator = clean(body.operator, 100);
@@ -187,6 +194,8 @@ function validateShift(body) {
   return {
     machineCode,
     machineName,
+    client,
+    location,
     machineFamily,
     powerSource,
     operator,
@@ -272,11 +281,22 @@ module.exports = async function handler(req, res) {
       }
 
       const data = validateShift(req.body || {});
-      const ref = await db.collection('registrosTurnoFrota').add({
+      const receivedAt = new Date().toISOString();
+      const ref = await db.collection(shiftsCollection()).add({
         ...data,
-        origem: 'app-cliente',
+        origem: 'App do operador',
         criadoEm: admin.firestore.FieldValue.serverTimestamp(),
-        recebidoEm: new Date().toISOString()
+        recebidoEm: receivedAt,
+        audit: {
+          actorUid: null,
+          actorName: data.operator,
+          actorRole: 'Operador',
+          recordedAt: receivedAt,
+          source: 'App do operador',
+          machineCode: data.machineCode,
+          client: data.client || '',
+          recordType: 'Registro de turno'
+        }
       });
 
       return res.status(201).json({
@@ -290,7 +310,7 @@ module.exports = async function handler(req, res) {
       await requireActiveViewer(req);
 
       const requestedMachine = clean(req.query?.machineCode, 40).toUpperCase();
-      const snap = await db.collection('registrosTurnoFrota')
+      const snap = await db.collection(shiftsCollection())
         .orderBy('criadoEm', 'desc')
         .limit(500)
         .get();
