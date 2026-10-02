@@ -10,6 +10,11 @@ function getAdminApp() {
   return admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 }
 
+function col(name) {
+  const preview = String(process.env.VERCEL_ENV || '').toLowerCase() !== 'production';
+  return preview ? 'preview_' + name : name;
+}
+
 function clean(value, max = 1200) {
   return String(value ?? '').trim().slice(0, max);
 }
@@ -75,7 +80,7 @@ async function ensureClient(db, name, origin, profile) {
   const client = clean(name, 180);
   if (!client) return null;
   const id = normalizeId(client);
-  const ref = db.collection('clients').doc(id);
+  const ref = db.collection(col('clients')).doc(id);
   const snap = await ref.get();
   if (!snap.exists) {
     await ref.set({
@@ -128,10 +133,10 @@ function machinePayload(body) {
 
 async function listAll(db) {
   const [machinesSnap, eventsSnap, actionsSnap, clientsSnap] = await Promise.all([
-    db.collection('machines').orderBy('codigo').limit(1000).get(),
-    db.collection('fleetEvents').orderBy('recordedAt','desc').limit(2000).get(),
-    db.collection('fleetActions').orderBy('createdAt','desc').limit(1000).get(),
-    db.collection('clients').orderBy('name').limit(1000).get()
+    db.collection(col('machines')).orderBy('codigo').limit(1000).get(),
+    db.collection(col('fleetEvents')).orderBy('recordedAt','desc').limit(2000).get(),
+    db.collection(col('fleetActions')).orderBy('createdAt','desc').limit(1000).get(),
+    db.collection(col('clients')).orderBy('name').limit(1000).get()
   ]);
 
   return {
@@ -164,7 +169,7 @@ module.exports = async function handler(req, res) {
       const machine = machinePayload(body.machine || body);
       const clientId = await ensureClient(db, machine.cliente, 'Consultor', profile);
       const docId = normalizeId(machine.codigo);
-      const ref = db.collection('machines').doc(docId);
+      const ref = db.collection(col('machines')).doc(docId);
       const old = await ref.get();
       const createdAt = old.exists ? (old.data().createdAt || nowIso()) : nowIso();
 
@@ -204,7 +209,7 @@ module.exports = async function handler(req, res) {
         source: clean(body.origin || (profile.perfil === 'admin' ? 'ADM' : 'Consultor'), 80),
         audit: trace(profile, body.origin || (profile.perfil === 'admin' ? 'ADM' : 'Consultor'), 'Acompanhamento', machineCode, client)
       };
-      const ref = await db.collection('fleetEvents').add(event);
+      const ref = await db.collection(col('fleetEvents')).add(event);
       return res.status(201).json({ ok: true, event: { docId: ref.id, ...event } });
     }
 
@@ -217,7 +222,7 @@ module.exports = async function handler(req, res) {
       if (dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return res.status(400).json({ error: 'Prazo invalido.' });
 
       const actionId = clean(body.actionId, 120) || normalizeId(machineCode + '-' + text);
-      const ref = db.collection('fleetActions').doc(actionId);
+      const ref = db.collection(col('fleetActions')).doc(actionId);
       const snap = await ref.get();
       const createdAt = snap.exists ? (snap.data().createdAt || nowIso()) : nowIso();
       const stored = {
@@ -241,7 +246,7 @@ module.exports = async function handler(req, res) {
     if (action === 'complete-action') {
       const actionId = clean(body.actionId, 120);
       if (!actionId) return res.status(400).json({ error: 'Acao invalida.' });
-      const ref = db.collection('fleetActions').doc(actionId);
+      const ref = db.collection(col('fleetActions')).doc(actionId);
       const snap = await ref.get();
       if (!snap.exists) return res.status(404).json({ error: 'Acao nao encontrada.' });
       const current = snap.data() || {};
@@ -263,7 +268,7 @@ module.exports = async function handler(req, res) {
         const machine = machinePayload(raw || {});
         const clientId = await ensureClient(db, machine.cliente, 'Importação', profile);
         const docId = normalizeId(machine.codigo);
-        const ref = db.collection('machines').doc(docId);
+        const ref = db.collection(col('machines')).doc(docId);
         const exists = await ref.get();
 
         if (!exists.exists) {
@@ -280,7 +285,7 @@ module.exports = async function handler(req, res) {
         const history = Array.isArray(raw.historico) ? raw.historico : [];
         for (const h of history.slice(0,500)) {
           const eventId = normalizeId(machine.codigo + '-' + (h.id || h.data || eventCount));
-          const eRef = db.collection('fleetEvents').doc(eventId);
+          const eRef = db.collection(col('fleetEvents')).doc(eventId);
           const eSnap = await eRef.get();
           if (eSnap.exists) continue;
           await eRef.set({
@@ -309,7 +314,7 @@ module.exports = async function handler(req, res) {
         const next = clean(raw.proximaAcao,1200);
         if (next) {
           const actionId = normalizeId(machine.codigo + '-' + next);
-          const aRef = db.collection('fleetActions').doc(actionId);
+          const aRef = db.collection(col('fleetActions')).doc(actionId);
           const aSnap = await aRef.get();
           if (!aSnap.exists) {
             await aRef.set({
