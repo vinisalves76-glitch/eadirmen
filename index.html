@@ -401,7 +401,14 @@ const fleetPrototypeDefaults=[
     ]
   }
 ];
-let fleetPrototype=JSON.parse(localStorage.getItem('ead-irmen-fleet-prototype')||'null')||JSON.parse(JSON.stringify(fleetPrototypeDefaults));
+let fleetPrototype=JSON.parse(JSON.stringify(fleetPrototypeDefaults));
+let fleetCloudEvents=[];
+let fleetCloudActions=[];
+let fleetCloudClients=[];
+let fleetDataLoaded=false;
+let fleetDataLoading=false;
+let fleetDataError='';
+let fleetUsingCloud=false;
 const fleetDemoSoc=[78,64,32,91,48,86];
 const fleetDemoPropulsao=['Mecânico','Mecânico','Elétrico','Híbrido','Mecânico','Elétrico'];
 const fleetDemoEconomy={2:{horimetroInicioEconomia:1700,consumoEletricoKwhHora:36,tarifaEnergia:0.82,consumoDieselReferenciaLHora:15,precoDiesel:6.20},5:{horimetroInicioEconomia:400,consumoEletricoKwhHora:22,tarifaEnergia:0.82,consumoDieselReferenciaLHora:9,precoDiesel:6.20}};
@@ -428,6 +435,7 @@ fleetPrototype=fleetPrototype.map((m,index)=>{
     classificacaoNecessidade:m.classificacaoNecessidade||'A definir',
     evidenciaObservada:m.evidenciaObservada||'',
     analiseTecnica:m.analiseTecnica||'',
+    prazoAcao:m.prazoAcao||'',
     historico
   };
 });
@@ -3080,16 +3088,165 @@ function fleetCanEdit(){
   return role==='admin' || role==='consultant';
 }
 
+async function fleetDataApi(body=null){
+  const user=auth.currentUser;
+  if(!user) throw new Error('Sua sessão expirou. Entre novamente.');
+  const token=await user.getIdToken(true);
+  const options={headers:{'Authorization':'Bearer '+token}};
+  if(body){
+    options.method='POST';
+    options.headers['Content-Type']='application/json';
+    options.body=JSON.stringify(body);
+  }
+  const response=await fetch('/api/fleet-data',options);
+  let result={};
+  try{result=await response.json();}catch(_){}
+  if(!response.ok) throw new Error(result.error||'Não foi possível sincronizar a frota.');
+  return result;
+}
+
+function fleetAttachCloudHistory(){
+  const byCode={};
+  fleetCloudEvents.forEach(event=>{
+    const code=String(event.machineCode||'').toUpperCase();
+    if(!code)return;
+    if(!byCode[code])byCode[code]=[];
+    byCode[code].push({
+      id:event.id||event.docId||Date.now(),
+      data:event.date||String(event.recordedAt||'').slice(0,10),
+      tipo:event.type||'Acompanhamento',
+      classificacaoNecessidade:event.classificacaoNecessidade||'A definir',
+      evidenciaObservada:event.evidenciaObservada||'',
+      analiseTecnica:event.analiseTecnica||'',
+      descricao:event.analiseTecnica||event.evidenciaObservada||'',
+      necessidadeTreinamento:event.necessidadeTreinamento||'',
+      prioridadeTreinamento:event.prioridadeTreinamento||'Baixa',
+      proximaAcao:event.proximaAcao||'',
+      responsavel:event.responsavel||event.audit?.actorName||'',
+      horimetro:event.horimetro,
+      soc:event.soc,
+      origem:event.source||event.audit?.source||'Consultor',
+      rastreabilidade:event.audit||null
+    });
+  });
+
+  const actionByCode={};
+  fleetCloudActions.filter(a=>a.status!=='Concluída').forEach(action=>{
+    const code=String(action.machineCode||'').toUpperCase();
+    if(!code)return;
+    const previous=actionByCode[code];
+    if(!previous || String(action.createdAt||'')>String(previous.createdAt||'')) actionByCode[code]=action;
+  });
+
+  fleetPrototype=fleetPrototype.map(m=>{
+    const code=String(m.codigo||'').toUpperCase();
+    const action=actionByCode[code];
+    return {
+      ...m,
+      historico:(byCode[code]||[]).sort((a,b)=>String(b.data||'').localeCompare(String(a.data||''))),
+      proximaAcao:action?.text||m.proximaAcao||'',
+      prazoAcao:action?.dueDate||m.prazoAcao||'',
+      actionId:action?.id||action?.docId||m.actionId||null,
+      actionStatus:action?.status||m.actionStatus||null,
+      actionResponsible:action?.responsible||m.consultor||'',
+      rastreabilidade:m.audit||m.rastreabilidade||null
+    };
+  });
+}
+
+async function loadFleetData(force=false){
+  if(fleetDataLoading)return;
+  if(fleetDataLoaded&&!force)return;
+  fleetDataLoading=true;
+  fleetDataError='';
+  try{
+    const result=await fleetDataApi();
+    const machines=Array.isArray(result.machines)?result.machines:[];
+    fleetCloudEvents=Array.isArray(result.events)?result.events:[];
+    fleetCloudActions=Array.isArray(result.actions)?result.actions:[];
+    fleetCloudClients=Array.isArray(result.clients)?result.clients:[];
+
+    if(machines.length){
+      fleetPrototype=machines.map((m,index)=>({
+        ...m,
+        id:Number(m.id)||Date.now()+index,
+        historico:[]
+      }));
+      fleetUsingCloud=true;
+    }else{
+      fleetPrototype=JSON.parse(JSON.stringify(fleetPrototypeDefaults));
+      fleetUsingCloud=false;
+    }
+    fleetAttachCloudHistory();
+    fleetDataLoaded=true;
+  }catch(err){
+    console.error('Falha ao carregar dados Firestore da frota:',err);
+    fleetDataError=err.message||'Falha de sincronização.';
+    fleetUsingCloud=false;
+  }finally{
+    fleetDataLoading=false;
+  }
+}
+
+async function migrateFleetPrototypeToCloud(){
+  if(!fleetCanEdit())return;
+  if(!confirm('Migrar os dados demonstrativos atuais para a base Firestore desta PREVIEW? Nenhum dado de produção será alterado.'))return;
+  try{
+    const result=await fleetDataApi({action:'migrate-local',machines:fleetPrototype});
+    alert('Migração concluída na preview. Máquinas: '+result.migrated.machines+' • eventos: '+result.migrated.events+' • ações: '+result.migrated.actions);
+    fleetDataLoaded=false;
+    await loadFleetData(true);
+    renderFleet();
+  }catch(err){alert(err.message||'Não foi possível migrar a frota.');}
+}
+
+function fleetActionState(action){
+  if(!action||action.status==='Concluída')return 'none';
+  const due=String(action.dueDate||'');
+  if(!due)return 'no-date';
+  const today=new Date();today.setHours(0,0,0,0);
+  const dueDate=new Date(due+'T00:00:00');
+  if(!Number.isFinite(dueDate.getTime()))return 'no-date';
+  if(dueDate<today)return 'overdue';
+  const days=Math.round((dueDate-today)/86400000);
+  if(days<=7)return 'week';
+  return 'ok';
+}
+
+function fleetActionAgeSummary(){
+  const open=fleetCloudActions.filter(a=>a.status!=='Concluída');
+  return {
+    overdue:open.filter(a=>fleetActionState(a)==='overdue').length,
+    week:open.filter(a=>fleetActionState(a)==='week').length,
+    ok:open.filter(a=>fleetActionState(a)==='ok').length,
+    noDate:open.filter(a=>fleetActionState(a)==='no-date').length
+  };
+}
+
+function fleetActionAgeBadge(m){
+  const action=fleetCloudActions.find(a=>(a.id===m.actionId||a.docId===m.actionId))||
+    fleetCloudActions.filter(a=>a.status!=='Concluída'&&String(a.machineCode||'').toUpperCase()===String(m.codigo||'').toUpperCase()).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')))[0];
+  if(!action)return '<span class="fleet-mini-badge amber">Sem ação estruturada</span>';
+  const state=fleetActionState(action);
+  if(state==='overdue')return '<span class="fleet-mini-badge red">Atrasada • '+fleetDate(action.dueDate)+'</span>';
+  if(state==='week')return '<span class="fleet-mini-badge amber">Vence nesta semana • '+fleetDate(action.dueDate)+'</span>';
+  if(state==='ok')return '<span class="fleet-mini-badge green">Dentro do prazo • '+fleetDate(action.dueDate)+'</span>';
+  return '<span class="fleet-mini-badge amber">Sem prazo definido</span>';
+}
+
+function fleetTraceHtml(trace){
+  if(!trace)return '<div class="muted">Registro antigo sem rastreabilidade estruturada.</div>';
+  return '<div class="muted">Origem: <b>'+esc(trace.source||'—')+'</b> • por '+esc(trace.actorName||'—')+' • '+esc(trace.recordType||'Registro')+' • '+esc(trace.recordedAt?new Date(trace.recordedAt).toLocaleString('pt-BR'):'—')+'</div>';
+}
+
 function fleetSavePrototype(){
-  localStorage.setItem('ead-irmen-fleet-prototype',JSON.stringify(fleetPrototype));
+  // Mantido apenas como compatibilidade temporária de código legado.
+  // A fonte principal da nova arquitetura é Firestore via /api/fleet-data.
 }
 
 function fleetResetPrototype(){
   if(!fleetCanEdit()) return;
-  if(!confirm('Restaurar os dados demonstrativos do protótipo?')) return;
-  fleetPrototype=JSON.parse(JSON.stringify(fleetPrototypeDefaults));
-  fleetSavePrototype();
-  renderFleet();
+  alert('A restauração por localStorage foi desativada nesta arquitetura. Use a base Firestore da preview.');
 }
 
 function fleetStatusClass(status){
@@ -3624,7 +3781,7 @@ function fleetMachineForm(m){
   '<div class="field span2"><label>Análise / conclusão técnica</label><textarea id="fmAnalise" placeholder="Hipótese ou conclusão após análise e testes.">'+esc(x.analiseTecnica||'')+'</textarea></div>'+
   '<div id="fmTrainingFields" class="span2"><div class="fleet-panel"><h3>Treinamento</h3><div class="form-grid"><div class="field"><label>Prioridade do treinamento</label><select id="fmPrioridade"><option>Baixa</option><option>Média</option><option>Alta</option><option>Crítica</option></select></div><div class="field span2"><label>Necessidade de treinamento</label><textarea id="fmTreinamento">'+esc(x.necessidadeTreinamento||'')+'</textarea></div></div></div></div>'+
   '<div id="fleetElectricFields" class="span2"><div class="fleet-panel"><h3>Comparativo diesel x elétrico</h3><div class="form-grid"><div class="field"><label>Horímetro no início do acompanhamento</label><input id="fmHorimetroInicio" type="number" min="0" value="'+esc(x.horimetroInicioEconomia??'')+'"></div><div class="field"><label>Consumo elétrico médio (kWh/h)</label><input id="fmConsumoEletrico" type="number" min="0" step="0.01" value="'+esc(x.consumoEletricoKwhHora??'')+'"></div><div class="field"><label>Tarifa de energia (R$/kWh)</label><input id="fmTarifaEnergia" type="number" min="0" step="0.01" value="'+esc(fleetCurrentCost(x)?.tarifaEnergia??x.tarifaEnergia??'')+'" '+(isEdit?'readonly':'')+'></div><div class="field"><label>Consumo diesel de referência (L/h)</label><input id="fmDieselReferencia" type="number" min="0" step="0.01" value="'+esc(x.consumoDieselReferenciaLHora??'')+'"></div><div class="field"><label>Preço do diesel (R$/L)</label><input id="fmPrecoDiesel" type="number" min="0" step="0.01" value="'+esc(fleetCurrentCost(x)?.precoDiesel??x.precoDiesel??'')+'" '+(isEdit?'readonly':'')+'></div></div><div class="fleet-readonly">Este comparativo é opcional. Só calcule quando houver dados reais de consumo e custos da operação.</div></div></div>'+
-  '<div class="field span2"><label>Próxima ação</label><textarea id="fmAcao">'+esc(x.proximaAcao)+'</textarea></div><div class="field span2"><label>Observações gerais</label><textarea id="fmObs">'+esc(x.observacoes)+'</textarea></div><div class="span2"><button class="btn btn-primary" onclick="saveFleetMachine('+(isEdit?x.id:'null')+')">'+(isEdit?'Salvar alterações':'Adicionar ao acompanhamento')+'</button></div></div>';
+  '<div class="field"><label>Próxima ação</label><textarea id="fmAcao">'+esc(x.proximaAcao)+'</textarea></div><div class="field"><label>Prazo da ação</label><input id="fmPrazo" type="date" value="'+esc(x.prazoAcao||'')+'"><div class="workflow-note">Defina prazo quando houver uma ação concreta. Isso alimenta o indicador de idade da ação.</div></div><div class="field span2"><label>Observações gerais</label><textarea id="fmObs">'+esc(x.observacoes)+'</textarea></div><div class="span2"><button class="btn btn-primary" onclick="saveFleetMachine('+(isEdit?x.id:'null')+')">'+(isEdit?'Salvar alterações':'Adicionar ao acompanhamento')+'</button></div></div>';
 }
 
 function toggleFleetMachineProfileFields(){
@@ -3674,7 +3831,8 @@ function newFleetEvent(id){
       '<div class="field span2"><label>Evidência observada *</label><textarea id="feEvidencia" placeholder="Ex.: operador relatou perda de força ao elevar a lança após 40 minutos de operação."></textarea><div class="workflow-note">Use fatos observados, medições ou relatos. Não escreva uma conclusão como se fosse evidência.</div></div>'+
       '<div class="field span2"><label>Análise / conclusão técnica</label><textarea id="feAnalise" placeholder="Ex.: causa ainda não confirmada; necessário medir pressão e verificar códigos antes de concluir."></textarea></div>'+
       '<div id="feTrainingFields" class="span2"><div class="fleet-panel"><h3>Treinamento</h3><div class="form-grid"><div class="field"><label>Prioridade</label><select id="fePrioridade"><option>Baixa</option><option>Média</option><option>Alta</option><option>Crítica</option></select></div><div class="field span2"><label>Necessidade de treinamento</label><textarea id="feTreinamento">'+esc(m.necessidadeTreinamento||'')+'</textarea></div></div></div></div>'+
-      '<div class="field span2"><label>Próxima ação</label><textarea id="feAcao">'+esc(m.proximaAcao||'')+'</textarea></div>'+
+      '<div class="field"><label>Próxima ação</label><textarea id="feAcao">'+esc(m.proximaAcao||'')+'</textarea></div>'+
+      '<div class="field"><label>Prazo</label><input id="fePrazo" type="date" value="'+esc(m.prazoAcao||'')+'"></div>'+
       '<div class="span2"><button class="btn btn-primary" onclick="saveFleetEvent('+m.id+')">Registrar acompanhamento</button></div>'+
     '</div>';
 
