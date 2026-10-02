@@ -140,14 +140,14 @@
       </div>
 
       <h1>Troca de turno<br>simples e rastreável.</h1>
-      <p>Registre os dados operacionais do caminhão a cada troca de turno. O objetivo é enviar os dados para o acompanhamento central da frota.</p>
+      <p>Registre somente os dados aplicáveis ao equipamento selecionado. O Fleet Check adapta o formulário conforme família, fonte de energia e disponibilidade real dos dados.</p>
 
       <div class="hero-machine">
         <div class="hero-machine-top">
           <div>
             <div class="eyebrow">Máquina vinculada</div>
-            <h3>Caminhão Elétrico • FRT-003</h3>
-            <small>Cliente Mineração A • Itabira/MG</small>
+            <h3 id="heroMachineTitle">Equipamento selecionado</h3>
+            <small id="heroMachineMeta">Família e fonte de energia definem os campos do turno</small>
           </div>
           <div class="status-badge">EM TESTE</div>
         </div>
@@ -161,13 +161,13 @@
       </div>
       <div class="grid-kpi">
         <div class="kpi"><span>Turnos enviados</span><b id="kpiShifts">0</b></div>
-        <div class="kpi"><span>Km registrados</span><b id="kpiKm">0</b></div>
-        <div class="kpi"><span>Ciclos carregados</span><b id="kpiCycles">0</b></div>
+        <div class="kpi"><span>Horas registradas</span><b id="kpiHours">0</b></div>
+        <div class="kpi"><span>Produção registrada</span><b id="kpiProduction">0</b></div>
       </div>
 
       <div class="primary-card">
         <h2>Registrar troca de turno</h2>
-        <p>Preencha a quilometragem, SOC da bateria e quantidade de ciclos com o caminhão carregado.</p>
+        <p>Selecione a máquina e o sistema mostrará apenas horímetro, produção, energia e condição operacional aplicáveis a ela.</p>
         <button class="btn btn-primary" onclick="goScreen('form')">+ Iniciar registro do turno</button>
       </div>
 
@@ -192,10 +192,12 @@
         <div class="form-grid">
           <div class="field span2">
             <label>Máquina</label>
-            <select id="machine">
-              <option value="FRT-003|Caminhão Elétrico 01">FRT-003 • Caminhão Elétrico 01</option>
-              <option value="FRT-006|Caminhão Elétrico 02">FRT-006 • Caminhão Elétrico 02</option>
+            <select id="machine" onchange="applyMachineProfile()">
+              <option value="TRK-EL-01|Caminhão Elétrico Demo|Caminhão|Elétrico|1|1|1|0">TRK-EL-01 • Caminhão Elétrico Demo</option>
+              <option value="FRT-001|SY215C|Escavadeira|Mecânico|0|0|0|1">FRT-001 • SY215C • Escavadeira</option>
+              <option value="FRT-003|SW956E|Carregadeira|Elétrico|1|0|1|0">FRT-003 • SW956E • Carregadeira</option>
             </select>
+            <div id="machineProfileHint" class="field-hint"></div>
           </div>
           <div class="field">
             <label>Operador / responsável</label>
@@ -221,42 +223,51 @@
       </div>
 
       <div class="form-section">
-        <h3>Quilometragem do turno</h3>
+        <h3>Utilização</h3>
         <div class="form-grid">
           <div class="field">
-            <label>Km inicial</label>
-            <input id="kmStart" inputmode="decimal" type="number" step="0.1" min="0" placeholder="0,0" oninput="updateLiveSummary()">
+            <label>Horímetro inicial (h)</label>
+            <input id="hourmeterStart" inputmode="decimal" type="number" step="0.1" min="0" placeholder="0,0" oninput="updateLiveSummary()">
           </div>
           <div class="field">
-            <label>Km final</label>
-            <input id="kmEnd" inputmode="decimal" type="number" step="0.1" min="0" placeholder="0,0" oninput="updateLiveSummary()">
+            <label>Horímetro final (h)</label>
+            <input id="hourmeterEnd" inputmode="decimal" type="number" step="0.1" min="0" placeholder="0,0" oninput="updateLiveSummary()">
           </div>
         </div>
       </div>
 
-      <div class="form-section">
-        <h3>Bateria e produção</h3>
+      <div id="kmSection" class="form-section">
+        <h3>Quilometragem do turno</h3>
         <div class="form-grid">
-          <div class="field">
-            <label>SOC inicial (%)</label>
-            <input id="socStart" inputmode="numeric" type="number" min="0" max="100" step="1" placeholder="100" oninput="updateLiveSummary()">
-            <div class="field-hint">SOC = percentual de carga da bateria.</div>
-          </div>
-          <div class="field">
-            <label>SOC final (%)</label>
-            <input id="socEnd" inputmode="numeric" type="number" min="0" max="100" step="1" placeholder="40" oninput="updateLiveSummary()">
-          </div>
-          <div class="field span2">
-            <label>Ciclos com caminhão carregado</label>
-            <input id="loadedCycles" inputmode="numeric" type="number" min="0" step="1" placeholder="Ex.: 18" oninput="updateLiveSummary()">
-            <div class="field-hint">Conte somente os ciclos realizados com carga.</div>
-          </div>
+          <div class="field"><label>Km inicial</label><input id="kmStart" inputmode="decimal" type="number" step="0.1" min="0" placeholder="0,0" oninput="updateLiveSummary()"></div>
+          <div class="field"><label>Km final</label><input id="kmEnd" inputmode="decimal" type="number" step="0.1" min="0" placeholder="0,0" oninput="updateLiveSummary()"></div>
+        </div>
+      </div>
+
+      <div id="productionSection" class="form-section">
+        <h3>Produção e aplicação</h3>
+        <div class="form-grid">
+          <div id="cyclesField" class="field span2"><label id="cyclesLabel">Ciclos</label><input id="loadedCycles" inputmode="numeric" type="number" min="0" step="1" placeholder="Ex.: 18" oninput="updateLiveSummary()"><div class="field-hint">Preencha somente quando o equipamento ou a operação disponibilizar esse dado.</div></div>
+          <div id="loadField" class="field span2"><label>Carga transportada (t) — quando disponível</label><input id="payloadTons" inputmode="decimal" type="number" min="0" step="0.1" placeholder="Opcional"></div>
+          <div id="applicationField" class="field span2"><label>Aplicação no turno</label><input id="application" placeholder="Ex.: escavação, carregamento, alimentação de britador"></div>
+          <div id="conditionField" class="field span2"><label>Condição operacional</label><select id="operationalCondition"><option>Operação normal</option><option>Operação com restrição</option><option>Parada operacional</option><option>Aguardando manutenção</option></select></div>
+        </div>
+      </div>
+
+      <div id="energySection" class="form-section">
+        <h3>Energia / combustível</h3>
+        <div class="form-grid">
+          <div id="socStartField" class="field"><label>SOC inicial (%)</label><input id="socStart" inputmode="numeric" type="number" min="0" max="100" step="1" placeholder="100" oninput="updateLiveSummary()"><div class="field-hint">SOC = percentual de carga da bateria.</div></div>
+          <div id="socEndField" class="field"><label>SOC final (%)</label><input id="socEnd" inputmode="numeric" type="number" min="0" max="100" step="1" placeholder="40" oninput="updateLiveSummary()"></div>
+          <div id="energyConsumedField" class="field"><label>Energia consumida (kWh)</label><input id="energyConsumedKwh" inputmode="decimal" type="number" min="0" step="0.1" placeholder="Somente se disponível"></div>
+          <div id="chargeTimeField" class="field"><label>Tempo de carga (min)</label><input id="chargeTimeMinutes" inputmode="decimal" type="number" min="0" step="1" placeholder="Somente se disponível"></div>
+          <div id="fuelConsumedField" class="field span2"><label>Combustível consumido (L)</label><input id="fuelConsumedLiters" inputmode="decimal" type="number" min="0" step="0.1" placeholder="Somente se disponível"></div>
         </div>
 
         <div class="live-summary">
-          <div class="summary-box"><span>Distância</span><b id="liveDistance">—</b></div>
-          <div class="summary-box"><span>Uso de SOC</span><b id="liveSocUse">—</b></div>
-          <div class="summary-box"><span>Km / ciclo</span><b id="liveKmCycle">—</b></div>
+          <div class="summary-box"><span>Horas do turno</span><b id="liveHours">—</b></div>
+          <div class="summary-box"><span id="liveMetric2Label">Produção</span><b id="liveMetric2">—</b></div>
+          <div class="summary-box"><span id="liveMetric3Label">Energia</span><b id="liveMetric3">—</b></div>
         </div>
         <div id="liveWarning"></div>
       </div>
@@ -342,68 +353,134 @@
     window.scrollTo({top:0,behavior:'smooth'});
   }
 
+  function machineProfile(){
+    const raw=document.getElementById('machine').value.split('|');
+    return {
+      code:raw[0],name:raw[1],family:raw[2]||'Outro',powerSource:raw[3]||'Mecânico',
+      cyclesAvailable:raw[4]==='1',loadAvailable:raw[5]==='1',
+      energyDataAvailable:raw[6]==='1',fuelDataAvailable:raw[7]==='1'
+    };
+  }
+
+  function showField(id,show){
+    const el=document.getElementById(id);
+    if(el) el.style.display=show?'flex':'none';
+  }
+
+  function applyMachineProfile(){
+    const p=machineProfile();
+    const hasKm=p.family==='Caminhão';
+    const hasSoc=p.powerSource==='Elétrico'||p.powerSource==='Híbrido';
+    const hasApplication=p.family==='Escavadeira'||p.family==='Carregadeira';
+    document.getElementById('kmSection').style.display=hasKm?'block':'none';
+    document.getElementById('productionSection').style.display=(p.cyclesAvailable||p.loadAvailable||hasApplication)?'block':'none';
+    document.getElementById('energySection').style.display=(hasSoc||p.energyDataAvailable||p.fuelDataAvailable)?'block':'none';
+    showField('cyclesField',p.cyclesAvailable);
+    showField('loadField',p.loadAvailable);
+    showField('applicationField',hasApplication);
+    showField('conditionField',hasApplication);
+    showField('socStartField',hasSoc);
+    showField('socEndField',hasSoc);
+    showField('energyConsumedField',p.energyDataAvailable);
+    showField('chargeTimeField',hasSoc&&p.energyDataAvailable);
+    showField('fuelConsumedField',p.fuelDataAvailable);
+    document.getElementById('cyclesLabel').textContent=p.family==='Caminhão'?'Viagens / ciclos realizados':'Ciclos realizados';
+    document.getElementById('machineProfileHint').textContent=p.family+' • '+p.powerSource+' • campos adaptados automaticamente';
+    document.getElementById('heroMachineTitle').textContent=p.name+' • '+p.code;
+    document.getElementById('heroMachineMeta').textContent=p.family+' • '+p.powerSource;
+    updateLiveSummary();
+  }
+
+  function valueOrNull(id){
+    const el=document.getElementById(id);
+    return !el||el.value===''?null:Number(el.value);
+  }
+
   function updateLiveSummary(){
-    const kmStart=Number(document.getElementById('kmStart').value);
-    const kmEnd=Number(document.getElementById('kmEnd').value);
-    const socStart=Number(document.getElementById('socStart').value);
-    const socEnd=Number(document.getElementById('socEnd').value);
-    const cycles=Number(document.getElementById('loadedCycles').value);
+    const p=machineProfile();
+    const hStart=valueOrNull('hourmeterStart'),hEnd=valueOrNull('hourmeterEnd');
+    const hours=hStart!==null&&hEnd!==null&&hEnd>=hStart?hEnd-hStart:null;
+    const kmStart=valueOrNull('kmStart'),kmEnd=valueOrNull('kmEnd');
+    const distance=p.family==='Caminhão'&&kmStart!==null&&kmEnd!==null&&kmEnd>=kmStart?kmEnd-kmStart:null;
+    const cycles=p.cyclesAvailable?valueOrNull('loadedCycles'):null;
+    const socStart=(p.powerSource==='Elétrico'||p.powerSource==='Híbrido')?valueOrNull('socStart'):null;
+    const socEnd=(p.powerSource==='Elétrico'||p.powerSource==='Híbrido')?valueOrNull('socEnd'):null;
+    const socUse=socStart!==null&&socEnd!==null?socStart-socEnd:null;
 
-    const distance=kmEnd>=kmStart&&kmEnd>0?kmEnd-kmStart:null;
-    const socUse=(socStart>=0&&socStart<=100&&socEnd>=0&&socEnd<=100&&document.getElementById('socStart').value!==''&&document.getElementById('socEnd').value!=='')?socStart-socEnd:null;
-    const kmCycle=distance!==null&&cycles>0?distance/cycles:null;
+    document.getElementById('liveHours').textContent=hours===null?'—':brNumber(hours,1)+' h';
+    if(distance!==null){
+      document.getElementById('liveMetric2Label').textContent='Distância';
+      document.getElementById('liveMetric2').textContent=brNumber(distance,1)+' km';
+    }else if(cycles!==null){
+      document.getElementById('liveMetric2Label').textContent='Ciclos';
+      document.getElementById('liveMetric2').textContent=brNumber(cycles,0);
+    }else{
+      document.getElementById('liveMetric2Label').textContent='Produção';
+      document.getElementById('liveMetric2').textContent='—';
+    }
 
-    document.getElementById('liveDistance').textContent=distance===null?'—':brNumber(distance)+' km';
-    document.getElementById('liveSocUse').textContent=socUse===null?'—':(socUse>=0?brNumber(socUse,0)+'%':'+'+brNumber(Math.abs(socUse),0)+'%');
-    document.getElementById('liveKmCycle').textContent=kmCycle===null?'—':brNumber(kmCycle,2)+' km';
+    if(socUse!==null){
+      document.getElementById('liveMetric3Label').textContent='Uso de SOC';
+      document.getElementById('liveMetric3').textContent=(socUse>=0?'-':'+')+brNumber(Math.abs(socUse),0)+'%';
+    }else if(p.energyDataAvailable&&valueOrNull('energyConsumedKwh')!==null){
+      document.getElementById('liveMetric3Label').textContent='Energia';
+      document.getElementById('liveMetric3').textContent=brNumber(valueOrNull('energyConsumedKwh'),1)+' kWh';
+    }else{
+      document.getElementById('liveMetric3Label').textContent=p.fuelDataAvailable?'Combustível':'Energia';
+      document.getElementById('liveMetric3').textContent=p.fuelDataAvailable&&valueOrNull('fuelConsumedLiters')!==null?brNumber(valueOrNull('fuelConsumedLiters'),1)+' L':'—';
+    }
 
     let warning='';
-    if(document.getElementById('kmEnd').value!==''&&kmEnd<kmStart){
-      warning='O km final não pode ser menor que o km inicial.';
-    }else if(socStart>100||socEnd>100||socStart<0||socEnd<0){
-      warning='O SOC deve estar entre 0% e 100%.';
-    }else if(socUse!==null&&socUse<0){
-      warning='O SOC final ficou maior que o inicial. Isso pode indicar carregamento durante o turno; confirme antes de enviar.';
-    }
+    if(hStart!==null&&hEnd!==null&&hEnd<hStart) warning='O horímetro final não pode ser menor que o inicial.';
+    else if(p.family==='Caminhão'&&kmStart!==null&&kmEnd!==null&&kmEnd<kmStart) warning='O km final não pode ser menor que o km inicial.';
+    else if(socStart!==null&&socEnd!==null&&(socStart<0||socStart>100||socEnd<0||socEnd>100)) warning='O SOC deve estar entre 0% e 100%.';
+    else if(socUse!==null&&socUse<0) warning='O SOC final ficou maior que o inicial. Isso pode indicar carregamento durante o turno; confirme antes de enviar.';
     document.getElementById('liveWarning').innerHTML=warning?'<div class="warning">'+esc(warning)+'</div>':'';
   }
 
   function buildRecord(){
-    const machineRaw=document.getElementById('machine').value.split('|');
+    const p=machineProfile();
+    const hasSoc=p.powerSource==='Elétrico'||p.powerSource==='Híbrido';
+    const hasApplication=p.family==='Escavadeira'||p.family==='Carregadeira';
     return {
-      id:Date.now(),
-      machineCode:machineRaw[0],
-      machineName:machineRaw[1],
-      operator:document.getElementById('operator').value.trim(),
-      shift:document.getElementById('shift').value,
-      date:document.getElementById('date').value,
-      team:document.getElementById('team').value.trim(),
-      kmStart:Number(document.getElementById('kmStart').value),
-      kmEnd:Number(document.getElementById('kmEnd').value),
-      socStart:Number(document.getElementById('socStart').value),
-      socEnd:Number(document.getElementById('socEnd').value),
-      loadedCycles:Number(document.getElementById('loadedCycles').value),
-      notes:document.getElementById('notes').value.trim(),
-      createdAt:new Date().toISOString()
+      id:Date.now(),machineCode:p.code,machineName:p.name,machineFamily:p.family,powerSource:p.powerSource,
+      operator:document.getElementById('operator').value.trim(),shift:document.getElementById('shift').value,
+      date:document.getElementById('date').value,team:document.getElementById('team').value.trim(),
+      hourmeterStart:valueOrNull('hourmeterStart'),hourmeterEnd:valueOrNull('hourmeterEnd'),
+      kmStart:p.family==='Caminhão'?valueOrNull('kmStart'):null,kmEnd:p.family==='Caminhão'?valueOrNull('kmEnd'):null,
+      socStart:hasSoc?valueOrNull('socStart'):null,socEnd:hasSoc?valueOrNull('socEnd'):null,
+      cyclesAvailable:p.cyclesAvailable,loadedCycles:p.cyclesAvailable?valueOrNull('loadedCycles'):null,
+      loadAvailable:p.loadAvailable,payloadTons:p.loadAvailable?valueOrNull('payloadTons'):null,
+      application:hasApplication?document.getElementById('application').value.trim():'',
+      operationalCondition:hasApplication?document.getElementById('operationalCondition').value:'',
+      energyDataAvailable:p.energyDataAvailable,energyConsumedKwh:p.energyDataAvailable?valueOrNull('energyConsumedKwh'):null,
+      chargeTimeMinutes:hasSoc&&p.energyDataAvailable?valueOrNull('chargeTimeMinutes'):null,
+      fuelDataAvailable:p.fuelDataAvailable,fuelConsumedLiters:p.fuelDataAvailable?valueOrNull('fuelConsumedLiters'):null,
+      notes:document.getElementById('notes').value.trim(),createdAt:new Date().toISOString()
     };
   }
 
   function validateRecord(r){
     if(!r.operator) return 'Informe o nome do operador ou responsável.';
     if(!r.date) return 'Informe a data do turno.';
-    if(document.getElementById('kmStart').value===''||document.getElementById('kmEnd').value==='') return 'Informe km inicial e km final.';
-    if(r.kmEnd<r.kmStart) return 'O km final não pode ser menor que o km inicial.';
-    if(document.getElementById('socStart').value===''||document.getElementById('socEnd').value==='') return 'Informe SOC inicial e SOC final.';
-    if(r.socStart<0||r.socStart>100||r.socEnd<0||r.socEnd>100) return 'O SOC precisa estar entre 0% e 100%.';
-    if(document.getElementById('loadedCycles').value===''||r.loadedCycles<0) return 'Informe a quantidade de ciclos com caminhão carregado.';
+    if(r.hourmeterStart===null||r.hourmeterEnd===null) return 'Informe horímetro inicial e final.';
+    if(r.hourmeterEnd<r.hourmeterStart) return 'O horímetro final não pode ser menor que o inicial.';
+    if(r.machineFamily==='Caminhão'&&(r.kmStart===null||r.kmEnd===null)) return 'Informe km inicial e km final para o caminhão.';
+    if(r.machineFamily==='Caminhão'&&r.kmEnd<r.kmStart) return 'O km final não pode ser menor que o km inicial.';
+    if((r.powerSource==='Elétrico'||r.powerSource==='Híbrido')&&(r.socStart===null||r.socEnd===null)) return 'Informe SOC inicial e SOC final.';
+    if(r.socStart!==null&&(r.socStart<0||r.socStart>100||r.socEnd<0||r.socEnd>100)) return 'O SOC precisa estar entre 0% e 100%.';
+    if(r.cyclesAvailable&&(r.loadedCycles===null||r.loadedCycles<0||!Number.isInteger(r.loadedCycles))) return 'Informe a quantidade de ciclos.';
+    if((r.machineFamily==='Escavadeira'||r.machineFamily==='Carregadeira')&&!r.application) return 'Informe a aplicação da máquina neste turno.';
+    if((r.machineFamily==='Escavadeira'||r.machineFamily==='Carregadeira')&&!r.operationalCondition) return 'Informe a condição operacional.';
     return '';
   }
 
   function metrics(r){
-    const distance=Math.max(0,r.kmEnd-r.kmStart);
-    const socUse=r.socStart-r.socEnd;
-    const kmPerCycle=r.loadedCycles>0?distance/r.loadedCycles:0;
-    return {distance,socUse,kmPerCycle};
+    const hours=r.hourmeterStart!==null&&r.hourmeterEnd!==null?Math.max(0,r.hourmeterEnd-r.hourmeterStart):0;
+    const distance=r.kmStart!==null&&r.kmEnd!==null?Math.max(0,r.kmEnd-r.kmStart):null;
+    const socUse=r.socStart!==null&&r.socEnd!==null?r.socStart-r.socEnd:null;
+    const kmPerCycle=distance!==null&&Number(r.loadedCycles)>0?distance/r.loadedCycles:null;
+    return {hours,distance,socUse,kmPerCycle};
   }
 
   function reviewRecord(){
@@ -412,18 +489,20 @@
     if(error){showToast(error,true);return}
     pendingRecord=r;
     const m=metrics(r);
-    document.getElementById('confirmList').innerHTML=[
-      ['Máquina',r.machineCode+' • '+r.machineName],
-      ['Operador',r.operator],
-      ['Turno',r.shift+' • '+formatDate(r.date)],
-      ['Km inicial',brNumber(r.kmStart)+' km'],
-      ['Km final',brNumber(r.kmEnd)+' km'],
-      ['Distância',brNumber(m.distance)+' km'],
-      ['SOC inicial',brNumber(r.socStart,0)+'%'],
-      ['SOC final',brNumber(r.socEnd,0)+'%'],
-      ['Variação de SOC',(m.socUse>=0?'-':'+' )+brNumber(Math.abs(m.socUse),0)+'%'],
-      ['Ciclos carregados',String(r.loadedCycles)]
-    ].map(x=>'<div class="confirm-row"><span>'+esc(x[0])+'</span><b>'+esc(x[1])+'</b></div>').join('');
+    const rows=[
+      ['Máquina',r.machineCode+' • '+r.machineName],['Família',r.machineFamily+' • '+r.powerSource],
+      ['Operador',r.operator],['Turno',r.shift+' • '+formatDate(r.date)],
+      ['Horímetro',brNumber(r.hourmeterStart,1)+' → '+brNumber(r.hourmeterEnd,1)+' h']
+    ];
+    if(m.distance!==null){rows.push(['Km',brNumber(r.kmStart,1)+' → '+brNumber(r.kmEnd,1)+' km']);rows.push(['Distância',brNumber(m.distance,1)+' km']);}
+    if(r.socStart!==null) rows.push(['SOC',brNumber(r.socStart,0)+' → '+brNumber(r.socEnd,0)+'%']);
+    if(r.loadedCycles!==null) rows.push(['Ciclos',String(r.loadedCycles)]);
+    if(r.payloadTons!==null) rows.push(['Carga',brNumber(r.payloadTons,1)+' t']);
+    if(r.application) rows.push(['Aplicação',r.application]);
+    if(r.operationalCondition) rows.push(['Condição',r.operationalCondition]);
+    if(r.energyConsumedKwh!==null) rows.push(['Energia consumida',brNumber(r.energyConsumedKwh,1)+' kWh']);
+    if(r.fuelConsumedLiters!==null) rows.push(['Combustível',brNumber(r.fuelConsumedLiters,1)+' L']);
+    document.getElementById('confirmList').innerHTML=rows.map(x=>'<div class="confirm-row"><span>'+esc(x[0])+'</span><b>'+esc(x[1])+'</b></div>').join('');
     document.getElementById('confirmModal').classList.remove('hidden');
   }
 
@@ -446,10 +525,10 @@
   }
 
   function resetForm(){
-    ['operator','team','kmStart','kmEnd','socStart','socEnd','loadedCycles','notes'].forEach(id=>document.getElementById(id).value='');
+    ['operator','team','hourmeterStart','hourmeterEnd','kmStart','kmEnd','socStart','socEnd','loadedCycles','payloadTons','application','energyConsumedKwh','chargeTimeMinutes','fuelConsumedLiters','notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
     document.getElementById('date').value=new Date().toISOString().slice(0,10);
     document.getElementById('shift').value='1º turno';
-    updateLiveSummary();
+    applyMachineProfile();
   }
 
   function formatDate(v){
@@ -460,25 +539,29 @@
 
   function historyCard(r){
     const m=metrics(r);
+    const chips=[
+      '<div class="mini"><span>Horímetro</span><b>'+brNumber(r.hourmeterStart,1)+' → '+brNumber(r.hourmeterEnd,1)+' h</b></div>'
+    ];
+    if(m.distance!==null) chips.push('<div class="mini"><span>Distância</span><b>'+brNumber(m.distance,1)+' km</b></div>');
+    if(r.socStart!==null&&r.socStart!==undefined) chips.push('<div class="mini"><span>SOC</span><b>'+brNumber(r.socStart,0)+' → '+brNumber(r.socEnd,0)+'%</b></div>');
+    if(r.loadedCycles!==null&&r.loadedCycles!==undefined) chips.push('<div class="mini"><span>Ciclos</span><b>'+brNumber(r.loadedCycles,0)+'</b></div>');
+    if(r.application) chips.push('<div class="mini"><span>Aplicação</span><b>'+esc(r.application)+'</b></div>');
+    if(r.energyConsumedKwh!==null&&r.energyConsumedKwh!==undefined) chips.push('<div class="mini"><span>Energia</span><b>'+brNumber(r.energyConsumedKwh,1)+' kWh</b></div>');
     return '<div class="history-card">'+
-      '<div class="history-head"><div><b>'+esc(r.machineCode)+' • '+esc(r.shift)+'</b><div style="font-size:10px;color:#667085;margin-top:2px">'+esc(r.operator)+' • '+esc(formatDate(r.date))+'</div></div><span>'+esc(r.team||'Sem equipe')+'</span></div>'+
-      '<div class="history-meta">'+
-        '<div class="mini"><span>Distância</span><b>'+brNumber(m.distance)+' km</b></div>'+
-        '<div class="mini"><span>SOC</span><b>'+brNumber(r.socStart,0)+' → '+brNumber(r.socEnd,0)+'%</b></div>'+
-        '<div class="mini"><span>Ciclos</span><b>'+r.loadedCycles+'</b></div>'+
-        '<div class="mini"><span>Km/ciclo</span><b>'+(r.loadedCycles>0?brNumber(m.kmPerCycle,2):'—')+'</b></div>'+
-      '</div>'+
-      (r.notes?'<div style="font-size:10px;color:#667085;line-height:1.45;margin-top:9px">'+esc(r.notes)+'</div>':'')+
+      '<div class="history-head"><div><b>'+esc(r.machineCode)+' • '+esc(r.shift)+'</b><div style="font-size:10px;color:#667085;margin-top:2px">'+esc(r.operator)+' • '+esc(formatDate(r.date))+'</div></div><span>'+esc((r.machineFamily||'Equipamento')+' • '+(r.powerSource||''))+'</span></div>'+
+      '<div class="history-meta">'+chips.join('')+'</div>'+
+      (r.operationalCondition?'<div style="font-size:10px;color:#667085;margin-top:9px"><b>Condição:</b> '+esc(r.operationalCondition)+'</div>':'')+
+      (r.notes?'<div style="font-size:10px;color:#667085;line-height:1.45;margin-top:7px">'+esc(r.notes)+'</div>':'')+
     '</div>';
   }
 
   function renderHome(){
     const list=records();
-    const totalKm=list.reduce((s,r)=>s+metrics(r).distance,0);
-    const cycles=list.reduce((s,r)=>s+Number(r.loadedCycles||0),0);
+    const hours=list.reduce((s,r)=>s+metrics(r).hours,0);
+    const production=list.reduce((s,r)=>s+(Number(r.loadedCycles)||0),0);
     document.getElementById('kpiShifts').textContent=list.length;
-    document.getElementById('kpiKm').textContent=totalKm.toLocaleString('pt-BR',{maximumFractionDigits:1});
-    document.getElementById('kpiCycles').textContent=cycles.toLocaleString('pt-BR');
+    document.getElementById('kpiHours').textContent=hours.toLocaleString('pt-BR',{maximumFractionDigits:1});
+    document.getElementById('kpiProduction').textContent=production.toLocaleString('pt-BR');
     document.getElementById('lastRecordText').textContent=list.length?'Último: '+formatDate(list[0].date):'Nenhum envio ainda';
     document.getElementById('latestHistory').innerHTML=list.length?historyCard(list[0]):'<div class="empty">O primeiro turno enviado aparecerá aqui.</div>';
   }
@@ -490,8 +573,8 @@
 
   function seedDemo(){
     const demo=[
-      {id:1,machineCode:'FRT-003',machineName:'Caminhão Elétrico 01',operator:'Carlos Silva',shift:'1º turno',date:'2026-09-29',team:'Equipe A',kmStart:12450.2,kmEnd:12518.8,socStart:92,socEnd:38,loadedCycles:21,notes:'Operação normal. Uma parada para carregamento rápido.',createdAt:new Date().toISOString()},
-      {id:2,machineCode:'FRT-003',machineName:'Caminhão Elétrico 01',operator:'Marcos Lima',shift:'3º turno',date:'2026-09-28',team:'Equipe C',kmStart:12378.1,kmEnd:12450.2,socStart:96,socEnd:42,loadedCycles:23,notes:'Sem ocorrências.',createdAt:new Date().toISOString()}
+      {id:1,machineCode:'TRK-EL-01',machineName:'Caminhão Elétrico Demo',machineFamily:'Caminhão',powerSource:'Elétrico',operator:'Carlos Silva',shift:'1º turno',date:'2026-09-29',team:'Equipe A',hourmeterStart:812.2,hourmeterEnd:820.1,kmStart:12450.2,kmEnd:12518.8,socStart:92,socEnd:38,cyclesAvailable:true,loadedCycles:21,loadAvailable:true,payloadTons:null,application:'',operationalCondition:'',energyDataAvailable:true,energyConsumedKwh:410,chargeTimeMinutes:35,fuelDataAvailable:false,fuelConsumedLiters:null,notes:'Operação normal.',createdAt:new Date().toISOString()},
+      {id:2,machineCode:'FRT-001',machineName:'SY215C',machineFamily:'Escavadeira',powerSource:'Mecânico',operator:'Marcos Lima',shift:'2º turno',date:'2026-09-28',team:'Equipe B',hourmeterStart:2833.4,hourmeterEnd:2840.0,kmStart:null,kmEnd:null,socStart:null,socEnd:null,cyclesAvailable:false,loadedCycles:null,loadAvailable:false,payloadTons:null,application:'Escavação e carregamento',operationalCondition:'Operação normal',energyDataAvailable:false,energyConsumedKwh:null,chargeTimeMinutes:null,fuelDataAvailable:true,fuelConsumedLiters:null,notes:'Sem ocorrências.',createdAt:new Date().toISOString()}
     ];
     saveRecords(demo);
     renderHome();renderHistory();showToast('Dados de exemplo carregados.');
@@ -514,9 +597,9 @@
   }
 
   document.getElementById('date').value=new Date().toISOString().slice(0,10);
+  applyMachineProfile();
   renderHome();
   renderHistory();
-  updateLiveSummary();
 </script>
 </body>
 </html>
