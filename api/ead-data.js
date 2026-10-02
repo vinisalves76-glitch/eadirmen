@@ -75,15 +75,17 @@ function jsonDoc(doc) {
 }
 
 async function listStructured(db) {
-  const [skillsSnap, plansSnap, peopleSnap] = await Promise.all([
+  const [skillsSnap, plansSnap, peopleSnap, needsSnap] = await Promise.all([
     db.collection(col('skills')).orderBy('id').limit(2000).get(),
     db.collection(col('plans')).orderBy('id').limit(5000).get(),
-    db.collection(col('people')).orderBy('name').limit(1000).get()
+    db.collection(col('people')).orderBy('name').limit(1000).get(),
+    db.collection(col('trainingNeeds')).orderBy('updatedAt','desc').limit(1000).get()
   ]);
   return {
     skills: skillsSnap.docs.map(jsonDoc),
     plans: plansSnap.docs.map(jsonDoc),
-    people: peopleSnap.docs.map(d => (d.data() || {}).name).filter(Boolean)
+    people: peopleSnap.docs.map(d => (d.data() || {}).name).filter(Boolean),
+    trainingDemands: needsSnap.docs.map(jsonDoc)
   };
 }
 
