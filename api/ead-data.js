@@ -147,6 +147,7 @@ module.exports = async function handler(req, res) {
       const legacy = shared.data() || {};
       await reconcileCollection(db,'skills',Array.isArray(legacy.skills)?legacy.skills:[],s=>String(s.id),profile,'Habilidade importada');
       await reconcileCollection(db,'plans',Array.isArray(legacy.plans)?legacy.plans:[],p=>String(p.id),profile,'Planejamento importado');
+      await reconcileCollection(db,'trainingNeeds',Array.isArray(legacy.trainingDemands)?legacy.trainingDemands:[],d=>String(d.id),profile,'Necessidade de treinamento importada');
 
       const people = Array.isArray(legacy.people) ? legacy.people : [];
       const peopleRef = db.collection(col('people'));
