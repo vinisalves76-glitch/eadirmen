@@ -1114,6 +1114,149 @@ function syncWorkflowPanels(metrics){
   });
 }
 
+
+function skillAnalytics(s){
+  return s&&s.analytics&&typeof s.analytics==='object'?s.analytics:null;
+}
+
+function skillAnalyticsDurationDays(s){
+  const a=skillAnalytics(s);
+  if(!a||!a.startedAt||!a.completedAt) return null;
+  const start=Date.parse(a.startedAt),end=Date.parse(a.completedAt);
+  if(!Number.isFinite(start)||!Number.isFinite(end)||end<start) return null;
+  return (end-start)/86400000;
+}
+
+function skillDaysInCurrentStage(s){
+  const a=skillAnalytics(s);
+  if(!a||!a.currentStageEnteredAt) return null;
+  const start=Date.parse(a.currentStageEnteredAt);
+  if(!Number.isFinite(start)) return null;
+  return Math.max(0,(Date.now()-start)/86400000);
+}
+
+function trainingProductionMetrics(){
+  const skills=data.skills||[];
+  const plannedIds=new Set((data.plans||[]).map(p=>Number(p.skillId)));
+  const planned=skills.filter(s=>plannedIds.has(Number(s.id))).length;
+  const delivered=skills.filter(s=>plannedIds.has(Number(s.id))&&skillWorkflowMetrics(s).currentIndex>=5).length;
+  const wip=skills.filter(s=>skillWorkflowMetrics(s).status==='Em produção').length;
+  const stalled=skills.filter(s=>{const d=skillDaysInCurrentStage(s);return skillWorkflowMetrics(s).currentIndex<5&&d!==null&&d>=7;}).length;
+  const durations=skills.map(skillAnalyticsDurationDays).filter(v=>v!==null);
+  const avgDuration=durations.length?durations.reduce((a,b)=>a+b,0)/durations.length:null;
+  const rework=skills.reduce((sum,s)=>sum+Math.max(0,Number(skillAnalytics(s)?.reworkCount)||0),0);
+
+  const stageNames=['Planejamento','Materiais','Produção','Revisão','Finalização'];
+  const stageTotals=Object.fromEntries(stageNames.map(n=>[n,[]]));
+  skills.forEach(s=>{
+    const a=skillAnalytics(s);
+    if(!a||!Array.isArray(a.stageHistory)) return;
+    a.stageHistory.forEach(h=>{
+      if(stageTotals[h.stage]&&Number.isFinite(Number(h.durationHours))) stageTotals[h.stage].push(Number(h.durationHours)/24);
+    });
+  });
+  const stageAverages=stageNames.map(name=>({
+    name,
+    value:stageTotals[name].length?stageTotals[name].reduce((a,b)=>a+b,0)/stageTotals[name].length:null
+  }));
+
+  const people=[...new Set([...(data.people||[]),...skills.map(s=>s.owner)].filter(Boolean))];
+  const workload=people.map(person=>({
+    person,
+    wip:skills.filter(s=>s.owner===person&&skillWorkflowMetrics(s).status==='Em produção').length,
+    review:skills.filter(s=>s.owner===person&&skillWorkflowMetrics(s).status==='Em revisão').length,
+    total:skills.filter(s=>s.owner===person&&skillWorkflowMetrics(s).currentIndex<5).length
+  })).sort((a,b)=>b.wip-a.wip||b.total-a.total);
+
+  return {planned,delivered,wip,stalled,avgDuration,rework,stageAverages,workload};
+}
+
+function fleetIntelligenceMetrics(){
+  const machines=fleetPrototype||[];
+  const demands=trainingDemands();
+  const stale=machines.filter(m=>{const d=fleetDaysSinceUpdate(m);return d!==null&&d>=7;}).length;
+  const overdue=machines.filter(m=>{
+    const text=String(m.proximaAcao||'').trim();
+    if(!text) return false;
+    const d=fleetDaysSinceUpdate(m);
+    return d!==null&&d>=7;
+  }).length;
+
+  const recurringByMachine=[];
+  machines.forEach(m=>{
+    const history=Array.isArray(m.historico)?m.historico:[];
+    const grouped={};
+    history.forEach(h=>{
+      const key=normalizeAgentText(h.necessidadeTreinamento||h.classificacaoNecessidade||h.tipo||'');
+      if(!key) return;
+      grouped[key]=(grouped[key]||0)+1;
+    });
+    const max=Math.max(0,...Object.values(grouped));
+    if(max>=2) recurringByMachine.push({machine:m,count:max});
+  });
+
+  const openTraining=demands.filter(d=>!['Concluída','Não aprovada'].includes(trainingDemandEffectiveStatus(d))).length;
+
+  const clientCounts={};
+  demands.filter(d=>!['Concluída','Não aprovada'].includes(trainingDemandEffectiveStatus(d))).forEach(d=>{
+    const key=d.client||'Sem cliente';
+    clientCounts[key]=(clientCounts[key]||0)+1;
+  });
+  const topClient=Object.entries(clientCounts).sort((a,b)=>b[1]-a[1])[0]||null;
+
+  const modelCounts={};
+  recurringByMachine.forEach(x=>{
+    const key=x.machine.modelo||'Sem modelo';
+    modelCounts[key]=(modelCounts[key]||0)+x.count;
+  });
+  const topModel=Object.entries(modelCounts).sort((a,b)=>b[1]-a[1])[0]||null;
+
+  const appliedRecurring=demands.filter(d=>{
+    const status=trainingDemandEffectiveStatus(d);
+    const after=Array.isArray(d.postTrainingOccurrences)?d.postTrainingOccurrences.length:0;
+    return ['Em acompanhamento','Concluída'].includes(status)&&after>0;
+  }).length;
+
+  return {stale,overdue,recurring:recurringByMachine.length,openTraining,topClient,topModel,appliedRecurring};
+}
+
+function renderTrainingAnalyticsPanel(){
+  const m=trainingProductionMetrics();
+  const avg=m.avgDuration===null?'Sem histórico':m.avgDuration.toLocaleString('pt-BR',{maximumFractionDigits:1})+' d';
+  const plannedDelivery=m.planned?m.delivered+' / '+m.planned:'0 / 0';
+  const stageRows=m.stageAverages.map(x=>'<div class="agent-stat"><span>'+esc(x.name)+'</span><b>'+(x.value===null?'Sem histórico':x.value.toLocaleString('pt-BR',{maximumFractionDigits:1})+' d')+'</b></div>').join('');
+  const workload=m.workload.map(x=>'<div class="agent-stat"><span>'+esc(x.person)+'</span><b>'+x.wip+' WIP • '+x.total+' abertas</b></div>').join('');
+
+  return '<div class="section">'+
+    '<div class="section-head"><div><h3>Indicadores de produção de treinamento</h3><div class="muted">Poucos indicadores, focados em fluxo, gargalo e entrega.</div></div></div>'+
+    '<div class="cards">'+
+      '<div class="card"><div class="muted">Planejado x entregue</div><div class="metric">'+plannedDelivery+'</div></div>'+
+      '<div class="card"><div class="muted">Tempo médio por habilidade</div><div class="metric" style="font-size:22px">'+avg+'</div></div>'+
+      '<div class="card"><div class="muted">Habilidades paradas ≥ 7 dias</div><div class="metric">'+m.stalled+'</div></div>'+
+      '<div class="card"><div class="muted">WIP • Em produção</div><div class="metric">'+m.wip+'</div><div class="muted">'+(m.wip>3?'Atenção: muitas frentes simultâneas.':'Fluxo sob controle.')+'</div></div>'+
+      '<div class="card"><div class="muted">Retrabalho após revisão</div><div class="metric">'+m.rework+'</div></div>'+
+    '</div>'+
+    '<div class="fleet-overview" style="margin-top:14px"><div class="fleet-panel"><h3>Dias médios por etapa</h3>'+stageRows+'</div><div class="fleet-panel"><h3>Carga por instrutor</h3>'+(workload||'<div class="muted">Sem instrutores.</div>')+'</div></div>'+
+    '<div class="fleet-readonly">Indicadores de tempo e retrabalho começam a ganhar precisão a partir desta versão. Habilidades antigas sem histórico de transição são mantidas como “Sem histórico”, sem estimativa retroativa.</div>'+
+  '</div>';
+}
+
+function renderFleetIntelligencePanel(){
+  const m=fleetIntelligenceMetrics();
+  return '<div class="section">'+
+    '<div class="section-head"><div><h3>Inteligência de Frota</h3><div class="muted">Indicadores para decidir onde atuar, não apenas para descrever a frota.</div></div></div>'+
+    '<div class="cards">'+
+      '<div class="card"><div class="muted">Máquinas sem atualização ≥ 7 dias</div><div class="metric">'+m.stale+'</div></div>'+
+      '<div class="card"><div class="muted">Ações potencialmente atrasadas</div><div class="metric">'+m.overdue+'</div></div>'+
+      '<div class="card"><div class="muted">Ocorrências recorrentes</div><div class="metric">'+m.recurring+'</div></div>'+
+      '<div class="card"><div class="muted">Necessidades de treinamento abertas</div><div class="metric">'+m.openTraining+'</div></div>'+
+      '<div class="card"><div class="muted">Treinamentos aplicados com recorrência</div><div class="metric">'+m.appliedRecurring+'</div></div>'+
+    '</div>'+
+    '<div class="fleet-overview" style="margin-top:14px"><div class="fleet-panel"><h3>Maior concentração por cliente</h3><div class="metric">'+(m.topClient?esc(m.topClient[0]):'—')+'</div><div class="muted">'+(m.topClient?m.topClient[1]+' necessidade(s) aberta(s)':'Sem demandas abertas')+'</div></div><div class="fleet-panel"><h3>Modelo com maior recorrência registrada</h3><div class="metric">'+(m.topModel?esc(m.topModel[0]):'—')+'</div><div class="muted">'+(m.topModel?m.topModel[1]+' registro(s) recorrente(s)':'Sem recorrência suficiente')+'</div></div></div>'+
+    '<div class="fleet-readonly">“Ação atrasada” usa ausência de atualização por 7 dias como sinal operacional provisório porque o sistema ainda não possui data de vencimento estruturada para cada ação. O próximo passo natural é adicionar prazo e responsável à ação.</div>'+
+  '</div>';
+}
+
 function renderDashboard(){
   const instructorName=currentInstructorDataName();
 
@@ -1125,7 +1268,7 @@ function renderDashboard(){
     const prod=skills.filter(s=>s.status==='Em produção').length;
     const weekly=data.plans.length;
     document.getElementById('content').innerHTML=
-      '<div class="cards"><div class="card"><div class="muted">Habilidades</div><div class="metric">'+skills.length+'</div></div><div class="card"><div class="muted">Meta semanal</div><div class="metric">'+weekly+'</div></div><div class="card"><div class="muted">Em produção</div><div class="metric">'+prod+'</div></div><div class="card"><div class="muted">Em revisão</div><div class="metric">'+rev+'</div></div><div class="card"><div class="muted">Concluídas</div><div class="metric">'+done+'</div></div></div>'+
+      renderTrainingAnalyticsPanel()+
       '<div class="section"><div class="section-head"><h3>Andamento das habilidades</h3></div><div class="grid">'+(skills.length?skills.map(skillCard).join(''):'<div class="empty">Nenhuma habilidade cadastrada.</div>')+'</div></div>';
     return;
   }
@@ -1638,6 +1781,52 @@ function openSkill(id){
   refreshWorkflowPreview();
 }
 
+function updateLocalSkillAnalytics(previous,next){
+  const now=new Date().toISOString();
+  const oldMetrics=skillWorkflowMetrics(JSON.parse(JSON.stringify(previous)));
+  const newMetrics=skillWorkflowMetrics(JSON.parse(JSON.stringify(next)));
+  const labels=['Planejamento','Materiais','Produção','Revisão','Finalização','Concluída'];
+  const existing=previous.analytics&&typeof previous.analytics==='object'?JSON.parse(JSON.stringify(previous.analytics)):null;
+  const a=existing||{
+    trackingStartedAt:now,
+    createdAt:previous.createdAt||null,
+    legacyBaseline:true,
+    startedAt:null,
+    completedAt:null,
+    currentStage:oldMetrics.currentIndex,
+    currentStageLabel:labels[Math.min(oldMetrics.currentIndex,5)],
+    currentStageEnteredAt:now,
+    stageHistory:[],
+    reworkCount:0,
+    updatedAt:now
+  };
+  if(!Array.isArray(a.stageHistory))a.stageHistory=[];
+  if(!Number.isFinite(Number(a.reworkCount)))a.reworkCount=0;
+  if(!a.currentStageEnteredAt)a.currentStageEnteredAt=now;
+
+  const reviewRegressed=previous.workflow?.review==='Aprovado'&&next.workflow?.review!=='Aprovado';
+  const stageRegressed=newMetrics.currentIndex<oldMetrics.currentIndex&&oldMetrics.currentIndex>=3;
+  if(reviewRegressed||stageRegressed)a.reworkCount+=1;
+
+  if(newMetrics.currentIndex!==oldMetrics.currentIndex){
+    const start=Date.parse(a.currentStageEnteredAt),end=Date.parse(now);
+    a.stageHistory.push({
+      stage:labels[Math.min(oldMetrics.currentIndex,5)],
+      stageIndex:oldMetrics.currentIndex,
+      enteredAt:a.currentStageEnteredAt,
+      exitedAt:now,
+      durationHours:Number.isFinite(start)&&Number.isFinite(end)?Math.max(0,Number(((end-start)/3600000).toFixed(2))):null
+    });
+    a.currentStageEnteredAt=now;
+  }
+  if(!a.startedAt&&a.legacyBaseline!==true&&newMetrics.currentIndex>0)a.startedAt=a.createdAt||now;
+  if(newMetrics.currentIndex>=5&&!a.completedAt)a.completedAt=now;
+  a.currentStage=newMetrics.currentIndex;
+  a.currentStageLabel=labels[Math.min(newMetrics.currentIndex,5)];
+  a.updatedAt=now;
+  next.analytics=a;
+}
+
 async function saveSkill(id){
   let s=data.skills.find(x=>x.id===id);
   if(!s)return;
@@ -1648,6 +1837,7 @@ async function saveSkill(id){
   }
 
   ensureSkillWorkflow(s);
+  const previousSkillState=JSON.parse(JSON.stringify(s));
   s.objective=document.getElementById('mObjective').value.trim();
   s.development=document.getElementById('mDevelopment').value.trim();
   s.duration=document.getElementById('mDuration').value.trim();
@@ -1684,6 +1874,7 @@ async function saveSkill(id){
 
   try{
     if(role==='admin'){
+      updateLocalSkillAnalytics(previousSkillState,s);
       await save();
     }else{
       const user=auth.currentUser;
@@ -1751,7 +1942,21 @@ function createSkill(){
     noMaterials:false,
     productionOutputs:[],
     legacyProductionComplete:false,
-    workflow:{production:'Não iniciado',review:'Não iniciado',finalization:'Não iniciado'}
+    workflow:{production:'Não iniciado',review:'Não iniciado',finalization:'Não iniciado'},
+    createdAt:new Date().toISOString(),
+    analytics:{
+      trackingStartedAt:new Date().toISOString(),
+      createdAt:new Date().toISOString(),
+      legacyBaseline:false,
+      startedAt:null,
+      completedAt:null,
+      currentStage:0,
+      currentStageLabel:'Planejamento',
+      currentStageEnteredAt:new Date().toISOString(),
+      stageHistory:[],
+      reworkCount:0,
+      updatedAt:new Date().toISOString()
+    }
   };
   const metrics=skillWorkflowMetrics(skill);
   skill.status=metrics.status;
@@ -3173,6 +3378,8 @@ function renderFleet(){
         (fleetCanEdit()?'<button class="btn btn-primary" onclick="newFleetMachine()">+ Nova máquina</button>':'')+
       '</div>'+
     '</div>'+
+
+    renderFleetIntelligencePanel()+
 
     '<div class="fleet-cards">'+
       '<div class="fleet-kpi"><div class="muted">Ações prioritárias</div><div class="value">'+queue.length+'</div><div class="hint">Itens que exigem acompanhamento</div></div>'+
