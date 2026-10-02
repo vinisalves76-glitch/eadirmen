@@ -126,6 +126,88 @@ function calculateWorkflow(skill) {
   return skill;
 }
 
+function workflowStageIndex(skill) {
+  const s = JSON.parse(JSON.stringify(skill || {}));
+  if (!Array.isArray(s.materials)) s.materials = [];
+  if (!s.workflow) s.workflow = normalizeWorkflow({});
+
+  calculateWorkflow(s);
+
+  const planningDone = clean(s.objective).length > 0 && clean(s.development).length > 0 && clean(s.duration, 120).length > 0;
+  const materialsDone = s.noMaterials === true || (s.materials.length > 0 && s.materials.every(m => m.status === 'Finalizado'));
+  const productionDone = s.workflow.production === 'Finalizado';
+  const reviewDone = s.workflow.review === 'Aprovado';
+  const finalDone = s.workflow.finalization === 'Finalizado';
+  const done = [planningDone, materialsDone, productionDone, reviewDone, finalDone];
+  const index = done.findIndex(value => !value);
+  return index < 0 ? 5 : index;
+}
+
+function updateSkillAnalytics(current, next) {
+  const now = new Date().toISOString();
+  const labels = ['Planejamento', 'Materiais', 'Produção', 'Revisão', 'Finalização', 'Concluída'];
+  const oldStage = workflowStageIndex(current);
+  const newStage = workflowStageIndex(next);
+  const oldAnalytics = current && current.analytics && typeof current.analytics === 'object'
+    ? JSON.parse(JSON.stringify(current.analytics))
+    : null;
+
+  const analytics = oldAnalytics || {
+    trackingStartedAt: now,
+    createdAt: current && current.createdAt ? current.createdAt : null,
+    legacyBaseline: true,
+    startedAt: null,
+    completedAt: null,
+    currentStage: oldStage,
+    currentStageEnteredAt: now,
+    stageHistory: [],
+    reworkCount: 0,
+    updatedAt: now
+  };
+
+  if (!Array.isArray(analytics.stageHistory)) analytics.stageHistory = [];
+  if (!Number.isFinite(Number(analytics.reworkCount))) analytics.reworkCount = 0;
+  if (!analytics.currentStageEnteredAt) analytics.currentStageEnteredAt = now;
+
+  const reviewRegressed =
+    current && current.workflow && current.workflow.review === 'Aprovado' &&
+    next && next.workflow && next.workflow.review !== 'Aprovado';
+  const stageRegressed = newStage < oldStage && oldStage >= 3;
+  if (reviewRegressed || stageRegressed) analytics.reworkCount += 1;
+
+  if (newStage !== oldStage) {
+    const enteredAt = analytics.currentStageEnteredAt || now;
+    const startMs = Date.parse(enteredAt);
+    const endMs = Date.parse(now);
+    analytics.stageHistory.push({
+      stage: labels[Math.min(oldStage, 5)],
+      stageIndex: oldStage,
+      enteredAt,
+      exitedAt: now,
+      durationHours: Number.isFinite(startMs) && Number.isFinite(endMs)
+        ? Math.max(0, Number(((endMs - startMs) / 3600000).toFixed(2)))
+        : null
+    });
+    analytics.currentStageEnteredAt = now;
+  }
+
+  if (!analytics.startedAt && oldStage === 0 && newStage > 0 && analytics.legacyBaseline !== true) {
+    analytics.startedAt = now;
+  }
+
+  if (!analytics.startedAt && analytics.legacyBaseline !== true && next.status !== 'Planejamento') {
+    analytics.startedAt = analytics.createdAt || now;
+  }
+
+  if (newStage >= 5 && !analytics.completedAt) analytics.completedAt = now;
+
+  analytics.currentStage = newStage;
+  analytics.currentStageLabel = labels[Math.min(newStage, 5)];
+  analytics.updatedAt = now;
+  next.analytics = analytics;
+  return next;
+}
+
 async function requireUser(req) {
   const app = getAdminApp();
   const auth = app.auth();
@@ -194,7 +276,7 @@ module.exports = async function handler(req, res) {
         throw err;
       }
 
-      const current = { ...skills[index] };
+      const current = JSON.parse(JSON.stringify(skills[index] || {}));
 
       if (profile.perfil === 'instructor' && !instructorOwnsSkill(profile.nome, current.owner)) {
         const err = new Error('Esta habilidade nao esta atribuida a voce.');
@@ -213,6 +295,7 @@ module.exports = async function handler(req, res) {
       };
 
       calculateWorkflow(next);
+      updateSkillAnalytics(current, next);
       skills[index] = next;
 
       transaction.update(sharedRef, {
