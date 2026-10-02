@@ -475,6 +475,66 @@ function cacheLocal(){
   localStorage.setItem(instructorSimulationMode?INSTRUCTOR_SIM_KEY:'ead-irmen-data',JSON.stringify(data));
 }
 
+let eadStructuredLoaded=false;
+let eadStructuredNeedsMigration=false;
+
+async function eadDataApi(body=null){
+  const user=auth.currentUser;
+  if(!user)throw new Error('Sua sessão expirou. Entre novamente.');
+  const token=await user.getIdToken(true);
+  const options={headers:{'Authorization':'Bearer '+token}};
+  if(body){
+    options.method='POST';
+    options.headers['Content-Type']='application/json';
+    options.body=JSON.stringify(body);
+  }
+  const response=await fetch('/api/ead-data',options);
+  let result={};
+  try{result=await response.json();}catch(_){}
+  if(!response.ok)throw new Error(result.error||'Não foi possível acessar a estrutura do EAD.');
+  return result;
+}
+
+async function loadStructuredEadData(){
+  try{
+    const result=await eadDataApi();
+    eadStructuredNeedsMigration=!!result.needsMigration;
+    if(Array.isArray(result.skills)&&result.skills.length){
+      data={
+        skills:result.skills,
+        plans:Array.isArray(result.plans)?result.plans:[],
+        people:Array.isArray(result.people)&&result.people.length?result.people:data.people,
+        trainingDemands:Array.isArray(data.trainingDemands)?data.trainingDemands:[]
+      };
+      cacheLocal();
+    }
+    eadStructuredLoaded=true;
+  }catch(err){
+    console.warn('Estrutura nova do EAD ainda não disponível; usando fallback legado.',err);
+  }
+}
+
+async function migrateEadSharedData(){
+  if(role!=='admin')return;
+  if(!confirm('Migrar skills, plans e people do documento compartilhado para coleções separadas nesta PREVIEW?'))return;
+  try{
+    const result=await eadDataApi({action:'migrate-shared'});
+    data.skills=Array.isArray(result.skills)?result.skills:data.skills;
+    data.plans=Array.isArray(result.plans)?result.plans:data.plans;
+    data.people=Array.isArray(result.people)&&result.people.length?result.people:data.people;
+    eadStructuredNeedsMigration=false;
+    eadStructuredLoaded=true;
+    cacheLocal();
+    alert('Migração do EAD concluída na preview.');
+    go(currentPage);
+  }catch(err){alert(err.message||'Não foi possível migrar o EAD.');}
+}
+
+async function eadUpsertSkill(skill){
+  const result=await eadDataApi({action:'upsert-skill',skill});
+  return result.skill||skill;
+}
+
 async function save(){
   cacheLocal();
   if(instructorSimulationMode){
@@ -482,20 +542,28 @@ async function save(){
     updateCloudBadge();
     return;
   }
-  if(!cloudReady) return;
   try{
-    await db.collection('sistema').doc('sharedData').set({
-      skills:data.skills,
-      plans:data.plans,
-      people:data.people,
-      atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()
-    },{merge:true});
+    if(role==='admin'){
+      await eadDataApi({action:'sync-state',skills:data.skills,plans:data.plans,people:data.people});
+      eadStructuredLoaded=true;
+    }else if(role==='instructor'){
+      const owned=data.skills.filter(s=>s.owner===currentInstructorDataName());
+      for(const skill of owned) await eadUpsertSkill(skill);
+    }else if(cloudReady){
+      await db.collection('sistema').doc('sharedData').set({
+        skills:data.skills,
+        plans:data.plans,
+        people:data.people,
+        atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()
+      },{merge:true});
+    }
     cloudMessage='Sistema atualizado';
     updateCloudBadge();
   }catch(err){
     console.error('Erro ao salvar no Firebase:',err);
     cloudMessage='Sincronização indisponível';
     updateCloudBadge();
+    throw err;
   }
 }
 
@@ -527,6 +595,7 @@ async function initCloud(){
     cloudReady=true;
     cloudMessage='Sistema atualizado';
     updateCloudBadge();
+    await loadStructuredEadData();
 
     if(cloudUnsubscribe) cloudUnsubscribe();
     cloudUnsubscribe=ref.onSnapshot(doc=>{
@@ -1232,7 +1301,7 @@ function renderTrainingAnalyticsPanel(){
   const workload=m.workload.map(x=>'<div class="agent-stat"><span>'+esc(x.person)+'</span><b>'+x.wip+' WIP • '+x.total+' abertas</b></div>').join('');
 
   return '<div class="section">'+
-    '<div class="section-head"><div><h3>Indicadores de produção de treinamento</h3><div class="muted">Poucos indicadores, focados em fluxo, gargalo e entrega.</div></div></div>'+
+    '<div class="section-head"><div><h3>Indicadores de produção de treinamento</h3><div class="muted">Poucos indicadores, focados em fluxo, gargalo e entrega.</div></div>'+(eadStructuredNeedsMigration&&role==='admin'?'<button class="btn btn-soft" onclick="migrateEadSharedData()">Migrar EAD para coleções</button>':'')+'</div>'+
     '<div class="cards">'+
       '<div class="card"><div class="muted">Planejado x entregue</div><div class="metric">'+plannedDelivery+'</div></div>'+
       '<div class="card"><div class="muted">Tempo médio por habilidade</div><div class="metric" style="font-size:22px">'+avg+'</div></div>'+
@@ -1911,6 +1980,7 @@ async function saveSkill(id){
       if(body.skill){
         Object.assign(s,body.skill);
       }
+      try{await eadUpsertSkill(s);}catch(err){console.warn('Falha ao espelhar habilidade na coleção estruturada:',err);}
 
       cacheLocal();
       cloudMessage='Sistema atualizado';
