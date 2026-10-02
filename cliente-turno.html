@@ -378,11 +378,22 @@
     const code=String(params.get('machine')||params.get('m')||'').trim().toUpperCase();
     if(!code) return false;
     const select=document.getElementById('machine');
-    const option=Array.from(select.options).find(o=>String(o.value).split('|')[0].toUpperCase()===code);
+    let option=Array.from(select.options).find(o=>String(o.value).split('|')[0].toUpperCase()===code);
+
     if(!option){
-      showToast('QR Code reconhecido, mas a máquina não está disponível neste protótipo.',true);
-      return false;
+      const name=String(params.get('name')||code).trim().slice(0,120);
+      const family=String(params.get('family')||'Outro').trim();
+      const power=String(params.get('power')||'Mecânico').trim();
+      const cycles=params.get('cycles')==='1'?'1':'0';
+      const load=params.get('load')==='1'?'1':'0';
+      const energy=params.get('energy')==='1'?'1':'0';
+      const fuel=params.get('fuel')==='1'?'1':'0';
+      option=document.createElement('option');
+      option.value=[code,name,family,power,cycles,load,energy,fuel].join('|');
+      option.textContent=code+' • '+name;
+      select.appendChild(option);
     }
+
     select.value=option.value;
     select.disabled=true;
     const hint=document.getElementById('qrLockedHint');
