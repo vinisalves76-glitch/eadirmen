@@ -198,6 +198,7 @@
               <option value="FRT-003|SW956E|Carregadeira|Elétrico|1|0|1|0">FRT-003 • SW956E • Carregadeira</option>
             </select>
             <div id="machineProfileHint" class="field-hint"></div>
+            <div id="qrLockedHint" class="success" style="display:none;margin-top:8px">Equipamento identificado pelo QR Code. Não é necessário selecionar a máquina.</div>
           </div>
           <div class="field">
             <label>Operador / responsável</label>
@@ -349,6 +350,7 @@
       if(nav) nav.classList.toggle('active',key===name);
     });
     if(name==='home') renderHome();
+    if(name==='form') applyMachineProfile();
     if(name==='history') renderHistory();
     window.scrollTo({top:0,behavior:'smooth'});
   }
@@ -365,6 +367,28 @@
   function showField(id,show){
     const el=document.getElementById(id);
     if(el) el.style.display=show?'flex':'none';
+  }
+
+  function selectedMachineCode(){
+    return machineProfile().code;
+  }
+
+  function bindMachineFromQr(){
+    const params=new URLSearchParams(window.location.search);
+    const code=String(params.get('machine')||params.get('m')||'').trim().toUpperCase();
+    if(!code) return false;
+    const select=document.getElementById('machine');
+    const option=Array.from(select.options).find(o=>String(o.value).split('|')[0].toUpperCase()===code);
+    if(!option){
+      showToast('QR Code reconhecido, mas a máquina não está disponível neste protótipo.',true);
+      return false;
+    }
+    select.value=option.value;
+    select.disabled=true;
+    const hint=document.getElementById('qrLockedHint');
+    if(hint) hint.style.display='block';
+    document.body.dataset.machineLocked='1';
+    return true;
   }
 
   function applyMachineProfile(){
@@ -597,6 +621,7 @@
   }
 
   document.getElementById('date').value=new Date().toISOString().slice(0,10);
+  bindMachineFromQr();
   applyMachineProfile();
   renderHome();
   renderHistory();
