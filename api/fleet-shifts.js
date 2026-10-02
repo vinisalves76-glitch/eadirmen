@@ -323,6 +323,27 @@ module.exports = async function handler(req, res) {
         return { id: doc.id, ...data, criadoEm };
       });
 
+      if (String(process.env.VERCEL_ENV || '').toLowerCase() === 'production') {
+        try {
+          const legacySnap = await db.collection('registrosTurnoFrota')
+            .orderBy('criadoEm', 'desc')
+            .limit(500)
+            .get();
+          const legacy = legacySnap.docs.map(doc => {
+            const data = doc.data() || {};
+            const criadoEm = data.criadoEm && typeof data.criadoEm.toDate === 'function'
+              ? data.criadoEm.toDate().toISOString()
+              : data.recebidoEm || null;
+            return { id: doc.id, ...data, criadoEm, legacySource: true };
+          });
+          const seen = new Set(records.map(r => String(r.id)));
+          records = records.concat(legacy.filter(r => !seen.has(String(r.id))));
+          records.sort((a,b)=>String(b.criadoEm||b.recebidoEm||'').localeCompare(String(a.criadoEm||a.recebidoEm||'')));
+        } catch (legacyErr) {
+          console.warn('Nao foi possivel carregar turnos legados:', legacyErr);
+        }
+      }
+
       if (requestedMachine) {
         records = records.filter(r => String(r.machineCode || '').toUpperCase() === requestedMachine);
       }
