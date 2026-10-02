@@ -24,6 +24,11 @@ function getAdminApp() {
   });
 }
 
+function col(name) {
+  const preview = String(process.env.VERCEL_ENV || '').toLowerCase() !== 'production';
+  return preview ? 'preview_' + name : name;
+}
+
 function clean(value, max = 2000) {
   return String(value ?? '').trim().slice(0, max);
 }
@@ -256,27 +261,33 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Habilidade invalida.' });
     }
 
+    const skillRef = db.collection(col('skills')).doc(String(skillId));
     const sharedRef = db.collection('sistema').doc('sharedData');
 
     const updatedSkill = await db.runTransaction(async transaction => {
-      const snap = await transaction.get(sharedRef);
-      if (!snap.exists) {
-        const err = new Error('Dados do treinamento nao encontrados.');
-        err.statusCode = 404;
-        throw err;
+      const structuredSnap = await transaction.get(skillRef);
+      let current = structuredSnap.exists ? structuredSnap.data() : null;
+      let legacy = null;
+      let legacySkills = null;
+      let legacyIndex = -1;
+
+      if (!current) {
+        const sharedSnap = await transaction.get(sharedRef);
+        if (sharedSnap.exists) {
+          legacy = sharedSnap.data() || {};
+          legacySkills = Array.isArray(legacy.skills) ? legacy.skills.slice() : [];
+          legacyIndex = legacySkills.findIndex(skill => Number(skill && skill.id) === skillId);
+          if (legacyIndex >= 0) current = legacySkills[legacyIndex];
+        }
       }
 
-      const shared = snap.data() || {};
-      const skills = Array.isArray(shared.skills) ? shared.skills.slice() : [];
-      const index = skills.findIndex(skill => Number(skill && skill.id) === skillId);
-
-      if (index < 0) {
+      if (!current) {
         const err = new Error('Habilidade nao encontrada.');
         err.statusCode = 404;
         throw err;
       }
 
-      const current = JSON.parse(JSON.stringify(skills[index] || {}));
+      current = JSON.parse(JSON.stringify(current));
 
       if (profile.perfil === 'instructor' && !instructorOwnsSkill(profile.nome, current.owner)) {
         const err = new Error('Esta habilidade nao esta atribuida a voce.');
@@ -291,17 +302,22 @@ module.exports = async function handler(req, res) {
         duration: clean(body.duration, 120),
         materials: normalizeMaterials(body.materials),
         noMaterials: body.noMaterials === true,
-        workflow: normalizeWorkflow(body.workflow)
+        workflow: normalizeWorkflow(body.workflow),
+        updatedAt: new Date().toISOString()
       };
 
       calculateWorkflow(next);
       updateSkillAnalytics(current, next);
-      skills[index] = next;
 
-      transaction.update(sharedRef, {
-        skills,
-        atualizadoEm: admin.firestore.FieldValue.serverTimestamp()
-      });
+      transaction.set(skillRef, next, { merge: true });
+
+      if (legacySkills && legacyIndex >= 0) {
+        legacySkills[legacyIndex] = next;
+        transaction.update(sharedRef, {
+          skills: legacySkills,
+          atualizadoEm: admin.firestore.FieldValue.serverTimestamp()
+        });
+      }
 
       return next;
     });
