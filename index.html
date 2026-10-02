@@ -401,7 +401,13 @@ const fleetPrototypeDefaults=[
     ]
   }
 ];
-let fleetPrototype=JSON.parse(JSON.stringify(fleetPrototypeDefaults));
+let fleetLegacyLocal=null;
+try{
+  const legacyRaw=localStorage.getItem('ead-irmen-fleet-prototype');
+  const legacyParsed=legacyRaw?JSON.parse(legacyRaw):null;
+  if(Array.isArray(legacyParsed)&&legacyParsed.length) fleetLegacyLocal=legacyParsed;
+}catch(err){console.warn('Base local antiga da frota não pôde ser lida:',err);}
+let fleetPrototype=JSON.parse(JSON.stringify(fleetLegacyLocal||fleetPrototypeDefaults));
 let fleetCloudEvents=[];
 let fleetCloudActions=[];
 let fleetCloudClients=[];
@@ -3244,7 +3250,7 @@ async function loadFleetData(force=false){
       }));
       fleetUsingCloud=true;
     }else{
-      fleetPrototype=JSON.parse(JSON.stringify(fleetPrototypeDefaults));
+      fleetPrototype=JSON.parse(JSON.stringify(fleetLegacyLocal||fleetPrototypeDefaults));
       fleetUsingCloud=false;
     }
     fleetAttachCloudHistory();
