@@ -480,9 +480,8 @@ async function save(){
       skills:data.skills,
       plans:data.plans,
       people:data.people,
-      trainingDemands:Array.isArray(data.trainingDemands)?data.trainingDemands:[],
       atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()
-    });
+    },{merge:true});
     cloudMessage='Sistema atualizado';
     updateCloudBadge();
   }catch(err){
