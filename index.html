@@ -504,7 +504,7 @@ async function loadStructuredEadData(){
         skills:result.skills,
         plans:Array.isArray(result.plans)?result.plans:[],
         people:Array.isArray(result.people)&&result.people.length?result.people:data.people,
-        trainingDemands:Array.isArray(data.trainingDemands)?data.trainingDemands:[]
+        trainingDemands:Array.isArray(result.trainingDemands)?result.trainingDemands:[]
       };
       cacheLocal();
     }
@@ -522,6 +522,7 @@ async function migrateEadSharedData(){
     data.skills=Array.isArray(result.skills)?result.skills:data.skills;
     data.plans=Array.isArray(result.plans)?result.plans:data.plans;
     data.people=Array.isArray(result.people)&&result.people.length?result.people:data.people;
+    data.trainingDemands=Array.isArray(result.trainingDemands)?result.trainingDemands:data.trainingDemands;
     eadStructuredNeedsMigration=false;
     eadStructuredLoaded=true;
     cacheLocal();
@@ -3070,6 +3071,7 @@ async function approveTrainingDemand(id){
       data.trainingDemands.unshift(result.demand);
     }
     if(result.skill&&!data.skills.some(s=>Number(s.id)===Number(result.skill.id))) data.skills.push(result.skill);
+    if(result.plan&&!data.plans.some(p=>Number(p.id)===Number(result.plan.id))) data.plans.push(result.plan);
     closeModal();renderTrainingDemands();
   }catch(err){alert(err.message||'Não foi possível aprovar a demanda.');}
 }
