@@ -441,6 +441,7 @@ let fleetShiftLoaded=false;
 let fleetShiftError='';
 
 const defaults={
+ trainingDemands:[],
  skills:[
   {id:1,title:'Identificação dos componentes do sistema hidráulico',level:'Básica',owner:'Vinícius',status:'Em produção',progress:60,duration:'8 min',objective:'Reconhecer os principais componentes hidráulicos.',development:'Apresentação visual dos componentes, função básica e localização na máquina.'},
   {id:2,title:'Leitura inicial de esquema hidráulico',level:'Intermediária',owner:'Carlos',status:'Planejamento',progress:25,duration:'10 min',objective:'Interpretar símbolos e caminho básico do fluxo.',development:'Explicar símbolos, linhas e sequência de leitura com um circuito simples.'},
@@ -479,6 +480,7 @@ async function save(){
       skills:data.skills,
       plans:data.plans,
       people:data.people,
+      trainingDemands:Array.isArray(data.trainingDemands)?data.trainingDemands:[],
       atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()
     });
     cloudMessage='Sistema atualizado';
@@ -499,7 +501,8 @@ async function initCloud(){
       data={
         skills:Array.isArray(remote.skills)?remote.skills:[],
         plans:Array.isArray(remote.plans)?remote.plans:[],
-        people:Array.isArray(remote.people)&&remote.people.length?remote.people:defaults.people
+        people:Array.isArray(remote.people)&&remote.people.length?remote.people:defaults.people,
+        trainingDemands:Array.isArray(remote.trainingDemands)?remote.trainingDemands:[]
       };
       cacheLocal();
     }else{
@@ -507,6 +510,7 @@ async function initCloud(){
         skills:defaults.skills,
         plans:defaults.plans,
         people:defaults.people,
+        trainingDemands:defaults.trainingDemands,
         criadoEm:firebase.firestore.FieldValue.serverTimestamp(),
         atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()
       });
@@ -525,7 +529,8 @@ async function initCloud(){
       data={
         skills:Array.isArray(remote.skills)?remote.skills:[],
         plans:Array.isArray(remote.plans)?remote.plans:[],
-        people:Array.isArray(remote.people)&&remote.people.length?remote.people:defaults.people
+        people:Array.isArray(remote.people)&&remote.people.length?remote.people:defaults.people,
+        trainingDemands:Array.isArray(remote.trainingDemands)?remote.trainingDemands:[]
       };
       cacheLocal();
       if(role) go(currentPage);
@@ -710,9 +715,9 @@ async function logout(){
 
 function buildNav(){
   const items=role==='admin'
-    ? [['dashboard','Visão geral'],['agent','Agente ADM'],['fleet','Frotas'],['skills','Habilidades'],['week','Planejamento semanal'],['instructor-test','Testar Instrutor'],['team','Equipe'],['users','Usuários']]
+    ? [['dashboard','Visão geral'],['agent','Agente ADM'],['fleet','Frotas'],['training-demands','Demandas de Treinamento'],['skills','Habilidades'],['week','Planejamento semanal'],['instructor-test','Testar Instrutor'],['team','Equipe'],['users','Usuários']]
     : role==='consultant'
-      ? [['fleet','Acompanhamento de Frotas']]
+      ? [['fleet','Acompanhamento de Frotas'],['training-demands','Demandas de Treinamento']]
       : instructorSimulationMode
         ? [['dashboard','Minha semana'],['fleet','Frotas'],['skills','Minhas habilidades'],['week','Planejamento'],['backAdmin','← Voltar ao ADM']]
         : [['dashboard','Minha semana'],['fleet','Frotas'],['skills','Minhas habilidades'],['week','Planejamento']];
@@ -880,7 +885,7 @@ function go(p){
   currentPage=p;
   document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
   if(p==='dashboard')renderDashboard();
-  if(p==='agent')renderAgent();if(p==='fleet')renderFleet();
+  if(p==='agent')renderAgent();if(p==='fleet')renderFleet();if(p==='training-demands')renderTrainingDemands();
   if(p==='skills')renderSkills();
   if(p==='week')renderWeek();
   if(p==='instructor-test')renderInstructorTest();
@@ -1572,7 +1577,7 @@ function skillCard(s){
   s.status=m.status;
   s.progress=m.progress;
   const cls=m.status==='Concluída'?'s-done':m.status==='Em revisão'?'s-rev':m.status==='Em produção'?'s-prod':'s-plan';
-  return '<div class="skill"><div class="skill-top"><b>'+esc(s.title)+'</b><span class="tag">'+esc(s.level)+'</span></div><p class="muted">'+esc(s.owner)+' • '+esc(s.duration)+'</p><span class="status '+cls+'">'+esc(m.status)+'</span><div class="progress"><i style="width:'+m.progress+'%"></i></div><div class="muted">'+m.progress+'% automático • Etapa: '+esc(m.currentIndex>=5?'Concluída':m.labels[m.currentIndex])+'</div><div class="actions"><button class="btn btn-soft" onclick="openSkill('+s.id+')">Abrir</button>'+(role==='admin'?'<button class="btn btn-danger" onclick="removeSkill('+s.id+')">Excluir</button>':'')+'</div></div>';
+  return '<div class="skill"><div class="skill-top"><b>'+esc(s.title)+'</b><span class="tag">'+esc(s.level)+'</span></div><p class="muted">'+esc(s.owner)+' • '+esc(s.duration)+'</p>'+(s.source==='fleet-demand'?'<div class="fleet-readonly" style="margin:9px 0"><b>Origem: Frota</b> • '+esc(s.sourceMachineCode||'')+(s.sourceClient?' • '+esc(s.sourceClient):'')+'</div>':'')<span class="status '+cls+'">'+esc(m.status)+'</span><div class="progress"><i style="width:'+m.progress+'%"></i></div><div class="muted">'+m.progress+'% automático • Etapa: '+esc(m.currentIndex>=5?'Concluída':m.labels[m.currentIndex])+'</div><div class="actions"><button class="btn btn-soft" onclick="openSkill('+s.id+')">Abrir</button>'+(role==='admin'?'<button class="btn btn-danger" onclick="removeSkill('+s.id+')">Excluir</button>':'')+'</div></div>';
 }
 function renderSkills(){
   header(role==='admin'?'Habilidades':'Minhas habilidades',role==='admin'?'Crie, edite, ordene e acompanhe todas as habilidades.':'Desenvolva o planejamento das habilidades atribuídas a você.');
@@ -1612,6 +1617,7 @@ function openSkill(id){
   document.getElementById('modalContent').innerHTML=
     '<input type="hidden" id="mSkillId" value="'+s.id+'">'+
     '<div class="section-head"><div><h3>'+esc(s.title)+'</h3><div class="muted">'+esc(s.level)+' • '+esc(s.owner)+'</div></div><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div>'+
+    (s.source==='fleet-demand'?'<div class="fleet-readonly"><b>Demanda originada da frota</b><br>Máquina: '+esc(s.sourceMachineCode||'—')+' • '+esc(s.sourceMachineName||'')+(s.sourceClient?'<br>Cliente: '+esc(s.sourceClient):'')+(s.sourceTopic?'<br>Tema: '+esc(s.sourceTopic):'')+(s.sourceEvidence?'<br>Evidência: '+esc(s.sourceEvidence):'')+'</div>':'')+
     '<div class="workflow-summary"><div><h4>Andamento automático</h4><div class="muted">Trabalhe apenas na etapa atual. Ao concluir, a próxima etapa será aberta automaticamente.</div><div class="workflow-progress"><i id="mAutoProgressBar" style="width:'+metrics.progress+'%"></i></div></div><div style="text-align:right"><span class="muted">Progresso</span><div id="mAutoProgress" class="metric">'+metrics.progress+'%</div><div class="muted"><span id="mAutoStatus">'+esc(metrics.status)+'</span> • <span id="mCurrentStep">'+esc(metrics.currentIndex>=5?'Concluída':metrics.labels[metrics.currentIndex])+'</span></div></div></div>'+
     workflowStepHtml(metrics)+
     workflowPanelHtml(0,'Planejamento da microaula','Defina objetivo, desenvolvimento e duração.',planningBody,metrics)+
@@ -2670,6 +2676,202 @@ function renderAgent(){
 }
 
 
+
+function trainingDemands(){
+  return Array.isArray(data.trainingDemands)?data.trainingDemands:[];
+}
+
+function trainingDemandSkill(d){
+  return data.skills.find(s=>Number(s.id)===Number(d?.linkedSkillId))||null;
+}
+
+function trainingDemandEffectiveStatus(d){
+  if(!d) return 'Pendente ADM';
+  if(d.status==='Em produção'){
+    const skill=trainingDemandSkill(d);
+    if(skill&&skillWorkflowMetrics(skill).currentIndex>=5) return 'Pronto para aplicação';
+  }
+  return d.status||'Pendente ADM';
+}
+
+function trainingDemandStatusBadge(status){
+  const cls=status==='Pendente ADM'?'amber':status==='Em produção'?'blue':status==='Pronto para aplicação'?'green':status==='Em acompanhamento'?'blue':status==='Concluída'?'green':'red';
+  return '<span class="fleet-mini-badge '+cls+'">'+esc(status)+'</span>';
+}
+
+function trainingDemandCounts(d){
+  return {
+    before:Array.isArray(d?.preTrainingOccurrences)?d.preTrainingOccurrences.length:0,
+    after:Array.isArray(d?.postTrainingOccurrences)?d.postTrainingOccurrences.length:0
+  };
+}
+
+async function trainingDemandApi(body){
+  const user=auth.currentUser;
+  if(!user) throw new Error('Sua sessão expirou. Entre novamente.');
+  const token=await user.getIdToken(true);
+  const response=await fetch('/api/training-demands',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+    body:JSON.stringify(body)
+  });
+  let result={};
+  try{result=await response.json();}catch(_){}
+  if(!response.ok) throw new Error(result.error||'Não foi possível atualizar a demanda.');
+  return result;
+}
+
+function trainingDemandCard(d){
+  const status=trainingDemandEffectiveStatus(d);
+  const counts=trainingDemandCounts(d);
+  const skill=trainingDemandSkill(d);
+  return '<div class="skill">'+
+    '<div class="skill-top"><b>'+esc(d.topic||'Necessidade de treinamento')+'</b>'+trainingDemandStatusBadge(status)+'</div>'+
+    '<p class="muted">'+esc(d.machineCode||'—')+' • '+esc(d.machineName||'')+(d.client?' • '+esc(d.client):'')+'</p>'+
+    '<div class="fleet-readonly"><b>Evidência:</b> '+esc(d.evidence||'Não informada')+'</div>'+
+    '<div class="fleet-detail-grid" style="grid-template-columns:repeat(3,1fr)">'+
+      '<div class="fleet-detail-item"><span>Prioridade</span><b>'+esc(d.priority||'Baixa')+'</b></div>'+
+      '<div class="fleet-detail-item"><span>Ocorrências antes</span><b>'+counts.before+'</b></div>'+
+      '<div class="fleet-detail-item"><span>Ocorrências após</span><b>'+counts.after+'</b></div>'+
+    '</div>'+
+    (skill?'<div class="muted" style="margin-top:8px">Habilidade: <b>'+esc(skill.title)+'</b> • '+esc(skill.owner||'')+' • '+skillWorkflowMetrics(skill).progress+'%</div>':'')+
+    '<div class="actions">'+
+      (role==='admin'&&status==='Pendente ADM'?'<button class="btn btn-primary" onclick="openTrainingDemandApproval('+d.id+')">Analisar / aprovar</button>':'')+
+      ((role==='admin'||role==='consultant')&&status==='Pronto para aplicação'?'<button class="btn btn-primary" onclick="markTrainingDemandApplied('+d.id+')">Registrar treinamento aplicado</button>':'')+
+      ((role==='admin'||role==='consultant')&&status==='Em acompanhamento'?'<button class="btn btn-soft" onclick="closeTrainingDemand('+d.id+')">Encerrar acompanhamento</button>':'')+
+      '<button class="btn btn-soft" onclick="openTrainingDemandDetail('+d.id+')">Detalhes</button>'+
+    '</div>'+
+  '</div>';
+}
+
+function renderTrainingDemands(){
+  header('Demandas de Treinamento','Transforme evidências de campo em ações de treinamento rastreáveis e acompanhe o resultado após a aplicação.');
+  const demands=trainingDemands().slice().sort((a,b)=>String(b.updatedAt||b.createdAt||'').localeCompare(String(a.updatedAt||a.createdAt||'')));
+  const pending=demands.filter(d=>trainingDemandEffectiveStatus(d)==='Pendente ADM').length;
+  const production=demands.filter(d=>['Em produção','Pronto para aplicação'].includes(trainingDemandEffectiveStatus(d))).length;
+  const follow=demands.filter(d=>trainingDemandEffectiveStatus(d)==='Em acompanhamento').length;
+  const done=demands.filter(d=>trainingDemandEffectiveStatus(d)==='Concluída').length;
+
+  document.getElementById('content').innerHTML=
+    '<div class="cards"><div class="card"><div class="muted">Pendentes ADM</div><div class="metric">'+pending+'</div></div><div class="card"><div class="muted">Em produção</div><div class="metric">'+production+'</div></div><div class="card"><div class="muted">Em acompanhamento</div><div class="metric">'+follow+'</div></div><div class="card"><div class="muted">Concluídas</div><div class="metric">'+done+'</div></div></div>'+
+    '<div class="section"><div class="section-head"><div><h3>Fila de demandas</h3><div class="muted">Frota → necessidade → aprovação → habilidade → aplicação → acompanhamento.</div></div></div><div class="grid">'+
+      (demands.length?demands.map(trainingDemandCard).join(''):'<div class="empty">Nenhuma demanda de treinamento foi criada pela frota.</div>')+
+    '</div></div>';
+}
+
+function openTrainingDemandApproval(id){
+  if(role!=='admin') return;
+  const d=trainingDemands().find(x=>Number(x.id)===Number(id));if(!d)return;
+  document.getElementById('modalContent').innerHTML=
+    '<div class="section-head"><div><h3>Analisar demanda de treinamento</h3><div class="muted">'+esc(d.machineCode||'')+' • '+esc(d.machineName||'')+'</div></div><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div>'+
+    '<div class="fleet-readonly"><b>Evidência de campo:</b> '+esc(d.evidence||'—')+'<br><b>Análise técnica:</b> '+esc(d.analysis||'—')+'</div>'+
+    '<div class="form-grid">'+
+      '<div class="field span2"><label>Título da habilidade</label><input id="tdTitle" value="'+esc(d.topic||'')+'"></div>'+
+      '<div class="field"><label>Instrutor responsável</label><select id="tdOwner">'+data.people.map(p=>'<option>'+esc(p)+'</option>').join('')+'</select></div>'+
+      '<div class="field"><label>Nível</label><select id="tdLevel"><option>Básica</option><option>Intermediária</option><option>Média</option><option>Avançada</option></select></div>'+
+      '<div class="field"><label>Duração prevista</label><input id="tdDuration" value="5 min"></div>'+
+      '<div class="span2"><div class="actions"><button class="btn btn-primary" onclick="approveTrainingDemand('+d.id+')">Aprovar e criar habilidade</button><button class="btn btn-danger" onclick="rejectTrainingDemand('+d.id+')">Não aprovar</button></div></div>'+
+    '</div>';
+  showModal();
+}
+
+async function approveTrainingDemand(id){
+  try{
+    const result=await trainingDemandApi({
+      action:'approve',
+      demandId:id,
+      title:document.getElementById('tdTitle').value.trim(),
+      owner:document.getElementById('tdOwner').value,
+      level:document.getElementById('tdLevel').value,
+      duration:document.getElementById('tdDuration').value.trim()
+    });
+    if(result.demand){
+      data.trainingDemands=trainingDemands().filter(d=>Number(d.id)!==Number(id));
+      data.trainingDemands.unshift(result.demand);
+    }
+    if(result.skill&&!data.skills.some(s=>Number(s.id)===Number(result.skill.id))) data.skills.push(result.skill);
+    closeModal();renderTrainingDemands();
+  }catch(err){alert(err.message||'Não foi possível aprovar a demanda.');}
+}
+
+async function rejectTrainingDemand(id){
+  const reason=prompt('Motivo para não aprovar esta demanda:')||'';
+  if(!confirm('Confirmar que esta demanda não será transformada em habilidade?')) return;
+  try{
+    const result=await trainingDemandApi({action:'reject',demandId:id,reason});
+    data.trainingDemands=trainingDemands().map(d=>Number(d.id)===Number(id)?result.demand:d);
+    closeModal();renderTrainingDemands();
+  }catch(err){alert(err.message||'Não foi possível atualizar a demanda.');}
+}
+
+async function markTrainingDemandApplied(id){
+  const notes=prompt('Observação sobre a aplicação do treinamento (equipe, turma, local, etc.):')||'';
+  try{
+    const result=await trainingDemandApi({action:'mark-applied',demandId:id,notes});
+    data.trainingDemands=trainingDemands().map(d=>Number(d.id)===Number(id)?result.demand:d);
+    renderTrainingDemands();
+  }catch(err){alert(err.message||'Não foi possível registrar a aplicação.');}
+}
+
+async function closeTrainingDemand(id){
+  const d=trainingDemands().find(x=>Number(x.id)===Number(id));if(!d)return;
+  const counts=trainingDemandCounts(d);
+  const outcome=prompt('Conclusão do acompanhamento (ex.: recorrência reduziu, manteve, aumentou, dados insuficientes):','Dados insuficientes')||'Dados insuficientes';
+  const notes=prompt('Observações finais:')||'';
+  try{
+    const result=await trainingDemandApi({action:'close',demandId:id,outcome,notes});
+    data.trainingDemands=trainingDemands().map(x=>Number(x.id)===Number(id)?result.demand:x);
+    renderTrainingDemands();
+  }catch(err){alert(err.message||'Não foi possível encerrar o acompanhamento.');}
+}
+
+function openTrainingDemandDetail(id){
+  const d=trainingDemands().find(x=>Number(x.id)===Number(id));if(!d)return;
+  const before=Array.isArray(d.preTrainingOccurrences)?d.preTrainingOccurrences:[];
+  const after=Array.isArray(d.postTrainingOccurrences)?d.postTrainingOccurrences:[];
+  const skill=trainingDemandSkill(d);
+  const status=trainingDemandEffectiveStatus(d);
+  const occurrenceRows=(list,label)=>list.length?list.map(o=>'<div class="fleet-event"><div class="date">'+fleetDate(o.data)+' • '+esc(label)+'</div><div class="event-title">'+esc(o.tema||d.topic||'Ocorrência')+'</div><div class="event-text">'+esc(o.evidencia||'—')+'</div></div>').join(''):'<div class="muted">Nenhuma ocorrência registrada.</div>';
+
+  let comparison='<div class="fleet-readonly"><b>Leitura dos dados:</b> ainda não há base suficiente para comparar recorrência antes e depois.</div>';
+  if(before.length&&after.length){
+    comparison='<div class="fleet-readonly"><b>Comparação simples:</b> '+before.length+' ocorrência(s) antes e '+after.length+' após o treinamento. Esta contagem não prova redução por si só; compare também períodos equivalentes, horas operadas e exposição da equipe.</div>';
+  }
+
+  document.getElementById('modalContent').innerHTML=
+    '<div class="section-head"><div><h3>'+esc(d.topic||'Demanda de treinamento')+'</h3><div class="muted">'+esc(d.machineCode||'')+' • '+esc(d.machineName||'')+' • '+esc(d.client||'')+'</div></div><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div>'+
+    '<div style="margin-bottom:12px">'+trainingDemandStatusBadge(status)+'</div>'+
+    '<div class="fleet-note"><b>Evidência inicial</b><div class="muted" style="margin-top:5px">'+esc(d.evidence||'—')+'</div></div>'+
+    '<div class="fleet-note"><b>Análise técnica</b><div class="muted" style="margin-top:5px">'+esc(d.analysis||'—')+'</div></div>'+
+    (skill?'<div class="fleet-note"><b>Habilidade vinculada</b><div class="muted" style="margin-top:5px">'+esc(skill.title)+' • '+esc(skill.owner||'')+' • '+skillWorkflowMetrics(skill).progress+'%</div></div>':'')+
+    comparison+
+    '<div class="fleet-overview" style="margin-top:14px"><div class="fleet-panel"><h3>Antes do treinamento</h3><div class="fleet-timeline">'+occurrenceRows(before,'Antes')+'</div></div><div class="fleet-panel"><h3>Após o treinamento</h3><div class="fleet-timeline">'+occurrenceRows(after,'Após')+'</div></div></div>'+
+    (d.status==='Concluída'?'<div class="fleet-note"><b>Conclusão registrada</b><div class="muted" style="margin-top:5px">'+esc(d.outcome||'—')+'<br>'+esc(d.outcomeNotes||'')+'</div></div>':'');
+  showModal();
+}
+
+async function registerFleetTrainingDemand(m,eventData){
+  if(!m||!eventData||eventData.classificacaoNecessidade!=='Treinamento'||!eventData.necessidadeTreinamento) return null;
+  const result=await trainingDemandApi({
+    action:'register-occurrence',
+    machineCode:m.codigo,
+    machineName:m.modelo,
+    machineFamily:fleetFamily(m),
+    client:m.cliente,
+    location:m.local,
+    eventDate:eventData.data,
+    evidence:eventData.evidenciaObservada,
+    analysis:eventData.analiseTecnica,
+    trainingNeed:eventData.necessidadeTreinamento,
+    priority:eventData.prioridadeTreinamento
+  });
+  if(result.demand){
+    const list=trainingDemands().filter(d=>Number(d.id)!==Number(result.demand.id));
+    data.trainingDemands=[result.demand,...list];
+  }
+  return result;
+}
+
 function fleetCanEdit(){
   return role==='admin' || role==='consultant';
 }
@@ -2979,6 +3181,7 @@ function renderFleet(){
       '<div class="fleet-kpi"><div class="muted">Treinamento prioritário</div><div class="value">'+trainingQueue+'</div><div class="hint">Somente necessidades classificadas como treinamento</div></div>'+
       '<div class="fleet-kpi"><div class="muted">Acompanhamento</div><div class="value">'+followUpQueue+'</div><div class="hint">Atenção ou visita em andamento</div></div>'+
     '</div>'+
+    '<div class="section" style="margin-top:0"><div class="section-head"><div><h3>Frota → Treinamento</h3><div class="muted">Necessidades classificadas como treinamento viram demandas rastreáveis no EAD.</div></div><button class="btn btn-soft" onclick="go(\'training-demands\')">Abrir demandas ('+trainingDemands().filter(d=>trainingDemandEffectiveStatus(d)!=='Concluída'&&trainingDemandEffectiveStatus(d)!=='Não aprovada').length+')</button></div></div>'+
 
     '<div class="section consultant-priority-shell">'+
       '<div class="consultant-priority-toolbar">'+
@@ -3275,7 +3478,7 @@ function newFleetEvent(id){
   toggleFleetTrainingFields('fe');
 }
 
-function saveFleetEvent(id){
+async function saveFleetEvent(id){
   if(!fleetCanEdit())return;
   const m=fleetPrototype.find(x=>Number(x.id)===Number(id));if(!m)return;
 
@@ -3295,7 +3498,7 @@ function saveFleetEvent(id){
   const prioridade=classificacao==='Treinamento'?document.getElementById('fePrioridade').value:'Baixa';
 
   if(!Array.isArray(m.historico))m.historico=[];
-  m.historico.push({
+  const fleetEvent={
     id:Date.now(),
     data:date,
     tipo:document.getElementById('feTipo').value,
@@ -3309,7 +3512,8 @@ function saveFleetEvent(id){
     responsavel:currentPersonName||'Consultor de Treinamento',
     horimetro:m.horimetro,
     ...(soc?{soc:m.soc}:{})
-  });
+  };
+  m.historico.push(fleetEvent);
 
   m.status=document.getElementById('feStatus').value;
   m.classificacaoNecessidade=classificacao;
@@ -3321,6 +3525,22 @@ function saveFleetEvent(id){
   m.ultimaAtualizacao=date;
 
   fleetSavePrototype();
+
+  if(classificacao==='Treinamento'&&treinamento){
+    try{
+      const demandResult=await registerFleetTrainingDemand(m,fleetEvent);
+      const message=demandResult?.created
+        ? 'Demanda de treinamento criada e enviada para análise do ADM.'
+        : (demandResult?.phase==='Após treinamento'
+            ? 'Ocorrência registrada no acompanhamento pós-treinamento.'
+            : 'Nova ocorrência vinculada à demanda de treinamento existente.');
+      alert(message);
+    }catch(err){
+      console.error('Falha ao criar demanda de treinamento:',err);
+      alert('O acompanhamento da máquina foi salvo, mas a demanda de treinamento não sincronizou: '+(err.message||'erro de comunicação.'));
+    }
+  }
+
   openFleetMachine(m.id);
 }
 
