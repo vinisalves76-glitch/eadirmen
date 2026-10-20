@@ -13,7 +13,12 @@
 </style>
 </head>
 <body>
-<section id="loginView" class="login">
+<section id="authLoading" class="login" aria-live="polite">
+  <div class="brand" style="margin-bottom:18px"><div class="logo">POP</div><div><h1>EAD IRMEN</h1><p>Procedimentos Operacionais Padrão</p></div></div>
+  <h2>Verificando acesso...</h2>
+  <p class="muted">Aguarde enquanto validamos sua sessão do EAD IRMEN.</p>
+</section>
+<section id="loginView" class="login hidden">
   <div class="brand" style="margin-bottom:22px"><div class="logo">POP</div><div><h1>EAD IRMEN</h1><p>Procedimentos Operacionais Padrão</p></div></div>
   <h2>Acesso técnico</h2><p class="muted">Entre com seu usuário do EAD IRMEN. A biblioteca do mecânico exibe somente POPs publicados após aprovação do ADM.</p>
   <form id="loginForm">
@@ -92,7 +97,16 @@ $('loginForm').addEventListener('submit',async e=>{
   finally{$('loginBtn').disabled=false;$('loginBtn').textContent='Entrar';}
 });
 auth.onAuthStateChanged(async user=>{
-  if(!user){profile=null;$('appView').classList.add('hidden');$('loginView').classList.remove('hidden');return;}
+  if(!user){
+    profile=null;
+    $('appView').classList.add('hidden');
+    $('authLoading').classList.add('hidden');
+    $('loginView').classList.remove('hidden');
+    return;
+  }
+  $('authLoading').classList.remove('hidden');
+  $('loginView').classList.add('hidden');
+  $('appView').classList.add('hidden');
   try{
     const token=await user.getIdToken(true);
     const response=await fetch('/api/pops',{headers:{Authorization:'Bearer '+token}});
@@ -102,13 +116,21 @@ auth.onAuthStateChanged(async user=>{
     const snap=result.profile;
     if(!snap||snap.ativo!==true||!['admin','instructor','mechanic'].includes(snap.perfil))throw new Error('Perfil ativo de ADM, Instrutor ou Mecânico não encontrado.');
     profile={uid:user.uid,...snap};
-    $('loginView').classList.add('hidden');$('appView').classList.remove('hidden');
+    $('authLoading').classList.add('hidden');
+    $('loginView').classList.add('hidden');
+    $('appView').classList.remove('hidden');
     $('userChip').textContent=(profile.nome||profile.email||'Usuário')+' • '+roleLabel(profile.perfil);
     $('newPopBtn').classList.toggle('hidden',!['admin','instructor'].includes(profile.perfil));
     $('listTitle').textContent=profile.perfil==='mechanic'?'POPs publicados':'Gestão de POPs';
     $('listSub').textContent=profile.perfil==='mechanic'?'Procedimentos aprovados para consulta da equipe de manutenção.':'Rascunhos, auditorias, correções e procedimentos publicados.';
     await loadPops();
-  }catch(err){$('loginMessage').textContent=err.message||'Não foi possível validar o perfil.';await auth.signOut();}
+  }catch(err){
+    $('authLoading').classList.add('hidden');
+    $('appView').classList.add('hidden');
+    $('loginView').classList.remove('hidden');
+    $('loginMessage').textContent=err.message||'Não foi possível validar o perfil.';
+    await auth.signOut();
+  }
 });
 async function loadPops(){
   hideNotice();
