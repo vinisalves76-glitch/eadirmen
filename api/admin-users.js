@@ -107,6 +107,52 @@ module.exports = async function handler(req, res) {
     const action = clean(body.action);
     const uid = clean(body.uid);
 
+    // Criacao de usuarios pelo Firebase Admin SDK: nao depende das regras
+    // de escrita do Firestore no navegador.
+    if (action === 'create') {
+      const nome = clean(body.nome);
+      const email = clean(body.email).toLowerCase();
+      const senha = typeof body.senha === 'string' ? body.senha : '';
+      const perfil = clean(body.perfil);
+
+      if (!nome) return res.status(400).json({ error: 'Informe o nome.' });
+      if (!email || !email.includes('@')) return res.status(400).json({ error: 'Informe um e-mail valido.' });
+      if (senha.length < 6) return res.status(400).json({ error: 'A senha precisa ter pelo menos 6 caracteres.' });
+      if (!['admin', 'consultant', 'instructor', 'mechanic'].includes(perfil)) {
+        return res.status(400).json({ error: 'Perfil invalido.' });
+      }
+
+      let createdUser = null;
+      try {
+        createdUser = await auth.createUser({ email, password: senha, displayName: nome, disabled: false });
+        await db.collection('usuarios').doc(createdUser.uid).set({
+          nome,
+          email,
+          perfil,
+          cargo: perfil === 'admin' ? 'ADM' : perfil === 'consultant' ? 'Consultor de Treinamento' : perfil === 'mechanic' ? 'Mecânico' : 'Instrutor',
+          ativo: true,
+          criadoPor: decoded.uid,
+          criadoEm: admin.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (createErr) {
+        if (createdUser) {
+          try { await auth.deleteUser(createdUser.uid); } catch (rollbackErr) {
+            console.error('Falha ao reverter usuario criado sem perfil:', rollbackErr);
+          }
+        }
+        if (createErr.code === 'auth/email-already-exists') {
+          return res.status(409).json({ error: 'Já existe um login com esse e-mail.' });
+        }
+        if (createErr.code === 'auth/invalid-password') {
+          return res.status(400).json({ error: 'A senha precisa ter pelo menos 6 caracteres.' });
+        }
+        console.error('Falha ao criar perfil de usuario:', createErr);
+        return res.status(500).json({ error: 'Não foi possível criar o usuário e gravar seu perfil no Firestore. Verifique a configuração do Firebase Admin.' });
+      }
+
+      return res.status(201).json({ ok: true, uid: createdUser.uid, message: 'Login criado com sucesso.' });
+    }
+
     if (!uid) {
       return res.status(400).json({ error: 'Usuario nao informado.' });
     }
