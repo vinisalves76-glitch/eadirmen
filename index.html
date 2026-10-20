@@ -754,7 +754,7 @@ async function openAuthenticatedApp(user){
       throw new Error('EAD: Este login está desativado. Procure um administrador.');
     }
 
-    if(!['admin','consultant','instructor'].includes(profile.perfil)){
+    if(!['admin','consultant','instructor','mechanic'].includes(profile.perfil)){
       throw new Error('EAD: O perfil deste usuário está inválido no Firestore.');
     }
 
