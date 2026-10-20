@@ -87,7 +87,7 @@ async function api(body=null){
 }
 $('loginForm').addEventListener('submit',async e=>{
   e.preventDefault();$('loginBtn').disabled=true;$('loginBtn').textContent='Entrando...';$('loginMessage').textContent='';
-  try{await auth.setPersistence(firebase.auth.Auth.Persistence.NONE);await auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value);}
+  try{await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);await auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value);}
   catch(err){$('loginMessage').textContent=err.code&&err.code.includes('invalid-credential')?'E-mail ou senha inválidos.':(err.message||'Falha no login.');}
   finally{$('loginBtn').disabled=false;$('loginBtn').textContent='Entrar';}
 });
