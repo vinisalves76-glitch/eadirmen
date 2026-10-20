@@ -798,12 +798,12 @@ async function logout(){
 
 function buildNav(){
   const items=role==='admin'
-    ? [['dashboard','Visão geral'],['agent','Agente ADM'],['fleet','Frotas'],['training-demands','Demandas de Treinamento'],['skills','Habilidades'],['week','Planejamento semanal'],['instructor-test','Testar Instrutor'],['team','Equipe'],['users','Usuários']]
+    ? [['dashboard','Visão geral'],['agent','Agente ADM'],['fleet','Frotas'],['training-demands','Demandas de Treinamento'],['skills','Habilidades'],['pop','POP Técnico'],['week','Planejamento semanal'],['instructor-test','Testar Instrutor'],['team','Equipe'],['users','Usuários']]
     : role==='consultant'
       ? [['fleet','Acompanhamento de Frotas'],['training-demands','Demandas de Treinamento']]
       : instructorSimulationMode
         ? [['dashboard','Minha semana'],['fleet','Frotas'],['skills','Minhas habilidades'],['week','Planejamento'],['backAdmin','← Voltar ao ADM']]
-        : [['dashboard','Minha semana'],['fleet','Frotas'],['skills','Minhas habilidades'],['week','Planejamento']];
+        : [['dashboard','Minha semana'],['fleet','Frotas'],['skills','Minhas habilidades'],['pop','POPs'],['week','Planejamento']];
 
   const nav=document.getElementById('nav');
   nav.innerHTML='';
@@ -964,6 +964,7 @@ auth.onAuthStateChanged(async user=>{
   }
 })
 function go(p){
+  if(p==='pop'){window.open('/pop.html','_blank','noopener');return;}
   if(p==='backAdmin'){exitInstructorSimulation();return}
   currentPage=p;
   document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
@@ -2066,6 +2067,7 @@ function userRoleLabel(u){
   if(!u) return 'Instrutor';
   if(u.perfil==='admin') return 'ADM';
   if(u.perfil==='consultant') return 'Consultor de Treinamento';
+  if(u.perfil==='mechanic') return 'Mecânico';
   return 'Instrutor';
 }
 
@@ -2114,13 +2116,13 @@ function openEditUser(uid){
     '<div class="section-head"><div><h3>Editar usuário</h3><div class="muted">Altere os dados de acesso e o perfil do colaborador.</div></div><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div>'+
     '<div class="form-grid">'+
       '<div class="field"><label>Nome completo</label><input id="editUserName" value="'+esc(u.nome||'')+'"></div>'+
-      '<div class="field"><label>Perfil</label><select id="editUserRole" '+(isSelf?'disabled':'')+'><option value="instructor">Instrutor</option><option value="consultant">Consultor de Treinamento</option><option value="admin">ADM</option></select></div>'+
+      '<div class="field"><label>Perfil</label><select id="editUserRole" '+(isSelf?'disabled':'')+'><option value="instructor">Instrutor</option><option value="consultant">Consultor de Treinamento</option><option value="mechanic">Mecânico</option><option value="admin">ADM</option></select></div>'+
       '<div class="field span2"><label>E-mail de login</label><input id="editUserEmail" type="email" value="'+esc(u.email||'')+'"></div>'+
       '<div class="field span2"><label>Nova senha</label><input id="editUserPassword" type="password" minlength="6" placeholder="Deixe em branco para manter a senha atual"><div class="muted" style="margin-top:6px">Se preenchida, a senha do Firebase Authentication será alterada imediatamente.</div></div>'+
       '<div class="span2"><button id="saveUserButton" class="btn btn-primary" onclick="saveUserEdit(\''+uid+'\')">Salvar alterações</button><div id="editUserMessage" class="muted" style="margin-top:10px"></div></div>'+
     '</div>';
 
-  document.getElementById('editUserRole').value=['admin','consultant','instructor'].includes(u.perfil)?u.perfil:'instructor';
+  document.getElementById('editUserRole').value=['admin','consultant','instructor','mechanic'].includes(u.perfil)?u.perfil:'instructor';
   showModal();
 }
 
@@ -2213,7 +2215,7 @@ async function createUserLogin(event){
 
   if(!name){msg.textContent='Informe o nome.';return;}
   if(password.length<6){msg.textContent='A senha precisa ter pelo menos 6 caracteres.';return;}
-  if(!['admin','consultant','instructor'].includes(newRole)){msg.textContent='Selecione ADM, Consultor de Treinamento ou Instrutor.';return;}
+  if(!['admin','consultant','instructor','mechanic'].includes(newRole)){msg.textContent='Selecione ADM, Consultor de Treinamento, Instrutor ou Mecânico.';return;}
 
   btn.disabled=true;
   btn.textContent='Criando...';
@@ -2226,7 +2228,7 @@ async function createUserLogin(event){
       nome:name,
       email,
       perfil:newRole,
-      cargo:newRole==='admin'?'ADM':newRole==='consultant'?'Consultor de Treinamento':'Instrutor',
+      cargo:newRole==='admin'?'ADM':newRole==='consultant'?'Consultor de Treinamento':newRole==='mechanic'?'Mecânico':'Instrutor',
       ativo:true,
       criadoPor:currentUserProfile&&currentUserProfile.uid?currentUserProfile.uid:null,
       criadoEm:firebase.firestore.FieldValue.serverTimestamp()
@@ -4280,7 +4282,7 @@ function renderUsers(success=''){
       '<div class="section-head"><div><h3>Criar novo login</h3><div class="muted">O usuário poderá entrar no EAD Irmen usando este e-mail e senha.</div></div></div>'+
       '<form class="form-grid" onsubmit="createUserLogin(event)">'+
         '<div class="field"><label>Nome completo</label><input id="newUserName" placeholder="Nome do colaborador" required></div>'+
-        '<div class="field"><label>Perfil</label><select id="newUserRole"><option value="instructor">Instrutor</option><option value="consultant">Consultor de Treinamento</option><option value="admin">ADM</option></select></div>'+
+        '<div class="field"><label>Perfil</label><select id="newUserRole"><option value="instructor">Instrutor</option><option value="consultant">Consultor de Treinamento</option><option value="mechanic">Mecânico</option><option value="admin">ADM</option></select></div>'+
         '<div class="field"><label>E-mail</label><input id="newUserEmail" type="email" placeholder="nome@irmen..." required></div>'+
         '<div class="field"><label>Senha inicial</label><input id="newUserPassword" type="password" minlength="6" placeholder="Mínimo 6 caracteres" required></div>'+
         '<div class="span2"><button id="createUserButton" class="btn btn-primary" type="submit">Criar login</button><div id="userCreateMessage" class="muted" style="margin-top:10px;'+(success?'color:#15803d;font-weight:700':'')+'">'+esc(success)+'</div></div>'+
