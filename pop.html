@@ -99,7 +99,7 @@ auth.onAuthStateChanged(async user=>{
     const result=await response.json();
     if(response.status===401||response.status===403)throw new Error(result.error||'Perfil sem permissão para acessar os POPs.');
     if(!response.ok)throw new Error(result.error||'Falha ao validar o acesso.');
-    const snap=await fetchProfile(user.uid);
+    const snap=result.profile;
     if(!snap||snap.ativo!==true||!['admin','instructor','mechanic'].includes(snap.perfil))throw new Error('Perfil ativo de ADM, Instrutor ou Mecânico não encontrado.');
     profile={uid:user.uid,...snap};
     $('loginView').classList.add('hidden');$('appView').classList.remove('hidden');
@@ -110,15 +110,6 @@ auth.onAuthStateChanged(async user=>{
     await loadPops();
   }catch(err){$('loginMessage').textContent=err.message||'Não foi possível validar o perfil.';await auth.signOut();}
 });
-async function fetchProfile(uid){
-  // Perfil é lido do Firestore pela SDK web, com as regras já usadas pelo EAD.
-  try{
-    const app=firebase.app();
-    const firestore=app.firestore();
-    const snap=await firestore.collection('usuarios').doc(uid).get();
-    return snap.exists?snap.data():null;
-  }catch(err){throw new Error('Não foi possível ler o perfil no Firestore. Verifique as regras de leitura da coleção usuarios.');}
-}
 async function loadPops(){
   hideNotice();
   try{const result=await api();pops=Array.isArray(result.pops)?result.pops:[];renderMetrics();renderList();}
