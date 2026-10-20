@@ -2224,33 +2224,20 @@ async function createUserLogin(event){
   btn.textContent='Criando...';
 
   try{
-    await secondaryAuth.setPersistence(firebase.auth.Auth.Persistence.NONE);
-    const credential=await secondaryAuth.createUserWithEmailAndPassword(email,password);
-    const uid=credential.user.uid;
-    const profile={
-      nome:name,
-      email,
-      perfil:newRole,
-      cargo:newRole==='admin'?'ADM':newRole==='consultant'?'Consultor de Treinamento':newRole==='mechanic'?'Mecânico':'Instrutor',
-      ativo:true,
-      criadoPor:currentUserProfile&&currentUserProfile.uid?currentUserProfile.uid:null,
-      criadoEm:firebase.firestore.FieldValue.serverTimestamp()
-    };
-
-    await db.collection('usuarios').doc(uid).set(profile);
+    // A API valida o administrador e cria o login + perfil com Firebase Admin.
+    // Assim, esta operacao nao depende de permissao de escrita do cliente no Firestore.
+    await adminUserAction({action:'create',nome:name,email,senha:password,perfil:newRole});
 
     if(!data.people.includes(name)){
       data.people.push(name);
       await save();
     }
 
-    await secondaryAuth.signOut();
     await loadTeamUsers();
     renderUsers('Login criado com sucesso para '+name+'.');
   }catch(err){
     console.error(err);
-    try{await secondaryAuth.signOut();}catch(_){}
-    msg.textContent=userCreationError(err);
+    msg.textContent=err.message || userCreationError(err);
     btn.disabled=false;
     btn.textContent='Criar login';
   }
