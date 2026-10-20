@@ -32,7 +32,7 @@
 <div id="appView" class="wrap hidden">
   <header class="topbar">
     <div class="brand"><div class="logo">POP</div><div><h1>Biblioteca de POPs</h1><p>Procedimentos auditados e controlados • IRMEN</p></div></div>
-    <div class="userbar"><span id="userChip" class="chip"></span><button class="btn soft" onclick="loadPops()">Atualizar</button><button class="btn soft" onclick="logout()">Sair</button></div>
+    <div class="userbar"><span id="userChip" class="chip"></span><button id="seedDemoBtn" class="btn soft hidden" onclick="seedDemoPops()">Carregar 10 POPs de teste</button><button class="btn soft" onclick="loadPops()">Atualizar</button><button class="btn soft" onclick="logout()">Sair</button></div>
   </header>
   <div id="notice" class="notice hidden"></div>
   <div id="metrics" class="metrics"></div>
@@ -123,6 +123,7 @@ auth.onAuthStateChanged(async user=>{
     $('appView').classList.remove('hidden');
     $('userChip').textContent=(profile.nome||profile.email||'Usuário')+' • '+roleLabel(profile.perfil);
     $('newPopBtn').classList.toggle('hidden',!['admin','instructor'].includes(profile.perfil));
+    $('seedDemoBtn').classList.toggle('hidden',profile.perfil!=='admin');
     $('listTitle').textContent=profile.perfil==='mechanic'?'POPs publicados':'Gestão de POPs';
     $('listSub').textContent=profile.perfil==='mechanic'?'Procedimentos aprovados para consulta da equipe de manutenção.':'Rascunhos, auditorias, correções e procedimentos publicados.';
     await loadPops();
@@ -134,6 +135,18 @@ auth.onAuthStateChanged(async user=>{
     await auth.signOut();
   }
 });
+async function seedDemoPops(){
+  if(profile?.perfil!=='admin')return;
+  const btn=$('seedDemoBtn');
+  if(!confirm('Criar até 10 POPs DEMONSTRATIVOS para testar a biblioteca? Alguns ficarão publicados para visualização do mecânico. Todo conteúdo está marcado como DEMO e precisa ser validado no manual antes de uso em campo.'))return;
+  btn.disabled=true;btn.textContent='Carregando...';
+  try{
+    const result=await api({action:'seed-demo'});
+    showNotice((result.message||'Carga concluída.')+' Criados: '+result.created+'. Já existentes ignorados: '+result.skipped+'.');
+    await loadPops();
+  }catch(err){showNotice(err.message||'Não foi possível carregar os POPs demonstrativos.');}
+  finally{btn.disabled=false;btn.textContent='Carregar 10 POPs de teste';}
+}
 async function loadPops(){
   hideNotice();
   try{const result=await api();pops=Array.isArray(result.pops)?result.pops:[];renderMetrics();renderList();}
