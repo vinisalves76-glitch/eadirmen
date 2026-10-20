@@ -13,11 +13,13 @@
 </style>
 </head>
 <body>
-<section id="authLoading" class="login" aria-live="polite">
-  <div class="brand" style="margin-bottom:18px"><div class="logo">POP</div><div><h1>EAD IRMEN</h1><p>Procedimentos Operacionais Padrão</p></div></div>
-  <h2>Verificando acesso...</h2>
-  <p class="muted">Aguarde enquanto validamos sua sessão do EAD IRMEN.</p>
+<section id="authLoading" aria-live="polite" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;background:var(--bg)">
+  <div class="logo" style="width:54px;height:54px;font-size:17px">POP</div>
+  <div style="font-weight:800;font-size:20px;color:var(--text)">Abrindo biblioteca de POPs</div>
+  <div class="muted">Validando sua sessão do EAD IRMEN…</div>
+  <div aria-hidden="true" style="width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--primary);border-radius:50%;animation:pop-loading-spin .8s linear infinite"></div>
 </section>
+<style>@keyframes pop-loading-spin{to{transform:rotate(360deg)}}</style>
 <section id="loginView" class="login hidden">
   <div class="brand" style="margin-bottom:22px"><div class="logo">POP</div><div><h1>EAD IRMEN</h1><p>Procedimentos Operacionais Padrão</p></div></div>
   <h2>Acesso técnico</h2><p class="muted">Entre com seu usuário do EAD IRMEN. A biblioteca do mecânico exibe somente POPs publicados após aprovação do ADM.</p>
