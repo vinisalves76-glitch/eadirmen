@@ -86,6 +86,7 @@ function validatePop(body) {
   };
   if (!pop.title || !pop.equipment || !pop.objective) throw fail('Preencha título, equipamento e objetivo.');
   if (!pop.steps.length) throw fail('Adicione pelo menos uma etapa ao procedimento.');
+  if (pop.steps.some(step => !step.title || !step.instruction)) throw fail('Cada etapa precisa ter titulo e instrucao.');
   for (const step of pop.steps) {
     for (const url of [step.imageUrl, step.videoUrl]) {
       if (url && !/^https:\/\//i.test(url)) throw fail('Links de imagens e vídeos devem usar HTTPS.');
