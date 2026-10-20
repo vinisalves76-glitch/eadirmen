@@ -106,7 +106,7 @@ module.exports = async function handler(req, res) {
       const visible = profile.perfil === 'mechanic'
         ? items.filter(item => item.status === 'published')
         : items;
-      return res.status(200).json({ ok: true, pops: visible });
+      return res.status(200).json({ ok: true, pops: visible, profile: { uid: profile.uid, nome: clean(profile.nome || '', 160), email: clean(profile.email || '', 200), perfil: profile.perfil, ativo: profile.ativo === true } });
     }
     if (req.method !== 'POST') {
       res.setHeader('Allow', 'GET, POST');
