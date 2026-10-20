@@ -663,7 +663,8 @@ async function loginWithEmail(event){
 
   try{
     loginAutorizadoNestaPagina=true;
-    await auth.setPersistence(firebase.auth.Auth.Persistence.NONE);
+    // Mantém a sessão entre páginas e abas do EAD IRMEN, incluindo o POP Técnico.
+    await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
     const credential=await auth.signInWithEmailAndPassword(email,password);
 
     // Não dependemos apenas do onAuthStateChanged.
@@ -907,26 +908,9 @@ function renderInstructorTest(message=''){
 
 auth.onAuthStateChanged(async user=>{
   if(user){
-    // Pode existir uma sessão antiga armazenada por versões anteriores.
-    // Não fazemos signOut automático aqui porque isso pode correr em paralelo
-    // com um novo clique em "Entrar" e derrubar a sessão recém-autenticada.
-    // A interface continua bloqueada até o usuário autenticar manualmente nesta página.
-    if(!loginAutorizadoNestaPagina){
-      appReadyUid=null;
-      openingUserUid=null;
-      document.getElementById('app').classList.add('hidden');
-      document.getElementById('login').classList.remove('hidden');
-
-      const email=document.getElementById('loginEmail');
-      if(email && !email.value){
-        email.value=localStorage.getItem('ead-irmen-last-email')||user.email||'';
-      }
-
-      const btn=document.getElementById('loginButton');
-      if(btn){btn.disabled=false;btn.textContent='Entrar';}
-      return;
-    }
-
+    // Restaura a sessão Firebase persistida para permitir navegação entre
+    // o EAD e o POP Técnico sem solicitar autenticação novamente.
+    loginAutorizadoNestaPagina=true;
     try{
       await openAuthenticatedApp(user);
     }catch(err){
@@ -964,7 +948,7 @@ auth.onAuthStateChanged(async user=>{
   }
 })
 function go(p){
-  if(p==='pop'){window.open('/pop.html','_blank','noopener');return;}
+  if(p==='pop'){window.location.href='/pop.html';return;}
   if(p==='backAdmin'){exitInstructorSimulation();return}
   currentPage=p;
   document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
