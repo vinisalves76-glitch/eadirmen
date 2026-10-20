@@ -2182,6 +2182,26 @@ async function toggleUserActive(uid){
   }
 }
 
+async function requestUserRemoval(uid){
+  if(role!=='admin') return;
+  const u=teamUsers.find(item=>item.uid===uid);
+  if(!u) return;
+  if(currentUserProfile && currentUserProfile.uid===uid){
+    alert('Você não pode excluir o próprio usuário administrador.');
+    return;
+  }
+  const label=u.nome||u.email||'este usuário';
+  if(!confirm('Excluir permanentemente '+label+'? Esta ação remove o login e o perfil do EAD. Os registros de habilidades e planejamentos serão preservados.')) return;
+  try{
+    await adminUserAction({action:'delete',uid});
+    await loadTeamUsers();
+    renderUsers('Usuário excluído com sucesso.');
+  }catch(err){
+    console.error(err);
+    alert(err.message || 'Não foi possível excluir o usuário.');
+  }
+}
+
 async function createUserLogin(event){
   event.preventDefault();
   if(role!=='admin') return;
@@ -4254,7 +4274,7 @@ function renderUsers(success=''){
             '<button class="btn btn-soft" onclick="openEditUser(\''+u.uid+'\')">Editar</button>'+
             (isSelf
               ? '<span class="muted" style="align-self:center">Usuário atual</span>'
-              : '<button class="btn btn-soft" onclick="toggleUserActive(\''+u.uid+'\')">'+(active?'Desativar':'Ativar')+'</button>')+
+              : '<button class="btn btn-soft" onclick="toggleUserActive(\\''+u.uid+'\\')">'+(active?'Desativar':'Ativar')+'</button><button class="btn btn-danger" onclick="requestUserRemoval(\\''+u.uid+'\\')">Excluir</button>')+
           '</div></td>'+
         '</tr>';
       }).join('')
