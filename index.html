@@ -948,7 +948,7 @@ auth.onAuthStateChanged(async user=>{
   }
 })
 function go(p){
-  if(p==='pop'){window.open('/pop.html','_blank','noopener');return;}
+  if(p==='pop'){window.location.href='/pop.html';return;}
   if(p==='backAdmin'){exitInstructorSimulation();return}
   currentPage=p;
   document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
