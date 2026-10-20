@@ -907,12 +907,14 @@ function renderInstructorTest(message=''){
 }
 
 auth.onAuthStateChanged(async user=>{
-  if(user){
-    // Restaura a sessão Firebase persistida para permitir navegação entre
-    // o EAD e o POP Técnico sem solicitar autenticação novamente.
-    loginAutorizadoNestaPagina=true;
+  // Mesmo que o Firebase restaure uma sessão do cache, a página inicial
+  // sempre exige que o usuário confirme o acesso clicando em "Entrar".
+  // A sessão não é apagada: após o login explícito, ela continua disponível
+  // para abrir o POP na mesma aba sem uma segunda autenticação.
+  if(user && loginAutorizadoNestaPagina){
     try{
       await openAuthenticatedApp(user);
+      return;
     }catch(err){
       console.error('Falha ao abrir sessão autenticada:',err);
       loginAutorizadoNestaPagina=false;
@@ -920,32 +922,29 @@ auth.onAuthStateChanged(async user=>{
       openingUserUid=null;
       document.getElementById('app').classList.add('hidden');
       document.getElementById('login').classList.remove('hidden');
-
-      const btn=document.getElementById('loginButton');
-      if(btn){btn.disabled=false;btn.textContent='Entrar';}
     }
-  }else{
-    role='';
-    instructorSimulationMode=false;
-    instructorSimulationRealData=null;
-    currentUserProfile=null;
-    currentPersonName='';
-    appReadyUid=null;
-    openingUserUid=null;
-    if(cloudUnsubscribe){cloudUnsubscribe();cloudUnsubscribe=null;}
-    document.getElementById('app').classList.add('hidden');
-    document.getElementById('login').classList.remove('hidden');
-
-    // Mantém o e-mail lembrado e permite que o navegador preencha a senha,
-    // mas nunca entra sozinho: o usuário precisa clicar em "Entrar".
-    const email=document.getElementById('loginEmail');
-    if(email && !email.value){
-      email.value=localStorage.getItem('ead-irmen-last-email')||'';
-    }
-
-    const btn=document.getElementById('loginButton');
-    if(btn){btn.disabled=false;btn.textContent='Entrar';}
   }
+
+  role='';
+  instructorSimulationMode=false;
+  instructorSimulationRealData=null;
+  currentUserProfile=null;
+  currentPersonName='';
+  appReadyUid=null;
+  openingUserUid=null;
+  if(cloudUnsubscribe){cloudUnsubscribe();cloudUnsubscribe=null;}
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('login').classList.remove('hidden');
+
+  // Mantém o e-mail lembrado; a senha pode ser preenchida pelo navegador,
+  // mas os dados salvos nunca liberam o acesso sem clicar em "Entrar".
+  const email=document.getElementById('loginEmail');
+  if(email && !email.value){
+    email.value=localStorage.getItem('ead-irmen-last-email')||'';
+  }
+
+  const btn=document.getElementById('loginButton');
+  if(btn){btn.disabled=false;btn.textContent='Entrar';}
 })
 function go(p){
   if(p==='pop'){window.location.href='/pop.html';return;}
