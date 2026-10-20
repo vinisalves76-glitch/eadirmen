@@ -59,7 +59,7 @@
       <div id="formMessage" class="message"></div>
     </form>
   </section>
-  <section id="auditPanel" class="panel hidden"><div class="panel-head"><div><h2>Auditoria do ADM</h2><p class="muted">A aprovação publica o POP imediatamente para os mecânicos. A devolução exige justificativa.</p></div><button class="btn soft" onclick="closeAudit()">Fechar auditoria</button></div><div id="auditContent"></div></section>
+  <section id="auditPanel" class="panel hidden"><div class="panel-head"><div><h2 id="detailPanelTitle">Auditoria do ADM</h2><p id="detailPanelSubtitle" class="muted">A aprovação publica o POP imediatamente para os mecânicos. A devolução exige justificativa.</p></div><button id="detailCloseBtn" class="btn soft" onclick="closeAudit()">Fechar</button></div><div id="auditContent"></div></section>
   <section class="panel">
     <div class="panel-head"><div><h2 id="listTitle">Procedimentos</h2><p id="listSub" class="muted"></p></div><div class="toolbar"><input id="search" placeholder="Buscar POP, modelo ou categoria" style="border:1px solid #d0d5dd;border-radius:10px;padding:10px" oninput="renderList()"><button id="newPopBtn" class="btn primary hidden" onclick="startNew()">+ Criar POP</button></div></div>
     <div id="popList" class="list"></div>
@@ -231,6 +231,15 @@ async function submitPop(id){
 }
 function readPop(id){
   const p=pops.find(x=>x.id===id);if(!p)return;
+  if(profile?.perfil==='mechanic'){
+    $('detailPanelTitle').textContent='Visualização do POP';
+    $('detailPanelSubtitle').textContent='Procedimento publicado para consulta do mecânico. Esta tela não é uma auditoria.';
+    $('detailCloseBtn').textContent='Fechar POP';
+  }else if(!currentAuditId){
+    $('detailPanelTitle').textContent='Visualização do POP';
+    $('detailPanelSubtitle').textContent='Consulta do procedimento publicado.';
+    $('detailCloseBtn').textContent='Fechar';
+  }
   const steps=(p.steps||[]).map((s,i)=>'<div class="read-step"><h4>Etapa '+(i+1)+': '+esc(s.title)+'</h4>'+(s.instruction?'<p>'+esc(s.instruction)+'</p>':'')+(s.warning?'<div class="audit-box"><b>Atenção:</b> '+esc(s.warning)+'</div>':'')+(s.imageUrl?'<img loading="lazy" src="'+esc(s.imageUrl)+'" alt="Imagem da etapa '+(i+1)+'">':'')+(s.videoUrl?'<p><a href="'+esc(s.videoUrl)+'" target="_blank" rel="noopener noreferrer">Abrir vídeo da etapa</a></p>':'')+'</div>').join('');
   $('auditPanel').classList.remove('hidden');$('auditContent').innerHTML='<h2>'+esc(p.title)+'</h2><p class="muted">'+esc(p.equipment)+' • '+esc(p.model||'Modelo não especificado')+' • Revisão '+esc(p.revision||'00')+'</p><p><b>Objetivo:</b> '+esc(p.objective)+'</p>'+(p.scope?'<p><b>Aplicação:</b> '+esc(p.scope)+'</p>':'')+(p.safety?'<div class="audit-box"><b>Segurança e EPI</b><br>'+esc(p.safety)+'</div>':'')+(p.materials?'<p><b>Ferramentas e materiais:</b><br>'+esc(p.materials)+'</p>':'')+steps+((p.attachments||[]).length?'<h3>Referências</h3>'+p.attachments.map(a=>'<p><a target="_blank" rel="noopener noreferrer" href="'+esc(a.url)+'">'+esc(a.title||a.type||'Abrir material')+'</a></p>').join(''):'')+'<div class="history">Responsável: '+esc(p.ownerName||'—')+' • Publicado em: '+(p.publishedAt?new Date(p.publishedAt).toLocaleString('pt-BR'):'—')+'</div><div class="actions"><button class="btn soft" onclick="window.print()">Imprimir / salvar PDF</button></div>';
   $('auditPanel').scrollIntoView({behavior:'smooth',block:'start'});
@@ -238,7 +247,7 @@ function readPop(id){
 function openAudit(id){
   if(profile?.perfil!=='admin')return;
   const p=pops.find(x=>x.id===id);if(!p||p.status!=='pending_review')return;
-  currentAuditId=id;$('auditPanel').classList.remove('hidden');
+  currentAuditId=id;$('detailPanelTitle').textContent='Auditoria do ADM';$('detailPanelSubtitle').textContent='A aprovação publica o POP imediatamente para os mecânicos. A devolução exige justificativa.';$('detailCloseBtn').textContent='Fechar auditoria';$('auditPanel').classList.remove('hidden');
   $('auditContent').innerHTML='<h3>'+esc(p.title)+'</h3><p class="muted">'+esc(p.equipment)+' • '+esc(p.model||'Modelo não especificado')+'</p><p>'+esc(p.objective)+'</p><div class="actions"><button class="btn soft" onclick="readPop(\''+id+'\')">Revisar POP completo</button></div><div class="field" style="margin-top:14px"><label for="auditComment">Comentário da auditoria (obrigatório para devolução)</label><textarea id="auditComment" placeholder="Registre as correções necessárias ou observações da aprovação."></textarea></div><div class="actions"><button class="btn good" onclick="auditDecision(\'approve\')">Aprovar e publicar</button><button class="btn danger" onclick="auditDecision(\'return\')">Devolver para correção</button></div>';
   $('auditPanel').scrollIntoView({behavior:'smooth',block:'start'});
 }
