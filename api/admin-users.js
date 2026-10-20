@@ -157,6 +157,24 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    if (action === 'delete') {
+      if (isSelf) {
+        return res.status(400).json({ error: 'Voce nao pode excluir seu proprio usuario administrador.' });
+      }
+
+      if (!targetSnap.exists) {
+        return res.status(404).json({ error: 'O perfil deste usuario nao foi encontrado no EAD.' });
+      }
+
+      await auth.deleteUser(uid);
+      await targetRef.delete();
+
+      return res.status(200).json({
+        ok: true,
+        message: 'Usuario excluido com sucesso.'
+      });
+    }
+
     if (action === 'deactivate') {
       if (isSelf) {
         return res.status(400).json({ error: 'Voce nao pode desativar seu proprio usuario administrador.' });
